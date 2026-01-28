@@ -1,6 +1,64 @@
 <?php if (!defined('ABSPATH')) exit; ?>
-<?php $is_admin = current_user_can('إدارة_الطلاب'); ?>
+<?php
+$is_admin = current_user_can('إدارة_الطلاب');
+$import_results = get_transient('sm_import_results_' . get_current_user_id());
+if ($import_results) {
+    delete_transient('sm_import_results_' . get_current_user_id());
+}
+?>
 <div class="sm-content-wrapper" dir="rtl">
+    <?php if ($import_results): ?>
+        <div style="background: #fff; border-radius: 12px; border: 1px solid var(--sm-border-color); margin-bottom: 30px; overflow: hidden; box-shadow: var(--sm-shadow);">
+            <div style="background: var(--sm-bg-light); padding: 15px 25px; border-bottom: 1px solid var(--sm-border-color); display: flex; justify-content: space-between; align-items: center;">
+                <h4 style="margin:0; color: var(--sm-dark-color); font-weight: 800;">تقرير استيراد الطلاب الأخير</h4>
+                <span style="font-size: 12px; color: #718096;">إجمالي السجلات المعالجة: <?php echo $import_results['total']; ?></span>
+            </div>
+            <div style="padding: 25px;">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 25px;">
+                    <div style="background: #f0fff4; padding: 15px; border-radius: 8px; border: 1px solid #c6f6d5; text-align: center;">
+                        <div style="font-size: 20px; font-weight: 800; color: #2f855a;"><?php echo $import_results['success']; ?></div>
+                        <div style="font-size: 12px; color: #38a169;">تم الاستيراد بنجاح</div>
+                    </div>
+                    <div style="background: #fffaf0; padding: 15px; border-radius: 8px; border: 1px solid #feebc8; text-align: center;">
+                        <div style="font-size: 20px; font-weight: 800; color: #c05621;"><?php echo $import_results['warning']; ?></div>
+                        <div style="font-size: 12px; color: #dd6b20;">تنبيهات (بيانات ناقصة)</div>
+                    </div>
+                    <div style="background: #fff5f5; padding: 15px; border-radius: 8px; border: 1px solid #fed7d7; text-align: center;">
+                        <div style="font-size: 20px; font-weight: 800; color: #c53030;"><?php echo $import_results['error']; ?></div>
+                        <div style="font-size: 12px; color: #e53e3e;">أخطاء (فشل الاستيراد)</div>
+                    </div>
+                </div>
+
+                <?php if (!empty($import_results['details'])): ?>
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; max-height: 250px; overflow-y: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: right;">
+                            <thead>
+                                <tr style="background: #edf2f7; position: sticky; top: 0;">
+                                    <th style="padding: 10px 15px; border-bottom: 1px solid #cbd5e0; width: 80px;">النوع</th>
+                                    <th style="padding: 10px 15px; border-bottom: 1px solid #cbd5e0;">التفاصيل والسبب</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($import_results['details'] as $detail): ?>
+                                    <tr>
+                                        <td style="padding: 10px 15px; border-bottom: 1px solid #e2e8f0;">
+                                            <?php if ($detail['type'] == 'error'): ?>
+                                                <span style="color: #e53e3e; font-weight: 700;">خطأ</span>
+                                            <?php else: ?>
+                                                <span style="color: #dd6b20; font-weight: 700;">تنبيه</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td style="padding: 10px 15px; border-bottom: 1px solid #e2e8f0; color: #4a5568;"><?php echo esc_html($detail['msg']); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <div style="background: white; padding: 30px; border: 1px solid var(--sm-border-color); border-radius: var(--sm-radius); margin-bottom: 30px; box-shadow: var(--sm-shadow);">
         <form method="get" style="display: grid; grid-template-columns: 1.5fr 1fr 1fr auto; gap: 20px; align-items: end;">
             <input type="hidden" name="page" value="<?php echo esc_attr($_GET['page']); ?>">

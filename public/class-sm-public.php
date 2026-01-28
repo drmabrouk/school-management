@@ -931,34 +931,95 @@ class SM_Public {
             }
         }
 
-        // Handle CSV Upload (Students) - Configured for Excel Column Mapping (J, K, L)
+        // Handle CSV Upload (Students) - Configured for Excel Column Mapping (J, K, L) with Validation & Partial Support
         if (isset($_POST['sm_import_csv']) && wp_verify_nonce($_POST['sm_admin_nonce'], 'sm_admin_action')) {
             if (current_user_can('إدارة_الطلاب') && !empty($_FILES['csv_file']['tmp_name'])) {
+                @set_time_limit(0);
+                ini_set('auto_detect_line_endings', true);
+
+                $results = array(
+                    'total'   => 0,
+                    'success' => 0,
+                    'warning' => 0,
+                    'error'   => 0,
+                    'details' => array()
+                );
+
                 $handle = fopen($_FILES['csv_file']['tmp_name'], "r");
-                $header = fgetcsv($handle); // skip header
+
+                // Detection & Skip BOM
+                $bom = fread($handle, 3);
+                if ($bom != "\xEF\xBB\xBF") {
+                    rewind($handle);
+                }
+
+                // Skip Header
+                fgetcsv($handle);
+
+                $row_index = 2; // Starting from row 2 because of header
                 while (($data = fgetcsv($handle)) !== FALSE) {
+                    $results['total']++;
+
+                    // Attempt encoding conversion for Arabic (handles mixed encodings)
+                    foreach ($data as $k => $v) {
+                        $encoding = mb_detect_encoding($v, array('UTF-8', 'ISO-8859-6', 'ISO-8859-1'), true);
+                        if ($encoding && $encoding != 'UTF-8') {
+                            $data[$k] = mb_convert_encoding($v, 'UTF-8', $encoding);
+                        }
+                    }
+
                     // Mapping based on User Request:
                     // Column J (index 9): Student ID & Class
                     // Column K (index 10): Name (Arabic)
                     // Column L (index 11): Name (English)
-                    if (count($data) >= 11) {
-                        $student_code = trim($data[9] ?? '');
-                        $class_name   = trim($data[9] ?? '');
-                        $name_ar      = trim($data[10] ?? '');
-                        $name_en      = trim($data[11] ?? '');
 
-                        $full_display_name = $name_ar;
-                        if (!empty($name_en)) {
+                    $student_code = isset($data[9])  ? trim($data[9])  : '';
+                    $class_name   = isset($data[9])  ? trim($data[9])  : '';
+                    $name_ar      = isset($data[10]) ? trim($data[10]) : '';
+                    $name_en      = isset($data[11]) ? trim($data[11]) : '';
+
+                    $errors = array();
+                    $warnings = array();
+
+                    if (empty($name_ar) && empty($name_en)) {
+                        $errors[] = "الاسم (بالعربي أو الإنجليزي) مفقود في السطر " . $row_index;
+                    }
+
+                    if (empty($student_code)) {
+                        $warnings[] = "رقم القيد / الكود مفقود في السطر " . $row_index . " (تم الاستيراد بدون كود)";
+                    }
+
+                    if (empty($class_name)) {
+                        $warnings[] = "اسم الصف / الفصل مفقود في السطر " . $row_index;
+                    }
+
+                    if (!empty($errors)) {
+                        $results['error']++;
+                        foreach ($errors as $err) $results['details'][] = array('type' => 'error', 'msg' => $err);
+                    } else {
+                        $full_display_name = !empty($name_ar) ? $name_ar : $name_en;
+                        if (!empty($name_ar) && !empty($name_en)) {
                             $full_display_name .= " ({$name_en})";
                         }
 
-                        if (!empty($name_ar) || !empty($name_en)) {
-                            SM_DB::add_student($full_display_name, $class_name, '', $student_code);
+                        $imported_id = SM_DB::add_student($full_display_name, $class_name, '', $student_code);
+                        if ($imported_id) {
+                            $results['success']++;
+                            if (!empty($warnings)) {
+                                $results['warning']++;
+                                foreach ($warnings as $warn) $results['details'][] = array('type' => 'warning', 'msg' => $warn);
+                            }
+                        } else {
+                            $results['error']++;
+                            $results['details'][] = array('type' => 'error', 'msg' => "فشل حفظ البيانات في قاعدة البيانات للسطر " . $row_index);
                         }
                     }
+                    $row_index++;
                 }
                 fclose($handle);
-                wp_redirect(add_query_arg('sm_admin_msg', 'csv_imported', $_SERVER['REQUEST_URI']));
+
+                set_transient('sm_import_results_' . get_current_user_id(), $results, HOUR_IN_SECONDS);
+                wp_redirect(add_query_arg('sm_admin_msg', 'import_completed', $_SERVER['REQUEST_URI']));
                 exit;
             }
         }
