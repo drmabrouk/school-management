@@ -30,14 +30,17 @@ class SM_Public {
         wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js', array(), '4.4.1', true);
         wp_enqueue_script('html5-qrcode', 'https://unpkg.com/html5-qrcode', array(), '2.3.8', true);
         wp_enqueue_style($this->plugin_name, SM_PLUGIN_URL . 'assets/css/sm-public.css', array('dashicons'), $this->version, 'all');
+
         $appearance = SM_Settings::get_appearance();
         $custom_css = "
             :root {
                 --sm-primary-color: {$appearance['primary_color']};
-                --sm-font-size: {$appearance['font_size']};
+                --sm-secondary-color: {$appearance['secondary_color']};
+                --sm-accent-color: {$appearance['accent_color']};
+                --sm-dark-color: {$appearance['dark_color']};
+                --sm-radius: {$appearance['border_radius']};
             }
-            .sm-container, .sm-admin-panel { font-size: var(--sm-font-size) !important; }
-            .sm-container button, .sm-tab-btn:hover { background-color: var(--sm-primary-color) !important; }
+            .sm-admin-dashboard { font-size: {$appearance['font_size']}; }
         ";
         wp_add_inline_style($this->plugin_name, $custom_css);
     }
@@ -822,6 +825,24 @@ class SM_Public {
         // Handle Appearance Settings Save
         if (isset($_POST['sm_save_appearance']) && wp_verify_nonce($_POST['sm_admin_nonce'], 'sm_admin_action')) {
             if (current_user_can('إدارة_النظام')) {
+                SM_Settings::save_appearance(array(
+                    'primary_color' => sanitize_hex_color($_POST['primary_color']),
+                    'secondary_color' => sanitize_hex_color($_POST['secondary_color']),
+                    'accent_color' => sanitize_hex_color($_POST['accent_color']),
+                    'dark_color' => sanitize_hex_color($_POST['dark_color']),
+                    'font_size' => sanitize_text_field($_POST['font_size']),
+                    'border_radius' => sanitize_text_field($_POST['border_radius']),
+                    'table_style' => sanitize_text_field($_POST['table_style']),
+                    'button_style' => sanitize_text_field($_POST['button_style'])
+                ));
+                wp_redirect(add_query_arg('sm_admin_msg', 'settings_saved', $_SERVER['REQUEST_URI']));
+                exit;
+            }
+        }
+
+        // Handle Violation Settings Save
+        if (isset($_POST['sm_save_violation_settings']) && wp_verify_nonce($_POST['sm_admin_nonce'], 'sm_admin_action')) {
+            if (current_user_can('إدارة_النظام')) {
                 $types_raw = explode("\n", str_replace("\r", "", $_POST['violation_types']));
                 $types = array();
                 foreach ($types_raw as $line) {
@@ -833,10 +854,6 @@ class SM_Public {
                 if (!empty($types)) {
                     SM_Settings::save_violation_types($types);
                 }
-                SM_Settings::save_appearance(array(
-                    'primary_color' => sanitize_hex_color($_POST['primary_color']),
-                    'font_size' => sanitize_text_field($_POST['font_size'])
-                ));
                 SM_Settings::save_suggested_actions(array(
                     'low' => sanitize_textarea_field($_POST['suggested_low']),
                     'medium' => sanitize_textarea_field($_POST['suggested_medium']),

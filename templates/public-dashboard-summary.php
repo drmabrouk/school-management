@@ -69,7 +69,7 @@
             foreach($by_sev as $s) $total += $s->count;
             foreach ($by_sev as $s): 
                 $perc = $total > 0 ? round(($s->count / $total) * 100) : 0;
-                $color = ($s->severity ?? '') == 'high' ? '#e53e3e' : (($s->severity ?? '') == 'medium' ? '#dd6b20' : '#3182ce');
+                $color = ($s->severity ?? '') == 'high' ? '#111F35' : (($s->severity ?? '') == 'medium' ? '#D02752' : '#F63049');
             ?>
                 <div>
                     <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:0.9em;">
@@ -221,8 +221,8 @@ if ($is_power_admin): ?>
                     datasets: [{
                         label: 'المخالفات',
                         data: <?php echo json_encode(array_map(function($t){ return $t->count; }, $stats['trends'] ?? [])); ?>,
-                        borderColor: '<?php echo SM_Settings::get_appearance()['primary_color']; ?>',
-                        backgroundColor: 'rgba(0, 115, 170, 0.1)',
+                        borderColor: '#F63049',
+                        backgroundColor: 'rgba(246, 48, 73, 0.1)',
                         fill: true,
                         tension: 0.4
                     }]

@@ -93,21 +93,13 @@ class SM_Admin {
     }
 
     public function display_dashboard() {
-        $stats = SM_DB::get_statistics();
-        include SM_PLUGIN_DIR . 'templates/admin-dashboard.php';
+        $_GET['sm_tab'] = 'summary';
+        $this->display_settings();
     }
 
     public function display_record_violation() {
-        if (isset($_POST['sm_save_record'])) {
-            check_admin_referer('sm_record_action', 'sm_nonce');
-            $record_id = SM_DB::add_record($_POST);
-            if ($record_id) {
-                SM_Notifications::send_violation_alert($record_id);
-                echo '<div class="updated"><p>تم تسجيل المخالفة بنجاح.</p></div>';
-            }
-        }
-        $students = SM_DB::get_students();
-        include SM_PLUGIN_DIR . 'templates/system-form.php';
+        $_GET['sm_tab'] = 'record';
+        $this->display_settings();
     }
 
     public function display_settings() {
@@ -166,7 +158,8 @@ class SM_Admin {
     }
 
     public function display_teachers_page() {
-        include SM_PLUGIN_DIR . 'templates/admin-teachers.php';
+        $_GET['sm_tab'] = 'teachers';
+        $this->display_settings();
     }
 
     public function display_records() {
@@ -194,22 +187,12 @@ class SM_Admin {
     }
 
     public function display_students() {
-        if (isset($_POST['add_student']) && check_admin_referer('sm_add_student', 'sm_nonce')) {
-            $parent_user_id = !empty($_POST['parent_user_id']) ? intval($_POST['parent_user_id']) : null;
-            SM_DB::add_student($_POST['name'], $_POST['class'], $_POST['email'], $_POST['code'], $parent_user_id);
-            echo '<div class="updated"><p>تم إضافة الطالب بنجاح.</p></div>';
-        }
-        if (isset($_POST['delete_student']) && check_admin_referer('sm_add_student', 'sm_nonce')) {
-            SM_DB::delete_student($_POST['delete_student_id']);
-            echo '<div class="updated"><p>تم حذف الطالب بنجاح.</p></div>';
-        }
-        $students = SM_DB::get_students();
-        include SM_PLUGIN_DIR . 'templates/admin-students.php';
+        $_GET['sm_tab'] = 'students';
+        $this->display_settings();
     }
 
     public function display_reports() {
-        $stats = SM_DB::get_statistics();
-        $records = SM_DB::get_records();
-        include SM_PLUGIN_DIR . 'templates/admin-reports.php';
+        $_GET['sm_tab'] = 'reports';
+        $this->display_settings();
     }
 }

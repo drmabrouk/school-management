@@ -45,7 +45,7 @@
                     labels: [<?php if(!empty($stats['by_type'] ?? [])) foreach($stats['by_type'] as $s) echo '"'.esc_js($all_labels[$s->type] ?? ($s->type ?? '---')).'",'; ?>],
                         datasets: [{
                         data: [<?php if(!empty($stats['by_type'] ?? [])) foreach($stats['by_type'] as $s) echo ($s->count ?? 0).','; ?>],
-                            backgroundColor: ['#3182ce', '#e53e3e', '#ecc94b', '#38a169', '#805ad5']
+                            backgroundColor: ['#F63049', '#D02752', '#8A244B', '#111F35', '#718096']
                         }]
                     },
                     options: chartOptions
@@ -61,7 +61,7 @@
                     labels: [<?php if(!empty($stats['by_severity'] ?? [])) foreach($stats['by_severity'] as $s) echo '"'.esc_js($all_labels[$s->severity] ?? ($s->severity ?? '---')).'",'; ?>],
                         datasets: [{
                         data: [<?php if(!empty($stats['by_severity'] ?? [])) foreach($stats['by_severity'] as $s) echo ($s->count ?? 0).','; ?>],
-                            backgroundColor: ['#48bb78', '#f6ad55', '#f56565']
+                            backgroundColor: ['#111F35', '#D02752', '#F63049']
                         }]
                     },
                     options: chartOptions
@@ -78,7 +78,7 @@
                         datasets: [{
                             label: 'عدد المخالفات',
                         data: [<?php if(!empty($stats['top_students'] ?? [])) foreach($stats['top_students'] as $s) echo ($s->count ?? 0).','; ?>],
-                            backgroundColor: '#4a5568'
+                            backgroundColor: '#F63049'
                         }]
                     },
                     options: { ...chartOptions, scales: { y: { beginAtZero: true } } }
@@ -95,8 +95,8 @@
                         datasets: [{
                             label: 'النشاط اليومي',
                         data: [<?php if(!empty($stats['trends'] ?? [])) foreach($stats['trends'] as $s) echo ($s->count ?? 0).','; ?>],
-                            borderColor: '#3182ce',
-                            backgroundColor: 'rgba(49, 130, 206, 0.1)',
+                            borderColor: '#F63049',
+                            backgroundColor: 'rgba(246, 48, 73, 0.1)',
                             fill: true,
                             tension: 0.4
                         }]
