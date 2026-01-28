@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>بطاقات هوية الطلاب</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
     <style>
         @page { size: portrait; margin: 10mm; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f8fafc; margin: 0; padding: 20px; color: #2d3748; }
+        body { font-family: 'Rubik', sans-serif; background: #f8fafc; margin: 0; padding: 20px; color: #2d3748; }
         .cards-container { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; justify-items: center; }
         .id-card { 
             width: 85mm; height: 55mm; background: #fff; border: 1px solid #e2e8f0; 

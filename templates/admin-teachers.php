@@ -92,7 +92,7 @@
                 <?php else: ?>
                     <?php foreach ($teachers as $teacher): ?>
                         <tr>
-                            <td style="font-family: monospace; font-weight: 700; color: var(--sm-primary-color);"><?php echo esc_html(get_user_meta($teacher->ID, 'sm_teacher_id', true)); ?></td>
+                            <td style="font-family: 'Rubik', sans-serif; font-weight: 700; color: var(--sm-primary-color);"><?php echo esc_html(get_user_meta($teacher->ID, 'sm_teacher_id', true)); ?></td>
                             <td style="font-weight: 800; color: var(--sm-dark-color);"><?php echo esc_html($teacher->display_name); ?></td>
                             <td><span class="sm-badge sm-badge-low"><?php echo esc_html(get_user_meta($teacher->ID, 'sm_job_title', true)); ?></span></td>
                             <td dir="ltr" style="text-align: right;"><?php echo esc_html(get_user_meta($teacher->ID, 'sm_phone', true)); ?></td>

@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>تقرير الطالب الانضباطي - <?php echo esc_html($student->name); ?></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
     <style>
         @page { size: A4 portrait; margin: 15mm; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 0; color: #1a202c; line-height: 1.4; background: #fff; }
+        body { font-family: 'Rubik', sans-serif; padding: 0; color: #1a202c; line-height: 1.4; background: #fff; }
         .report-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #2d3748; padding-bottom: 20px; margin-bottom: 30px; }
         .student-info { display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 20px; margin-bottom: 30px; border: 1px solid #e2e8f0; padding: 20px; border-radius: 12px; align-items: center; }
         .stats-box { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }

@@ -76,6 +76,7 @@ class SM_Admin {
     }
 
     public function enqueue_styles() {
+        wp_enqueue_style('google-font-rubik', 'https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700;800;900&display=swap', array(), null);
         wp_enqueue_style($this->plugin_name, SM_PLUGIN_URL . 'assets/css/sm-admin.css', array(), $this->version, 'all');
 
         $appearance = SM_Settings::get_appearance();
@@ -86,6 +87,10 @@ class SM_Admin {
                 --sm-accent-color: {$appearance['accent_color']};
                 --sm-dark-color: {$appearance['dark_color']};
                 --sm-radius: {$appearance['border_radius']};
+            }
+            .sm-content-wrapper, .sm-admin-dashboard, .sm-container,
+            .sm-content-wrapper *, .sm-admin-dashboard *, .sm-container * {
+                font-family: 'Rubik', sans-serif !important;
             }
             .sm-content-wrapper { font-size: {$appearance['font_size']}; }
         ";
