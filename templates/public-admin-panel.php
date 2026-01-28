@@ -142,17 +142,17 @@ $school = SM_Settings::get_school_info();
 <div class="sm-admin-dashboard" dir="rtl" style="font-family: Arial, sans-serif; background: #fff; border: 1px solid var(--sm-border-color); border-radius: 12px; overflow: hidden;">
     <!-- OFFICIAL SYSTEM HEADER -->
     <div class="sm-main-header">
-        <div style="display: flex; align-items: center; gap: 25px;">
+        <div style="display: flex; align-items: center; gap: 20px;">
             <?php if ($school['school_logo']): ?>
-                <div style="background: white; padding: 5px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                    <img src="<?php echo esc_url($school['school_logo']); ?>" style="height: 45px; width: auto; object-fit: contain;">
+                <div style="background: white; padding: 3px; border: 1px solid var(--sm-border-color); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                    <img src="<?php echo esc_url($school['school_logo']); ?>" style="height: 40px; width: auto; object-fit: contain;">
                 </div>
             <?php endif; ?>
             <div>
-                <h1 style="margin:0; border: none; padding: 0; color: white; font-weight: 800; font-size: 1.4em; text-decoration: none; line-height: 1;">
+                <h1 style="margin:0; border: none; padding: 0; color: var(--sm-dark-color); font-weight: 800; font-size: 1.3em; text-decoration: none; line-height: 1;">
                     <?php echo esc_html($school['school_name']); ?>
                 </h1>
-                <div style="font-size: 0.8em; color: #cbd5e0; font-weight: 600; margin-top: 5px;">
+                <div style="font-size: 0.75em; color: var(--sm-text-gray); font-weight: 600; margin-top: 4px;">
                     <?php 
                     if ($is_admin) echo 'نظام إدارة المدرسة - لوحة الإدارة';
                     elseif (in_array('sm_parent', $roles)) echo 'بوابة ولي الأمر الإلكترونية';
@@ -162,19 +162,18 @@ $school = SM_Settings::get_school_info();
             </div>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 30px;">
-            <div class="sm-header-info-box" style="text-align: left; border-left: 1px solid rgba(255,255,255,0.1); padding-left: 20px;">
-                <div style="font-size: 0.75em; color: #a0aec0; text-transform: uppercase;"><?php echo date_i18n('l'); ?></div>
-                <div style="font-size: 0.9em; font-weight: 700;"><?php echo date_i18n('j F Y'); ?></div>
-            </div>
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <?php if ($is_admin || current_user_can('تسجيل_مخالفة')): ?>
+                <button onclick="smOpenViolationModal()" class="sm-btn" style="background: var(--sm-primary-color); height: 38px; font-size: 12px;">+ تسجيل مخالفة</button>
+            <?php endif; ?>
 
             <div class="sm-user-dropdown" style="position: relative;">
-                <div class="sm-user-profile-nav" onclick="smToggleUserDropdown()" style="display: flex; align-items: center; gap: 15px; background: rgba(255,255,255,0.05); padding: 8px 15px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">
+                <div class="sm-user-profile-nav" onclick="smToggleUserDropdown()" style="display: flex; align-items: center; gap: 12px; background: white; padding: 6px 12px; border-radius: 50px; border: 1px solid var(--sm-border-color); cursor: pointer;">
                     <div style="text-align: right;">
-                        <div style="font-size: 0.9em; font-weight: 700;"><?php echo $user->display_name; ?></div>
-                        <div style="font-size: 0.7em; color: #a0aec0;">متصل الآن <span class="dashicons dashicons-arrow-down-alt2" style="font-size: 12px; width: 12px; height: 12px;"></span></div>
+                        <div style="font-size: 0.85em; font-weight: 700; color: var(--sm-dark-color);"><?php echo $user->display_name; ?></div>
+                        <div style="font-size: 0.7em; color: #38a169;">متصل الآن <span class="dashicons dashicons-arrow-down-alt2" style="font-size: 10px; width: 10px; height: 10px;"></span></div>
                     </div>
-                    <?php echo get_avatar($user->ID, 36, '', '', array('style' => 'border-radius: 50%; border: 2px solid var(--sm-primary-color);')); ?>
+                    <?php echo get_avatar($user->ID, 32, '', '', array('style' => 'border-radius: 50%; border: 2px solid var(--sm-primary-color);')); ?>
                 </div>
                 <div id="sm-user-dropdown-menu" style="display: none; position: absolute; top: 110%; left: 0; background: white; border: 1px solid var(--sm-border-color); border-radius: 8px; width: 200px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 1000; animation: smFadeIn 0.2s ease-out;">
                     <a href="<?php echo admin_url('profile.php'); ?>" class="sm-dropdown-item"><span class="dashicons dashicons-admin-users"></span> الملف الشخصي</a>
@@ -187,10 +186,9 @@ $school = SM_Settings::get_school_info();
                 </div>
             </div>
 
-            <div style="display: flex; gap: 10px;">
-                <?php if ($is_admin || current_user_can('تسجيل_مخالفة')): ?>
-                    <button onclick="smOpenViolationModal()" class="sm-btn" style="background: var(--sm-primary-color); height: 40px; font-size: 13px;">+ تسجيل مخالفة</button>
-                <?php endif; ?>
+            <div class="sm-header-info-box" style="text-align: left; border-right: 1px solid var(--sm-border-color); padding-right: 15px;">
+                <div style="font-size: 0.7em; color: var(--sm-text-gray); text-transform: uppercase;"><?php echo date_i18n('l'); ?></div>
+                <div style="font-size: 0.85em; font-weight: 700; color: var(--sm-dark-color);"><?php echo date_i18n('j F Y'); ?></div>
             </div>
         </div>
     </div>
@@ -204,8 +202,8 @@ $school = SM_Settings::get_school_info();
                 </li>
                 
                 <?php if ($is_admin || current_user_can('تسجيل_مخالفة')): ?>
-                    <li class="sm-sidebar-item <?php echo $active_tab == 'record' ? 'sm-active' : ''; ?>">
-                        <a href="<?php echo add_query_arg('sm_tab', 'record'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-edit-page"></span> تسجيل مخالفة</a>
+                    <li class="sm-sidebar-item">
+                        <a href="javascript:smOpenViolationModal()" class="sm-sidebar-link"><span class="dashicons dashicons-edit-page"></span> تسجيل مخالفة</a>
                     </li>
                 <?php endif; ?>
 
@@ -290,9 +288,8 @@ $school = SM_Settings::get_school_info();
                     break;
 
                 case 'record':
-                    if ($is_admin || current_user_can('تسجيل_مخالفة')) {
-                        include SM_PLUGIN_DIR . 'templates/system-form.php';
-                    }
+                    // This tab is now handled by a global modal
+                    echo '<script>window.location.href="' . remove_query_arg('sm_tab') . '";</script>';
                     break;
 
                 case 'stats':

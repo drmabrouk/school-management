@@ -17,7 +17,7 @@
     --sm-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-.sm-content-wrapper, .sm-admin-dashboard {
+.sm-content-wrapper, .sm-admin-dashboard, .sm-container {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     color: var(--sm-dark-color);
 }
@@ -25,7 +25,11 @@
 .sm-admin-dashboard input,
 .sm-admin-dashboard select,
 .sm-admin-dashboard textarea,
-.sm-admin-dashboard button {
+.sm-admin-dashboard button,
+.sm-container input,
+.sm-container select,
+.sm-container textarea,
+.sm-container button {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
 }
 
@@ -82,12 +86,14 @@
     font-size: 14px;
     background: var(--sm-primary-color);
     color: white;
+    text-decoration: none;
 }
 
 .sm-btn:hover {
     opacity: 0.9;
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(246, 48, 73, 0.2);
+    color: white;
 }
 
 .sm-btn-secondary {
@@ -176,6 +182,8 @@
     margin: 0;
     color: var(--sm-dark-color);
     font-weight: 800;
+    border: none;
+    padding: 0;
 }
 
 .sm-modal-close {
@@ -213,13 +221,14 @@
 
 /* Dashboard Header */
 .sm-main-header {
-    background: var(--sm-dark-color);
-    color: white;
-    padding: 20px 40px;
+    background: var(--sm-bg-light);
+    color: var(--sm-dark-color);
+    padding: 15px 40px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     box-shadow: var(--sm-shadow);
+    border-bottom: 1px solid var(--sm-border-color);
 }
 
 /* Stat Cards */
@@ -266,4 +275,22 @@
 .sm-tab-btn.sm-active {
     color: var(--sm-primary-color);
     border-bottom-color: var(--sm-primary-color);
+}
+
+.sm-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    text-decoration: none !important;
+    color: var(--sm-dark-color) !important;
+    font-size: 13px;
+    font-weight: 600;
+    transition: 0.2s;
+}
+.sm-dropdown-item:hover { background: var(--sm-bg-light); color: var(--sm-primary-color) !important; }
+
+@keyframes smFadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
