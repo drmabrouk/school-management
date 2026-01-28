@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>إشعار مخالفة - <?php echo esc_html($record->student_name); ?></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
     <style>
         @page { size: portrait; margin: 15mm; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 0; background: #fff; line-height: 1.6; color: #2d3748; }
+        body { font-family: 'Rubik', sans-serif; padding: 0; background: #fff; line-height: 1.6; color: #2d3748; }
         .receipt { border: 2px solid #2d3748; padding: 30px; max-width: 600px; margin: 0 auto; border-radius: 15px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         .header { text-align: center; border-bottom: 3px double #2d3748; margin-bottom: 25px; padding-bottom: 15px; }
         .row { display: flex; margin-bottom: 12px; border-bottom: 1px solid #edf2f7; padding-bottom: 8px; }

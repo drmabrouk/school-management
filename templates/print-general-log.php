@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>سجل المخالفات العام</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
     <style>
         @page { size: portrait; margin: 15mm; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 0; color: #1a202c; line-height: 1.6; }
+        body { font-family: 'Rubik', sans-serif; padding: 0; color: #1a202c; line-height: 1.6; }
         .report-header { text-align: center; border-bottom: 4px double #2d3748; padding-bottom: 20px; margin-bottom: 30px; }
         table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
         th, td { border: 1px solid #e2e8f0; padding: 10px; text-align: right; }

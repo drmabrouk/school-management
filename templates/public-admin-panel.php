@@ -175,7 +175,7 @@ $active_tab = isset($_GET['sm_tab']) ? sanitize_text_field($_GET['sm_tab']) : 's
 $school = SM_Settings::get_school_info();
 ?>
 
-<div class="sm-admin-dashboard" dir="rtl" style="font-family: Arial, sans-serif; background: #fff; border: 1px solid var(--sm-border-color); border-radius: 12px; overflow: hidden;">
+<div class="sm-admin-dashboard" dir="rtl" style="font-family: 'Rubik', sans-serif; background: #fff; border: 1px solid var(--sm-border-color); border-radius: 12px; overflow: hidden;">
     <!-- OFFICIAL SYSTEM HEADER -->
     <div class="sm-main-header">
         <div style="display: flex; align-items: center; gap: 20px;">

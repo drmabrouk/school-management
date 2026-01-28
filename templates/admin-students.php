@@ -121,7 +121,7 @@
                             </td>
                             <td style="font-weight: 800; color: var(--sm-dark-color);"><?php echo esc_html($student->name); ?></td>
                             <td><span class="sm-badge sm-badge-low"><?php echo esc_html($student->class_name); ?></span></td>
-                            <td style="font-family: monospace; font-weight: 700; color: var(--sm-primary-color);"><?php echo esc_html($student->student_code); ?></td>
+                            <td style="font-family: 'Rubik', sans-serif; font-weight: 700; color: var(--sm-primary-color);"><?php echo esc_html($student->student_code); ?></td>
                             <td>
                                 <div style="display: flex; gap: 8px; justify-content: flex-end;">
                                     <button onclick='viewSmStudent(<?php echo json_encode(array(
@@ -232,7 +232,7 @@
                     </div>
                     <div class="sm-form-group">
                         <label class="sm-label">رقم القيد / الكود:</label>
-                        <input name="code" type="text" value="<?php echo 'STU' . rand(1000, 9999); ?>" class="sm-input" style="font-family:monospace; font-weight:700; color:var(--sm-primary-color);">
+                        <input name="code" type="text" value="<?php echo 'STU' . rand(1000, 9999); ?>" class="sm-input" style="font-family:'Rubik', sans-serif; font-weight:700; color:var(--sm-primary-color);">
                     </div>
                     <div class="sm-form-group">
                         <label class="sm-label">ربط بحساب ولي أمر (اختياري):</label>
