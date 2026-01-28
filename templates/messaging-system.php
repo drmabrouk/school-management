@@ -1,6 +1,6 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 30px;">
-    <!-- Conversation List / Sent Messages -->
+    <!-- قائمة المحادثات / الرسائل المرسلة -->
     <div style="background: var(--sm-bg-light); padding: 20px; border-radius: 8px; border: 1px solid var(--sm-border-color);">
         <h4 style="margin-top:0;">الرسائل المرسلة</h4>
         <div id="sent-messages-list" style="max-height: 500px; overflow-y: auto;">
@@ -22,7 +22,7 @@
         </div>
     </div>
 
-    <!-- New Message Form -->
+    <!-- نموذج رسالة جديدة -->
     <div style="background: #fff; padding: 25px; border-radius: 8px; border: 1px solid var(--sm-border-color);">
         <h4 style="margin-top:0;">إرسال رسالة جديدة</h4>
         <form id="sm-send-message-form">

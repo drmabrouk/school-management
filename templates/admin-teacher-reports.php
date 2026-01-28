@@ -10,57 +10,69 @@
         <span>هذه البلاغات تم تسجيلها بواسطة المعلمين وهي بانتظار اعتماد الإدارة أو مسؤول الانضباط لاتخاذ القرار النهائي.</span>
     </div>
 
-    <div class="sm-records-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 20px;">
-        <?php if (empty($records)): ?>
-            <div style="grid-column: 1 / -1; padding: 60px; text-align: center; background: #fff; border-radius: 12px; border: 1px solid var(--sm-border-color); color: var(--sm-text-gray);">
-                <span class="dashicons dashicons-yes-alt" style="font-size: 50px; width:50px; height:50px; margin-bottom:10px; color:#38a169;"></span>
-                <p>عمل رائع! لا توجد بلاغات معلقة حالياً.</p>
-            </div>
-        <?php else: ?>
-            <?php 
-            $type_labels = SM_Settings::get_violation_types();
-            $severity_labels = SM_Settings::get_severities();
-            foreach ($records as $row): 
-                $teacher = get_userdata($row->teacher_id);
-            ?>
-                <div class="sm-record-card" style="background: #fff; border-radius: 12px; border: 1px solid var(--sm-border-color); padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); position: relative; border-right: 6px solid #e53e3e;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-                        <div>
-                            <div style="font-weight: 800; color: var(--sm-secondary-color); font-size: 1.2em;"><?php echo esc_html($row->student_name); ?></div>
-                            <div style="font-size: 0.85em; color: #718096; margin-top: 5px;">
-                                <span class="dashicons dashicons-welcome-learn-more" style="font-size:14px;"></span> <?php echo esc_html($row->class_name); ?> | 
-                                <span class="dashicons dashicons-clock" style="font-size:14px;"></span> <?php echo date('Y-m-d H:i', strtotime($row->created_at)); ?>
-                            </div>
-                        </div>
-                        <span class="sm-badge sm-badge-<?php echo esc_attr($row->severity); ?>">
-                            <?php echo $severity_labels[$row->severity] ?? $row->severity; ?>
-                        </span>
-                    </div>
-
-                    <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #edf2f7;">
-                        <div style="margin-bottom: 8px; font-weight: 700; color: #4a5568;">
-                            <span class="dashicons dashicons-businessman" style="font-size:16px;"></span> مقدم البلاغ: 
-                            <span style="color:var(--sm-primary-color);"><?php echo $teacher ? esc_html($teacher->display_name) : 'غير معروف'; ?></span>
-                        </div>
-                        <div style="margin-bottom: 8px;"><strong>نوع المخالفة:</strong> <?php echo $type_labels[$row->type] ?? $row->type; ?></div>
-                        <div style="color: #2d3748; line-height: 1.6; font-style: italic;">"<?php echo esc_html($row->details); ?>"</div>
-                    </div>
-
-                    <div style="display: flex; gap: 10px; margin-top: 15px;">
-                        <button onclick="reviewReportDecision(<?php echo htmlspecialchars(json_encode($row)); ?>)" class="sm-btn" style="flex:2; background: var(--sm-primary-color);">اتخاذ قرار / اعتماد</button>
-                        <button onclick="updateRecordStatus(<?php echo $row->id; ?>, 'rejected')" class="sm-btn" style="flex:1; background: #e53e3e;">رفض البلاغ</button>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-        <?php endif; ?>
+    <div class="sm-table-container">
+        <table class="sm-table">
+            <thead>
+                <tr>
+                    <th>الطالب</th>
+                    <th>مقدم البلاغ</th>
+                    <th>التاريخ</th>
+                    <th>النوع</th>
+                    <th>التفاصيل</th>
+                    <th>الحدة</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($records)): ?>
+                    <tr>
+                        <td colspan="7" style="padding: 60px; text-align: center; color: var(--sm-text-gray);">
+                            <span class="dashicons dashicons-yes-alt" style="font-size: 50px; width:50px; height:50px; margin-bottom:10px; color:#38a169;"></span>
+                            <p>عمل رائع! لا توجد بلاغات معلقة حالياً.</p>
+                        </td>
+                    </tr>
+                <?php else: ?>
+                    <?php
+                    $type_labels = SM_Settings::get_violation_types();
+                    $severity_labels = SM_Settings::get_severities();
+                    foreach ($records as $row):
+                        $teacher = get_userdata($row->teacher_id);
+                    ?>
+                        <tr>
+                            <td>
+                                <div style="font-weight: 800;"><?php echo esc_html($row->student_name); ?></div>
+                                <div style="font-size: 11px; color: var(--sm-text-gray);"><?php echo esc_html($row->class_name); ?></div>
+                            </td>
+                            <td style="font-weight: 600; color: var(--sm-primary-color);">
+                                <?php echo $teacher ? esc_html($teacher->display_name) : 'غير معروف'; ?>
+                            </td>
+                            <td><?php echo date('Y-m-d H:i', strtotime($row->created_at)); ?></td>
+                            <td><?php echo $type_labels[$row->type] ?? $row->type; ?></td>
+                            <td style="max-width: 250px; font-size: 13px; color: #4a5568; font-style: italic;">"<?php echo esc_html($row->details); ?>"</td>
+                            <td>
+                                <span class="sm-badge sm-badge-<?php echo esc_attr($row->severity); ?>">
+                                    <?php echo $severity_labels[$row->severity] ?? $row->severity; ?>
+                                </span>
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                                    <button onclick="reviewReportDecision(<?php echo htmlspecialchars(json_encode($row)); ?>)" class="sm-btn sm-btn-outline" style="padding: 5px 12px; font-size: 12px;">اعتماد</button>
+                                    <button onclick="updateRecordStatus(<?php echo $row->id; ?>, 'rejected')" class="sm-btn sm-btn-outline" style="padding: 5px 12px; font-size: 12px; color: #e53e3e;">رفض</button>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
     </div>
 
     <!-- Decision Modal -->
-    <div id="decision-modal" style="display:none; position: fixed; z-index: 10000; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center;">
-        <div style="background:white; padding:40px; border-radius:16px; max-width:600px; width:90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                <h3 style="margin:0; border:none;">قرار الإدارة النهائي</h3>
-                <button onclick="document.getElementById('decision-modal').style.display='none'" style="background:#f7fafc; border:1px solid #eee; border-radius:50%; width:36px; height:36px; cursor:pointer; font-size:20px; color:#a0aec0;">&times;</button>
+    <div id="decision-modal" class="sm-modal-overlay">
+        <div class="sm-modal-content" style="max-width: 600px;">
+            <div class="sm-modal-header">
+                <h3>قرار الإدارة النهائي</h3>
+                <button class="sm-modal-close" onclick="document.getElementById('decision-modal').style.display='none'">&times;</button>
             </div>
             <form method="post" action="">
                 <?php wp_nonce_field('sm_record_action', 'sm_nonce'); ?>

@@ -58,11 +58,11 @@
 </div>
 
 <!-- New Message Modal -->
-<div id="new-msg-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:10000; align-items:center; justify-content:center;">
-    <div style="background:white; padding:40px; border-radius:12px; max-width:500px; width:90%; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
-            <h3 style="margin:0;">بدء محادثة جديدة</h3>
-            <button onclick="document.getElementById('new-msg-modal').style.display='none'" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+<div id="new-msg-modal" class="sm-modal-overlay">
+    <div class="sm-modal-content" style="max-width: 500px;">
+        <div class="sm-modal-header">
+            <h3>بدء محادثة جديدة</h3>
+            <button class="sm-modal-close" onclick="document.getElementById('new-msg-modal').style.display='none'">&times;</button>
         </div>
         <form id="new-msg-form">
             <div class="sm-form-group">
