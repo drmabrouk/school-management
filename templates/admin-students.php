@@ -117,19 +117,19 @@ if ($import_results) {
             <p style="font-size:14px; font-weight:700; margin-bottom:15px; color: var(--sm-dark-color);">يتم استيراد البيانات وفقاً لخريطة الأعمدة التالية:</p>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
                 <div style="background: #f1f5f9; padding: 10px; border-radius: 6px; text-align: center;">
-                    <div style="font-size: 11px; color: #64748b;">العمود J</div>
-                    <div style="font-weight: 800;">رقم القيد / الصف</div>
+                    <div style="font-size: 11px; color: #64748b;">العمود A</div>
+                    <div style="font-weight: 800;">الاسم الكامل للطالب</div>
                 </div>
                 <div style="background: #f1f5f9; padding: 10px; border-radius: 6px; text-align: center;">
-                    <div style="font-size: 11px; color: #64748b;">العمود K</div>
-                    <div style="font-weight: 800;">الاسم (بالعربي)</div>
+                    <div style="font-size: 11px; color: #64748b;">العمود B</div>
+                    <div style="font-weight: 800;">رقم القيد / الكود</div>
                 </div>
                 <div style="background: #f1f5f9; padding: 10px; border-radius: 6px; text-align: center;">
-                    <div style="font-size: 11px; color: #64748b;">العمود L</div>
-                    <div style="font-weight: 800;">الاسم (بالإنجليزي)</div>
+                    <div style="font-size: 11px; color: #64748b;">العمود C</div>
+                    <div style="font-weight: 800;">الصف / المرحلة</div>
                 </div>
             </div>
-            <p style="font-size:12px; color:#718096; line-height: 1.6;">يرجى التأكد من أن ملف الإكسل يحتوي على كافة سجلات الطلاب وأن البيانات مرتبة بدقة في الأعمدة المذكورة أعلاه (J, K, L) لضمان نجاح عملية الاستيراد.</p>
+            <p style="font-size:12px; color:#718096; line-height: 1.6;">يرجى التأكد من أن ملف الإكسل يحتوي على كافة سجلات الطلاب وأن البيانات مرتبة بدقة في الأعمدة المذكورة أعلاه (A, B, C) لضمان نجاح عملية الاستيراد.</p>
         </div>
 
         <form method="post" enctype="multipart/form-data">
