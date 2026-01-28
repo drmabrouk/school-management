@@ -56,11 +56,11 @@
     </div>
 
     <!-- Decision Modal -->
-    <div id="decision-modal" style="display:none; position: fixed; z-index: 10000; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center;">
-        <div style="background:white; padding:40px; border-radius:16px; max-width:600px; width:90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                <h3 style="margin:0; border:none;">قرار الإدارة النهائي</h3>
-                <button onclick="document.getElementById('decision-modal').style.display='none'" style="background:#f7fafc; border:1px solid #eee; border-radius:50%; width:36px; height:36px; cursor:pointer; font-size:20px; color:#a0aec0;">&times;</button>
+    <div id="decision-modal" class="sm-modal-overlay">
+        <div class="sm-modal-content" style="max-width: 600px;">
+            <div class="sm-modal-header">
+                <h3>قرار الإدارة النهائي</h3>
+                <button class="sm-modal-close" onclick="document.getElementById('decision-modal').style.display='none'">&times;</button>
             </div>
             <form method="post" action="">
                 <?php wp_nonce_field('sm_record_action', 'sm_nonce'); ?>
