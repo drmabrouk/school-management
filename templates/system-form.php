@@ -1,9 +1,9 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <div class="sm-form-container" dir="rtl">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid var(--sm-border-color); padding-bottom: 15px;">
-        <h3 style="margin:0; border:none; padding:0; font-size: 1.2em; font-weight: 800;">تسجيل مخالفة</h3>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px;">
+        <h3 class="sm-form-title" style="margin:0; border:none; padding:0; font-size: 1.2em; font-weight: 800; color: var(--sm-primary-color);">بيانات المخالفة الجديدة</h3>
         <div id="barcode-scanner-section">
-            <button id="start-scanner" type="button" class="sm-btn" style="width: auto; padding: 10px 20px; background: #8b0000; font-size: 13px; font-weight: 700; border-radius: 8px; border:none; color:white; cursor:pointer;"><span class="dashicons dashicons-barcode" style="vertical-align: middle; margin-left: 5px;"></span> استخدام الماسح الضوئي</button>
+            <button id="start-scanner" type="button" class="sm-btn" style="width: auto; padding: 10px 20px; background: var(--sm-dark-color); font-size: 13px; font-weight: 700;"><span class="dashicons dashicons-barcode" style="vertical-align: middle; margin-left: 5px;"></span> استخدام الماسح الضوئي</button>
         </div>
     </div>
 
@@ -87,7 +87,7 @@
             <input type="text" name="reward_penalty" class="sm-input" placeholder="تحسين السلوك سيؤدي إلى...">
         </div>
 
-        <button type="submit" id="submit-btn" class="sm-btn" style="background:#8b0000; color:white; font-weight:800; font-size:1.1em; padding:15px; border-radius:10px;">حفظ وتسجيل المخالفة الآن</button>
+        <button type="submit" id="submit-btn" class="sm-btn" style="width: 100%; height: 50px; font-weight: 800; font-size: 1.1em; border-radius: 10px;">حفظ وتسجيل المخالفة الآن</button>
     </form>
 </div>
 

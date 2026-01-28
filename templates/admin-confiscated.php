@@ -67,8 +67,10 @@
     <!-- Add Item Modal -->
     <div id="add-confiscated-modal" class="sm-modal-overlay">
         <div class="sm-modal-content" style="max-width: 600px;">
-            <button class="sm-modal-close" onclick="document.getElementById('add-confiscated-modal').style.display='none'">&times;</button>
-            <h3 style="margin:0 0 25px 0; border-bottom:1px solid #eee; padding-bottom:15px;">تسجيل مادة مصادرة جديدة</h3>
+            <div class="sm-modal-header">
+                <h3>تسجيل مادة مصادرة جديدة</h3>
+                <button class="sm-modal-close" onclick="document.getElementById('add-confiscated-modal').style.display='none'">&times;</button>
+            </div>
             <form id="add-confiscated-form">
                 <?php wp_nonce_field('sm_confiscated_action', 'nonce'); ?>
                 
@@ -116,7 +118,7 @@
                     </div>
                 </div>
 
-                <button type="submit" class="sm-btn" style="margin-top:20px; background:#8b0000; height:50px; font-size:1.1em;">تأكيد وحفظ عملية المصادرة</button>
+                <button type="submit" class="sm-btn" style="margin-top:20px; width: 100%; height:50px; font-size:1.1em;">تأكيد وحفظ عملية المصادرة</button>
             </form>
         </div>
     </div>

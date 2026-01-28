@@ -25,10 +25,16 @@ class SM_Settings {
 
     public static function get_appearance() {
         $default = array(
-            'primary_color' => '#0073aa',
-            'font_size' => '15px'
+            'primary_color' => '#F63049',
+            'secondary_color' => '#D02752',
+            'accent_color' => '#8A244B',
+            'dark_color' => '#111F35',
+            'font_size' => '15px',
+            'border_radius' => '12px',
+            'table_style' => 'modern',
+            'button_style' => 'flat'
         );
-        return get_option('sm_appearance', $default);
+        return wp_parse_args(get_option('sm_appearance', array()), $default);
     }
 
     public static function save_appearance($data) {
@@ -73,7 +79,7 @@ class SM_Settings {
             'grade_options' => "أ, ب, ج",
             'semester_start' => '',
             'semester_end' => '',
-            'academic_stages' => 'Primary, Middle, High'
+            'academic_stages' => 'ابتدائي, متوسط, ثانوي'
         );
         return get_option('sm_academic_structure', $default);
     }

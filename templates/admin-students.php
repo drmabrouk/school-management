@@ -1,17 +1,17 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <?php $is_admin = current_user_can('إدارة_الطلاب'); ?>
 <div class="sm-content-wrapper" dir="rtl">
-    <div style="background: var(--sm-bg-light); padding: 20px; border: 1px solid var(--sm-border-color); border-radius: 8px; margin-bottom: 30px;">
-        <form method="get" style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+    <div style="background: white; padding: 30px; border: 1px solid var(--sm-border-color); border-radius: var(--sm-radius); margin-bottom: 30px; box-shadow: var(--sm-shadow);">
+        <form method="get" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 20px; align-items: end;">
             <input type="hidden" name="page" value="<?php echo esc_attr($_GET['page']); ?>">
-            <div style="flex: 1; min-width: 250px;">
-                <label class="sm-label">بحث سريع:</label>
+            <div class="sm-form-group" style="margin-bottom:0;">
+                <label class="sm-label">بحث سريع عن طالب:</label>
                 <input type="text" name="student_search" class="sm-input" value="<?php echo esc_attr(isset($_GET['student_search']) ? $_GET['student_search'] : ''); ?>" placeholder="الاسم، الكود، أو الصف...">
             </div>
             
-            <div>
-                <label class="sm-label">تصفية حسب الصف:</label>
-                <select name="class_filter" class="sm-select" style="width: auto;">
+            <div class="sm-form-group" style="margin-bottom:0;">
+                <label class="sm-label">تصفية حسب الصف الدراسي:</label>
+                <select name="class_filter" class="sm-select">
                     <option value="">كل الصفوف الدراسية</option>
                     <?php 
                     global $wpdb;
@@ -22,19 +22,19 @@
                 </select>
             </div>
             
-            <div style="display: flex; gap: 10px; align-self: flex-end;">
-                <button type="submit" class="sm-btn" style="width:auto;">تطبيق الفلتر</button>
-                <a href="?page=<?php echo esc_attr($_GET['page']); ?>" class="sm-btn" style="width:auto; background:var(--sm-text-gray); text-decoration:none;">إعادة ضبط</a>
+            <div style="display: flex; gap: 10px;">
+                <button type="submit" class="sm-btn">تطبيق التصفية</button>
+                <a href="?page=<?php echo esc_attr($_GET['page']); ?>" class="sm-btn sm-btn-outline" style="text-decoration:none;">إعادة ضبط</a>
             </div>
         </form>
     </div>
 
     <?php if ($is_admin): ?>
-    <div style="display: flex; gap: 12px; margin-bottom: 25px; flex-wrap: wrap; align-items: center;">
-        <button onclick="document.getElementById('add-single-student-modal').style.display='flex'" class="sm-btn" style="width:auto; background:var(--sm-primary-color);">+ إضافة طالب جديد</button>
-        <button onclick="document.getElementById('csv-import-form').style.display='block'" class="sm-btn" style="width:auto; background:var(--sm-secondary-color);">استيراد طلاب (Excel)</button>
-        <a href="data:text/csv;charset=utf-8,<?php echo rawurlencode("الاسم,الصف,البريد,الكود\nأحمد محمد,الصف الأول,parent@example.com,STU100"); ?>" download="student_template.csv" class="sm-btn" style="width:auto; background:var(--sm-text-gray); text-decoration:none; font-size:13px; padding:10px 15px;">تحميل نموذج CSV</a>
-        <a href="<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=id_card'); ?>" target="_blank" class="sm-btn" style="width:auto; background:#27ae60; text-decoration:none;">طباعة كافة البطاقات</a>
+    <div style="display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; align-items: center;">
+        <button onclick="document.getElementById('add-single-student-modal').style.display='flex'" class="sm-btn">+ إضافة طالب جديد</button>
+        <button onclick="document.getElementById('csv-import-form').style.display='block'" class="sm-btn sm-btn-secondary">استيراد طلاب (Excel)</button>
+        <a href="data:text/csv;charset=utf-8,<?php echo rawurlencode("الاسم,الصف,البريد,الكود\nأحمد محمد,الصف الأول,parent@example.com,STU100"); ?>" download="student_template.csv" class="sm-btn sm-btn-outline" style="text-decoration:none;">تحميل نموذج CSV</a>
+        <a href="<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=id_card'); ?>" target="_blank" class="sm-btn sm-btn-accent" style="background: #27ae60; text-decoration:none;">طباعة كافة البطاقات</a>
     </div>
     <?php endif; ?>
 
@@ -76,72 +76,73 @@
         </form>
     </div>
     
-    <div class="sm-student-rows-container" style="display: flex; flex-direction: column; gap: 15px;">
-        <?php if (empty($students)): ?>
-            <div style="padding: 60px; text-align: center; background: #fff; border-radius: 12px; border: 1px solid var(--sm-border-color); color: var(--sm-text-gray);">
-                <span class="dashicons dashicons-search" style="font-size: 40px; width:40px; height:40px; margin-bottom:10px;"></span>
-                <p>لا يوجد طلاب يطابقون معايير البحث الحالية.</p>
-            </div>
-        <?php else: ?>
-            <?php foreach ($students as $student): ?>
-                <div class="sm-student-row" id="stu-row-<?php echo $student->id; ?>" style="background: #fff; border-radius: 12px; border: 1px solid var(--sm-border-color); padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; transition: all 0.3s ease;">
-                    
-                    <!-- Student Identity -->
-                    <div style="display: flex; align-items: center; gap: 20px; flex: 3;">
-                        <div style="position: relative;">
-                            <?php if ($student->photo_url): ?>
-                                <img src="<?php echo esc_url($student->photo_url); ?>" style="width: 55px; height: 55px; border-radius: 50%; object-fit: cover; border: 3px solid #edf2f7; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                            <?php else: ?>
-                                <div style="width: 55px; height: 55px; border-radius: 50%; background: #f7fafc; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #cbd5e0; border: 3px solid #edf2f7;">👤</div>
-                            <?php endif; ?>
-                        </div>
-                        <div>
-                            <div style="font-weight: 800; color: var(--sm-secondary-color); font-size: 1.15em;"><?php echo esc_html($student->name); ?></div>
-                            <div style="display: flex; gap: 15px; margin-top: 4px;">
-                                <span style="font-size: 0.85em; color: #718096; display: flex; align-items: center; gap: 5px;">
-                                    <span class="dashicons dashicons-welcome-learn-more" style="font-size: 14px; width:14px; height:14px;"></span> <?php echo esc_html($student->class_name); ?>
-                                </span>
-                                <span style="font-size: 0.85em; color: #718096; display: flex; align-items: center; gap: 5px;">
-                                    <span class="dashicons dashicons-id" style="font-size: 14px; width:14px; height:14px;"></span> <?php echo esc_html($student->student_code); ?>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+    <div class="sm-table-container">
+        <table class="sm-table">
+            <thead>
+                <tr>
+                    <th>الصورة</th>
+                    <th>اسم الطالب</th>
+                    <th>الصف الدراسي</th>
+                    <th>كود الطالب</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($students)): ?>
+                    <tr>
+                        <td colspan="5" style="padding: 60px; text-align: center; color: var(--sm-text-gray);">
+                            <span class="dashicons dashicons-search" style="font-size: 40px; width:40px; height:40px; margin-bottom:10px;"></span>
+                            <p>لا يوجد طلاب يطابقون معايير البحث الحالية.</p>
+                        </td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($students as $student): ?>
+                        <tr id="stu-row-<?php echo $student->id; ?>">
+                            <td>
+                                <?php if ($student->photo_url): ?>
+                                    <img src="<?php echo esc_url($student->photo_url); ?>" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--sm-border-color);">
+                                <?php else: ?>
+                                    <div style="width: 45px; height: 45px; border-radius: 50%; background: var(--sm-bg-light); display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--sm-text-gray);">👤</div>
+                                <?php endif; ?>
+                            </td>
+                            <td style="font-weight: 800; color: var(--sm-dark-color);"><?php echo esc_html($student->name); ?></td>
+                            <td><span class="sm-badge sm-badge-low"><?php echo esc_html($student->class_name); ?></span></td>
+                            <td style="font-family: monospace; font-weight: 700; color: var(--sm-primary-color);"><?php echo esc_html($student->student_code); ?></td>
+                            <td>
+                                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                                    <button onclick='viewSmStudent(<?php echo json_encode(array(
+                                        "id" => $student->id,
+                                        "name" => $student->name,
+                                        "student_id" => $student->student_code,
+                                        "class" => $student->class_name,
+                                        "photo" => $student->photo_url
+                                    )); ?>)' class="sm-btn sm-btn-outline" style="padding: 5px 12px; font-size: 12px;">
+                                        <span class="dashicons dashicons-visibility"></span> عرض السجل
+                                    </button>
 
-                    <!-- Actions -->
-                    <div style="flex: 2; display: flex; gap: 10px; justify-content: flex-end;">
-                        <button onclick='viewSmStudent(<?php echo json_encode(array(
-                            "id" => $student->id,
-                            "name" => $student->name,
-                            "student_id" => $student->student_code,
-                            "class" => $student->class_name,
-                            "photo" => $student->photo_url
-                        )); ?>)' class="sm-action-btn-row" style="color: #3182ce; background: #ebf8ff;">
-                            <span class="dashicons dashicons-visibility"></span> عرض السجل
-                        </button>
-                        
-                        <?php if ($is_admin): ?>
-                            <div style="width: 1px; height: 24px; background: #e2e8f0; margin: 0 5px;"></div>
-                            
-                            <button onclick='editSmStudent(<?php echo json_encode(array(
-                                "id" => $student->id,
-                                "name" => $student->name,
-                                "student_id" => $student->student_code,
-                                "class" => $student->class_name,
-                                "parent_id" => $student->parent_user_id,
-                                "parent_email" => $student->parent_email,
-                                "teacher_id" => $student->teacher_id,
-                                "photo" => $student->photo_url
-                            )); ?>)' class="sm-icon-btn-row" title="تعديل"><span class="dashicons dashicons-edit"></span></button>
-                            
-                            <a href="<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=id_card&student_id=' . $student->id); ?>" target="_blank" class="sm-icon-btn-row" title="بطاقة الهوية"><span class="dashicons dashicons-id"></span></a>
-                            
-                            <button onclick="confirmDeleteStudent(<?php echo $student->id; ?>, '<?php echo esc_js($student->name); ?>')" class="sm-icon-btn-row" style="color: #e53e3e;" title="حذف الطالب"><span class="dashicons dashicons-trash"></span></button>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-        <?php endif; ?>
+                                    <?php if ($is_admin): ?>
+                                        <button onclick='editSmStudent(<?php echo json_encode(array(
+                                            "id" => $student->id,
+                                            "name" => $student->name,
+                                            "student_id" => $student->student_code,
+                                            "class" => $student->class_name,
+                                            "parent_id" => $student->parent_user_id,
+                                            "parent_email" => $student->parent_email,
+                                            "teacher_id" => $student->teacher_id,
+                                            "photo" => $student->photo_url
+                                        )); ?>)' class="sm-btn sm-btn-outline" style="padding: 5px; min-width: 32px;" title="تعديل"><span class="dashicons dashicons-edit"></span></button>
+
+                                        <a href="<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=id_card&student_id=' . $student->id); ?>" target="_blank" class="sm-btn sm-btn-outline" style="padding: 5px; min-width: 32px;" title="بطاقة الهوية"><span class="dashicons dashicons-id"></span></a>
+
+                                        <button onclick="confirmDeleteStudent(<?php echo $student->id; ?>, '<?php echo esc_js($student->name); ?>')" class="sm-btn sm-btn-outline" style="padding: 5px; min-width: 32px; color: #e53e3e;" title="حذف الطالب"><span class="dashicons dashicons-trash"></span></button>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
     </div>
 
     <style>
@@ -189,8 +190,10 @@
     <?php if ($is_admin): ?>
     <div id="add-single-student-modal" class="sm-modal-overlay">
         <div class="sm-modal-content" style="max-width: 750px;">
-            <button class="sm-modal-close" onclick="document.getElementById('add-single-student-modal').style.display='none'">&times;</button>
-            <h3 style="margin:0 0 25px 0; border-bottom:1px solid #eee; padding-bottom:15px; font-weight:800;">تسجيل طالب جديد في النظام</h3>
+            <div class="sm-modal-header">
+                <h3>تسجيل طالب جديد في النظام</h3>
+                <button class="sm-modal-close" onclick="document.getElementById('add-single-student-modal').style.display='none'">&times;</button>
+            </div>
             <form id="add-student-form">
                 <?php wp_nonce_field('sm_add_student', 'sm_nonce'); ?>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; background:#f8fafc; padding:25px; border-radius:12px; border:1px solid #edf2f7;">
@@ -245,8 +248,10 @@
 
     <div id="edit-student-modal" class="sm-modal-overlay">
         <div class="sm-modal-content" style="max-width: 800px;">
-            <button class="sm-modal-close" onclick="document.getElementById('edit-student-modal').style.display='none'">&times;</button>
-            <h3 style="margin:0 0 25px 0; border-bottom:1px solid #eee; padding-bottom:15px; font-weight:800;">تعديل الملف المعلوماتي للطالب</h3>
+            <div class="sm-modal-header">
+                <h3>تعديل الملف المعلوماتي للطالب</h3>
+                <button class="sm-modal-close" onclick="document.getElementById('edit-student-modal').style.display='none'">&times;</button>
+            </div>
             <form id="edit-student-form">
                 <?php wp_nonce_field('sm_add_student', 'sm_nonce'); ?>
                 <input type="hidden" name="student_id" id="edit_stu_id">
@@ -303,10 +308,13 @@
     <?php endif; ?>
 
     <!-- Delete Confirmation Modal -->
-    <div id="delete-student-modal" style="display:none; position: fixed; z-index: 10001; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); align-items: center; justify-content: center;">
-        <div style="background: #fff; padding: 30px; border-radius: 12px; max-width: 400px; width: 90%; text-align: center;">
+    <div id="delete-student-modal" class="sm-modal-overlay">
+        <div class="sm-modal-content" style="max-width: 400px; text-align: center;">
+            <div class="sm-modal-header">
+                <h3>تأكيد الحذف</h3>
+                <button class="sm-modal-close" onclick="document.getElementById('delete-student-modal').style.display='none'">&times;</button>
+            </div>
             <div style="color: #e53e3e; font-size: 50px; margin-bottom: 15px;"><span class="dashicons dashicons-warning" style="font-size: 50px; width:50px; height:50px;"></span></div>
-            <h3 style="margin: 0 0 10px 0; border:none; padding:0;">تأكيد الحذف</h3>
             <p id="delete-confirm-msg">هل أنت متأكد من حذف الطالب وسجلاته بالكامل؟</p>
             <form method="post" id="delete-student-form">
                 <?php wp_nonce_field('sm_add_student', 'sm_nonce'); ?>
@@ -319,9 +327,12 @@
         </div>
     </div>
 
-    <div id="view-student-modal" style="display:none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center;">
-        <div class="sm-container" style="max-width: 800px; margin: 2% auto; max-height: 90vh; overflow-y: auto;">
-            <h3>الملف الانضباطي للطالب</h3>
+    <div id="view-student-modal" class="sm-modal-overlay">
+        <div class="sm-modal-content" style="max-width: 800px;">
+            <div class="sm-modal-header">
+                <h3>الملف الانضباطي للطالب</h3>
+                <button class="sm-modal-close" onclick="document.getElementById('view-student-modal').style.display='none'">&times;</button>
+            </div>
             <div id="stu_details_content"></div>
             <div style="margin-top: 30px; text-align: left;">
                 <button type="button" onclick="document.getElementById('view-student-modal').style.display='none'" class="sm-btn" style="width:auto; background:var(--sm-text-gray);">إغلاق الملف</button>

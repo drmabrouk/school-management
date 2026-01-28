@@ -90,8 +90,10 @@
 
     <div id="add-parent-modal" class="sm-modal-overlay">
         <div class="sm-modal-content">
-            <button class="sm-modal-close" onclick="document.getElementById('add-parent-modal').style.display='none'">&times;</button>
-            <h3 style="margin:0 0 25px 0; border-bottom:1px solid #eee; padding-bottom:15px;">إضافة ولي أمر جديد</h3>
+            <div class="sm-modal-header">
+                <h3>إضافة ولي أمر جديد</h3>
+                <button class="sm-modal-close" onclick="document.getElementById('add-parent-modal').style.display='none'">&times;</button>
+            </div>
             <form id="add-parent-form">
                 <?php wp_nonce_field('sm_user_action', 'sm_nonce'); ?>
                 <input type="hidden" name="user_role" value="sm_parent">
@@ -114,7 +116,7 @@
                     </div>
                 </div>
                 <p style="font-size:12px; color:#718096; margin-top:15px;">ملاحظة: لربط ولي الأمر بطالب، قم بتحرير بيانات الطالب من قسم "إدارة الطلاب".</p>
-                <button type="submit" class="sm-btn" style="margin-top:20px;">إنشاء الحساب الآن</button>
+                <button type="submit" class="sm-btn" style="margin-top:20px; width: 100%;">إنشاء الحساب الآن</button>
             </form>
         </div>
     </div>
@@ -139,11 +141,11 @@
         }
     })();
     </script>
-    <div id="call-in-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:10000; align-items:center; justify-content:center;">
-        <div style="background:white; padding:40px; border-radius:12px; max-width:500px; width:90%; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
-                <h3 style="margin:0; border:none; padding:0;">إرسال طلب استدعاء ولي أمر</h3>
-                <button onclick="document.getElementById('call-in-modal').style.display='none'" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+    <div id="call-in-modal" class="sm-modal-overlay">
+        <div class="sm-modal-content" style="max-width: 500px;">
+            <div class="sm-modal-header">
+                <h3>إرسال طلب استدعاء ولي أمر</h3>
+                <button class="sm-modal-close" onclick="document.getElementById('call-in-modal').style.display='none'">&times;</button>
             </div>
             <form method="post">
                 <?php wp_nonce_field('sm_message_action', 'sm_nonce'); ?>
@@ -153,7 +155,7 @@
                     <label class="sm-label">رسالة إضافية أو سبب الاستدعاء:</label>
                     <textarea name="message" class="sm-textarea" rows="4" required>نرجو منكم التكرم بزيارة مكتب الإرشاد الطلابي بالمدرسة في أقرب وقت ممكن لمناقشة أمور هامة تخص ابنكم.</textarea>
                 </div>
-                <button type="submit" name="sm_send_call_in" class="sm-btn">إرسال الطلب الآن</button>
+                <button type="submit" name="sm_send_call_in" class="sm-btn" style="width: 100%;">إرسال الطلب الآن</button>
             </form>
         </div>
     </div>
