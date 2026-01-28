@@ -84,6 +84,7 @@ class SM_Activator {
         self::seed_demo_data();
         self::create_default_pages();
         self::cleanup_legacy_pages();
+        self::migrate_old_roles();
     }
 
     private static function cleanup_legacy_pages() {
@@ -119,10 +120,12 @@ class SM_Activator {
         }
     }
 
-    private static function add_custom_roles() {
+    public static function add_custom_roles() {
         // Remove old roles to clean up duplicates and English names
         remove_role('school_admin');
         remove_role('discipline_officer');
+        remove_role('sm_school_admin');
+        remove_role('sm_discipline_officer');
         remove_role('sm_teacher');
         remove_role('sm_parent');
 
@@ -184,6 +187,21 @@ class SM_Activator {
         $parent = get_role('sm_parent');
         if ($parent) {
             $parent->add_cap($caps['view_own']);
+        }
+    }
+
+    public static function migrate_old_roles() {
+        $migration_map = array(
+            'discipline_officer' => 'sm_discipline_officer',
+            'school_admin'       => 'sm_school_admin',
+        );
+
+        foreach ($migration_map as $old_slug => $new_slug) {
+            $users = get_users(array('role' => $old_slug));
+            foreach ($users as $user) {
+                $user->remove_role($old_slug);
+                $user->add_role($new_slug);
+            }
         }
     }
 
