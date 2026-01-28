@@ -68,8 +68,8 @@
                 <tbody>
                     <tr>
                         <td style="border:1px solid #cbd5e0; padding:5px;">STU001</td>
-                        <td style="border:1px solid #cbd5e0; padding:5px;">behavior</td>
-                        <td style="border:1px solid #cbd5e0; padding:5px;">high</td>
+                        <td style="border:1px solid #cbd5e0; padding:5px;">سلوكية</td>
+                        <td style="border:1px solid #cbd5e0; padding:5px;">خطيرة</td>
                         <td style="border:1px solid #cbd5e0; padding:5px;">تعدي على الزملاء</td>
                         <td style="border:1px solid #cbd5e0; padding:5px;">فصل 3 أيام</td>
                         <td style="border:1px solid #cbd5e0; padding:5px;">حرمان من الرحلة</td>
@@ -91,9 +91,12 @@
         </form>
     </div>
 
-    <div id="edit-record-modal" style="display:none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);">
-        <div class="sm-container" style="max-width: 550px; margin: 5% auto; position: relative;">
-            <h3>تعديل بيانات المخالفة</h3>
+    <div id="edit-record-modal" class="sm-modal-overlay">
+        <div class="sm-modal-content" style="max-width: 550px;">
+            <div class="sm-modal-header">
+                <h3>تعديل بيانات المخالفة</h3>
+                <button class="sm-modal-close" onclick="document.getElementById('edit-record-modal').style.display='none'">&times;</button>
+            </div>
             <form method="post">
                 <?php wp_nonce_field('sm_record_action', 'sm_nonce'); ?>
                 <input type="hidden" name="record_id" id="edit_record_id">
@@ -131,7 +134,7 @@
                     <input type="text" name="reward_penalty" id="edit_reward_penalty" class="sm-input">
                 </div>
 
-                <div style="display:flex; gap:12px;">
+                <div style="display:flex; gap:12px; margin-top: 20px; justify-content: flex-end;">
                     <button type="submit" name="sm_update_record" class="sm-btn">حفظ التغييرات</button>
                     <button type="button" onclick="document.getElementById('edit-record-modal').style.display='none'" class="sm-btn" style="background:var(--sm-text-gray);">إلغاء</button>
                 </div>
@@ -147,7 +150,7 @@
         document.getElementById('edit_details').value = record.details;
         document.getElementById('edit_action_taken').value = record.action_taken;
         document.getElementById('edit_reward_penalty').value = record.reward_penalty;
-        document.getElementById('edit-record-modal').style.display = 'block';
+        document.getElementById('edit-record-modal').style.display = 'flex';
     }
     </script>
 
@@ -200,7 +203,7 @@
                                         <button onclick="editSmRecord(<?php echo htmlspecialchars(json_encode($row)); ?>)" class="sm-btn sm-btn-outline" style="padding: 5px;" title="تعديل"><span class="dashicons dashicons-edit"></span></button>
                                         <button onclick="confirmDeleteRecord(<?php echo $row->id; ?>)" class="sm-btn sm-btn-outline" style="padding: 5px; color:#e53e3e;" title="حذف"><span class="dashicons dashicons-trash"></span></button>
                                     <?php endif; ?>
-                                    <a href="https://wa.me/?text=<?php echo $waMsg; ?>" target="_blank" class="sm-btn sm-btn-outline" style="padding: 5px; color:#38a169;" title="WhatsApp"><span class="dashicons dashicons-whatsapp"></span></a>
+                                    <a href="https://wa.me/?text=<?php echo $waMsg; ?>" target="_blank" class="sm-btn sm-btn-outline" style="padding: 5px; color:#38a169;" title="واتساب"><span class="dashicons dashicons-whatsapp"></span></a>
                                 </div>
                                 <?php if ($row->status === 'pending' && current_user_can('إدارة_المخالفات')): ?>
                                     <div style="margin-top: 8px; display: flex; gap: 5px;">

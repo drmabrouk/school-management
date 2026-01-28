@@ -116,6 +116,7 @@ class SM_Public {
                 $args = array();
                 if (isset($_GET['student_search'])) $args['search'] = sanitize_text_field($_GET['student_search']);
                 if (isset($_GET['class_filter'])) $args['class_name'] = sanitize_text_field($_GET['class_filter']);
+                if (isset($_GET['teacher_filter']) && !empty($_GET['teacher_filter'])) $args['teacher_id'] = intval($_GET['teacher_filter']);
                 if ($is_teacher && !$is_admin) $args['teacher_id'] = $user->ID;
                 $students = SM_DB::get_students($args);
                 break;
@@ -569,6 +570,26 @@ class SM_Public {
         update_user_meta($user_id, 'sm_phone', sanitize_text_field($_POST['phone']));
 
         wp_send_json_success($user_id);
+    }
+
+    public function ajax_update_profile() {
+        if (!is_user_logged_in()) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_profile_action')) wp_send_json_error('Security check failed');
+
+        $user_id = get_current_user_id();
+        $user_data = array(
+            'ID' => $user_id,
+            'display_name' => sanitize_text_field($_POST['display_name']),
+            'user_email' => sanitize_email($_POST['user_email'])
+        );
+
+        if (!empty($_POST['user_pass'])) {
+            $user_data['user_pass'] = $_POST['user_pass'];
+        }
+
+        $result = wp_update_user($user_data);
+        if (is_wp_error($result)) wp_send_json_error($result->get_error_message());
+        else wp_send_json_success('Profile updated');
     }
 
     public function ajax_update_teacher() {

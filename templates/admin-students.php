@@ -2,17 +2,19 @@
 <?php $is_admin = current_user_can('إدارة_الطلاب'); ?>
 <div class="sm-content-wrapper" dir="rtl">
     <div style="background: white; padding: 30px; border: 1px solid var(--sm-border-color); border-radius: var(--sm-radius); margin-bottom: 30px; box-shadow: var(--sm-shadow);">
-        <form method="get" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 20px; align-items: end;">
+        <form method="get" style="display: grid; grid-template-columns: 1.5fr 1fr 1fr auto; gap: 20px; align-items: end;">
             <input type="hidden" name="page" value="<?php echo esc_attr($_GET['page']); ?>">
+            <input type="hidden" name="sm_tab" value="students">
+
             <div class="sm-form-group" style="margin-bottom:0;">
                 <label class="sm-label">بحث سريع عن طالب:</label>
                 <input type="text" name="student_search" class="sm-input" value="<?php echo esc_attr(isset($_GET['student_search']) ? $_GET['student_search'] : ''); ?>" placeholder="الاسم، الكود، أو الصف...">
             </div>
             
             <div class="sm-form-group" style="margin-bottom:0;">
-                <label class="sm-label">تصفية حسب الصف الدراسي:</label>
+                <label class="sm-label">تصفية حسب الصف:</label>
                 <select name="class_filter" class="sm-select">
-                    <option value="">كل الصفوف الدراسية</option>
+                    <option value="">كل الصفوف</option>
                     <?php 
                     global $wpdb;
                     $classes = $wpdb->get_col("SELECT DISTINCT class_name FROM {$wpdb->prefix}sm_students");
@@ -21,10 +23,22 @@
                     <?php endforeach; ?>
                 </select>
             </div>
+
+            <div class="sm-form-group" style="margin-bottom:0;">
+                <label class="sm-label">المعلم المسؤول:</label>
+                <select name="teacher_filter" class="sm-select">
+                    <option value="">كل المعلمين</option>
+                    <?php
+                    $teachers = get_users(array('role' => 'sm_teacher'));
+                    foreach ($teachers as $t): ?>
+                        <option value="<?php echo $t->ID; ?>" <?php selected(isset($_GET['teacher_filter']) && $_GET['teacher_filter'] == $t->ID); ?>><?php echo esc_html($t->display_name); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
             
             <div style="display: flex; gap: 10px;">
-                <button type="submit" class="sm-btn">تطبيق التصفية</button>
-                <a href="?page=<?php echo esc_attr($_GET['page']); ?>" class="sm-btn sm-btn-outline" style="text-decoration:none;">إعادة ضبط</a>
+                <button type="submit" class="sm-btn">تطبيق</button>
+                <a href="<?php echo add_query_arg('sm_tab', 'students', remove_query_arg(['student_search', 'class_filter', 'teacher_filter'])); ?>" class="sm-btn sm-btn-outline" style="text-decoration:none;">إعادة ضبط</a>
             </div>
         </form>
     </div>
