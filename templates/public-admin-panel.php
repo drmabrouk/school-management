@@ -113,6 +113,19 @@
     window.smCloseViolationModal = function() {
         document.getElementById('sm-global-violation-modal').style.display = 'none';
     };
+
+    window.smToggleUserDropdown = function() {
+        const menu = document.getElementById('sm-user-dropdown-menu');
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    };
+
+    document.addEventListener('click', function(e) {
+        const dropdown = document.querySelector('.sm-user-dropdown');
+        const menu = document.getElementById('sm-user-dropdown-menu');
+        if (dropdown && !dropdown.contains(e.target)) {
+            if (menu) menu.style.display = 'none';
+        }
+    });
 })(window);
 </script>
 
@@ -155,19 +168,29 @@ $school = SM_Settings::get_school_info();
                 <div style="font-size: 0.9em; font-weight: 700;"><?php echo date_i18n('j F Y'); ?></div>
             </div>
 
-            <div class="sm-user-profile-nav" style="display: flex; align-items: center; gap: 15px; background: rgba(255,255,255,0.05); padding: 8px 15px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.1);">
-                <div style="text-align: right;">
-                    <div style="font-size: 0.9em; font-weight: 700;"><?php echo $user->display_name; ?></div>
-                    <div style="font-size: 0.7em; color: #a0aec0;">متصل الآن</div>
+            <div class="sm-user-dropdown" style="position: relative;">
+                <div class="sm-user-profile-nav" onclick="smToggleUserDropdown()" style="display: flex; align-items: center; gap: 15px; background: rgba(255,255,255,0.05); padding: 8px 15px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.9em; font-weight: 700;"><?php echo $user->display_name; ?></div>
+                        <div style="font-size: 0.7em; color: #a0aec0;">متصل الآن <span class="dashicons dashicons-arrow-down-alt2" style="font-size: 12px; width: 12px; height: 12px;"></span></div>
+                    </div>
+                    <?php echo get_avatar($user->ID, 36, '', '', array('style' => 'border-radius: 50%; border: 2px solid var(--sm-primary-color);')); ?>
                 </div>
-                <?php echo get_avatar($user->ID, 36, '', '', array('style' => 'border-radius: 50%; border: 2px solid var(--sm-primary-color);')); ?>
+                <div id="sm-user-dropdown-menu" style="display: none; position: absolute; top: 110%; left: 0; background: white; border: 1px solid var(--sm-border-color); border-radius: 8px; width: 200px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 1000; animation: smFadeIn 0.2s ease-out;">
+                    <a href="<?php echo admin_url('profile.php'); ?>" class="sm-dropdown-item"><span class="dashicons dashicons-admin-users"></span> الملف الشخصي</a>
+                    <?php if ($is_admin): ?>
+                        <a href="<?php echo add_query_arg('sm_tab', 'global-settings'); ?>" class="sm-dropdown-item"><span class="dashicons dashicons-admin-generic"></span> الإعدادات العامة</a>
+                    <?php endif; ?>
+                    <a href="javascript:location.reload()" class="sm-dropdown-item"><span class="dashicons dashicons-update"></span> تحديث الصفحة</a>
+                    <hr style="margin: 5px 0; border: none; border-top: 1px solid #eee;">
+                    <a href="<?php echo wp_logout_url(home_url('/sm-login')); ?>" class="sm-dropdown-item" style="color: #e53e3e;"><span class="dashicons dashicons-logout"></span> تسجيل الخروج</a>
+                </div>
             </div>
 
             <div style="display: flex; gap: 10px;">
                 <?php if ($is_admin || current_user_can('تسجيل_مخالفة')): ?>
                     <button onclick="smOpenViolationModal()" class="sm-btn" style="background: var(--sm-primary-color); height: 40px; font-size: 13px;">+ تسجيل مخالفة</button>
                 <?php endif; ?>
-                <a href="<?php echo wp_logout_url(home_url('/sm-login')); ?>" class="sm-btn" style="background: rgba(255,255,255,0.1); color: white; height: 40px; font-size: 13px; text-decoration: none;">خروج</a>
             </div>
         </div>
     </div>
@@ -509,6 +532,24 @@ $school = SM_Settings::get_school_info();
 .sm-sidebar-badge {
     position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
     background: #e53e3e; color: white; border-radius: 20px; padding: 2px 8px; font-size: 10px; font-weight: 800;
+}
+
+.sm-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    text-decoration: none !important;
+    color: var(--sm-dark-color) !important;
+    font-size: 13px;
+    font-weight: 600;
+    transition: 0.2s;
+}
+.sm-dropdown-item:hover { background: var(--sm-bg-light); color: var(--sm-primary-color) !important; }
+
+@keyframes smFadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* FORCE VISIBILITY FOR PANELS */

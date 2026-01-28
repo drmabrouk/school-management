@@ -58,8 +58,8 @@
                 <thead>
                     <tr style="background:#edf2f7;">
                         <th style="border:1px solid #cbd5e0; padding:5px;">كود الطالب</th>
-                        <th style="border:1px solid #cbd5e0; padding:5px;">النوع (behavior/absent/late)</th>
-                        <th style="border:1px solid #cbd5e0; padding:5px;">الحدة (low/medium/high)</th>
+                        <th style="border:1px solid #cbd5e0; padding:5px;">النوع (سلوك/غياب/تأخر)</th>
+                        <th style="border:1px solid #cbd5e0; padding:5px;">الحدة (منخفضة/متوسطة/خطيرة)</th>
                         <th style="border:1px solid #cbd5e0; padding:5px;">التفاصيل</th>
                         <th style="border:1px solid #cbd5e0; padding:5px;">الإجراء المتخذ</th>
                         <th style="border:1px solid #cbd5e0; padding:5px;">المكافأة/العقوبة</th>

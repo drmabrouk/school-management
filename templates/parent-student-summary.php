@@ -68,7 +68,7 @@
                 labels: [<?php foreach($stats['by_type'] as $st) echo "'" . (isset($types[$st->type]) ? $types[$st->type] : $st->type) . "',"; ?>],
                 datasets: [{
                     data: [<?php foreach($stats['by_type'] as $st) echo $st->count . ","; ?>],
-                    backgroundColor: ['#3498db', '#e74c3c', '#f1c40f', '#2ecc71', '#9b59b6', '#1abc9c']
+                    backgroundColor: ['#F63049', '#D02752', '#8A244B', '#111F35', '#718096']
                 }]
             },
             options: {

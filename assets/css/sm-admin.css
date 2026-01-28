@@ -17,9 +17,16 @@
     --sm-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-.sm-content-wrapper {
+.sm-content-wrapper, .sm-admin-dashboard {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     color: var(--sm-dark-color);
+}
+
+.sm-admin-dashboard input,
+.sm-admin-dashboard select,
+.sm-admin-dashboard textarea,
+.sm-admin-dashboard button {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
 }
 
 /* Unified Table Design */
@@ -213,4 +220,50 @@
     justify-content: space-between;
     align-items: center;
     box-shadow: var(--sm-shadow);
+}
+
+/* Stat Cards */
+.sm-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 25px;
+}
+.sm-stat-card {
+    background: #fff;
+    padding: 25px;
+    border-radius: var(--sm-radius);
+    border: 1px solid var(--sm-border-color);
+    box-shadow: var(--sm-shadow);
+    text-align: center;
+}
+
+/* Tabs */
+.sm-tabs-wrapper {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 30px;
+    border-bottom: 2px solid var(--sm-border-color);
+    padding: 0 10px;
+}
+
+.sm-tab-btn {
+    padding: 12px 25px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-weight: 700;
+    color: var(--sm-text-gray);
+    border-bottom: 3px solid transparent;
+    transition: 0.2s;
+    font-size: 14px;
+}
+
+.sm-tab-btn:hover {
+    color: var(--sm-primary-color);
+    background: var(--sm-pastel-red);
+}
+
+.sm-tab-btn.sm-active {
+    color: var(--sm-primary-color);
+    border-bottom-color: var(--sm-primary-color);
 }

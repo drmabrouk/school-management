@@ -27,7 +27,21 @@
                         </div>
                     </td>
                     <td><?php echo esc_html($u->user_email); ?></td>
-                    <td><span class="sm-badge sm-badge-low"><?php echo implode(', ', $u->roles); ?></span></td>
+                    <td>
+                        <span class="sm-badge sm-badge-low">
+                            <?php
+                            $role_map = array(
+                                'administrator' => 'مدير النظام',
+                                'sm_school_admin' => 'مدير مدرسة',
+                                'sm_discipline_officer' => 'مسؤول انضباط',
+                                'sm_teacher' => 'معلم',
+                                'sm_parent' => 'ولي أمر'
+                            );
+                            $display_roles = array_map(function($r) use ($role_map) { return $role_map[$r] ?? $r; }, $u->roles);
+                            echo implode(', ', $display_roles);
+                            ?>
+                        </span>
+                    </td>
                     <td>
                         <div style="display:flex; gap:8px;">
                             <button onclick='editSmGenericUser(<?php echo json_encode(array("id"=>$u->ID, "name"=>$u->display_name, "email"=>$u->user_email, "login"=>$u->user_login, "role"=>$u->roles[0])); ?>)' class="sm-btn" style="background:#edf2f7; color:#2d3748; padding:5px 10px; width:auto; font-size:11px;">تعديل</button>

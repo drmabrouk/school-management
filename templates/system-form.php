@@ -161,7 +161,10 @@ document.getElementById('student_unified_search').addEventListener('input', func
                 } else {
                     results.forEach(s => {
                         const div = document.createElement('div');
-                        div.style = "padding:12px 15px; border-bottom:1px solid #eee; cursor:pointer; display:flex; align-items:center; gap:10px;";
+                        div.className = 'sm-search-result-item';
+                        div.style = "padding:12px 15px; border-bottom:1px solid #eee; cursor:pointer; display:flex; align-items:center; gap:10px; transition: background 0.2s;";
+                        div.onmouseover = () => div.style.background = '#f8fafc';
+                        div.onmouseout = () => div.style.background = '#fff';
                         div.innerHTML = `
                             ${s.photo_url ? `<img src="${s.photo_url}" style="width:30px; height:30px; border-radius:50%; object-fit:cover;">` : '<span class="dashicons dashicons-admin-users"></span>'}
                             <div>
