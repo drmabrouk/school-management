@@ -143,7 +143,12 @@
         }
 
         window.markReturned = function(id) {
-            if (!confirm('تأكيد إعادة المادة للطالب؟')) return;
+            document.getElementById('return-confirm-item-id').value = id;
+            document.getElementById('return-confirmation-modal').style.display = 'flex';
+        };
+
+        window.confirmReturnAction = function() {
+            const id = document.getElementById('return-confirm-item-id').value;
             const formData = new FormData();
             formData.append('action', 'sm_update_confiscated_ajax');
             formData.append('item_id', id);
@@ -154,11 +159,29 @@
             .then(r => r.json())
             .then(res => {
                 if (res.success) {
-                    smShowNotification('تم تحديث الحالة: تمت الإعادة');
+                    smShowNotification('تم تحديث الحالة: تمت الإعادة بنجاح');
                     setTimeout(() => location.reload(), 500);
                 }
             });
         };
     })();
     </script>
+
+    <!-- Return Confirmation Modal -->
+    <div id="return-confirmation-modal" class="sm-modal-overlay">
+        <div class="sm-modal-content" style="max-width: 400px; text-align: center;">
+            <div style="color: #38a169; font-size: 48px; margin-bottom: 20px;">
+                <span class="dashicons dashicons-external" style="font-size: 48px; width: 48px; height: 48px;"></span>
+            </div>
+            <h3 style="margin: 0 0 15px 0; border: none; font-weight: 800;">تأكيد تسليم العهدة</h3>
+            <p style="color: #4A5568; font-size: 14px; margin-bottom: 25px;">هل تم التأكد من تسليم المادة المصادرة للطالب أو ولي أمره بشكل رسمي؟</p>
+
+            <input type="hidden" id="return-confirm-item-id">
+
+            <div style="display: flex; gap: 12px;">
+                <button onclick="confirmReturnAction()" class="sm-btn" style="flex: 1; background: #38a169;">نعم، تم التسليم</button>
+                <button onclick="document.getElementById('return-confirmation-modal').style.display='none'" class="sm-btn" style="flex: 1; background: #EDF2F7; color: #4A5568 !important;">إلغاء</button>
+            </div>
+        </div>
+    </div>
 </div>

@@ -88,14 +88,16 @@
                         <?php endif; ?>
                     </div>
 
-                    <div style="flex: 1; display: flex; gap: 10px; justify-content: flex-end;">
-                        <button onclick="requestCallIn(<?php echo $parent->ID; ?>, '<?php echo esc_js($parent->display_name); ?>')" class="sm-action-btn-row" style="background: #ebf8ff; color: #3182ce; border:none; padding: 8px 15px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 12px; white-space: nowrap;">
-                            <span class="dashicons dashicons-email-alt" style="font-size:14px; margin-left:5px;"></span> طلب لقاء
+                    <div style="flex: 1; display: flex; gap: 12px; justify-content: flex-end;">
+                        <button onclick="requestCallIn(<?php echo $parent->ID; ?>, '<?php echo esc_js($parent->display_name); ?>')" class="sm-btn" style="background: #F8FAFC; color: #3182CE !important; border: 1px solid #BEE3F8; padding: 6px 15px; font-size: 11px; width: auto; font-weight: 800; box-shadow: none;">
+                            <span class="dashicons dashicons-calendar-alt" style="font-size:14px; margin-left:5px;"></span> طلب استدعاء
                         </button>
-                        <form method="post" style="display:inline;" onsubmit="return confirm('حذف حساب ولي الأمر؟')">
+                        <form method="post" style="display:inline;" onsubmit="return confirm('هل أنت متأكد من حذف حساب ولي الأمر بالكامل؟')">
                             <?php wp_nonce_field('sm_user_action', 'sm_nonce'); ?>
                             <input type="hidden" name="delete_user_id" value="<?php echo $parent->ID; ?>">
-                            <button type="submit" name="sm_delete_user" class="sm-icon-btn-row" style="color: #e53e3e;" title="حذف الحساب"><span class="dashicons dashicons-trash"></span></button>
+                            <button type="submit" name="sm_delete_user" class="sm-btn" style="background: #FFF5F5; color: #E53E3E !important; border: 1px solid #FED7D7; padding: 6px 15px; font-size: 11px; width: auto; font-weight: 800; box-shadow: none;">
+                                <span class="dashicons dashicons-trash" style="font-size:14px; margin-left:5px;"></span> حذف
+                            </button>
                         </form>
                     </div>
                 </div>

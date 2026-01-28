@@ -8,11 +8,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
     <style>
         @page { size: A4 portrait; margin: 15mm; }
-        body { font-family: 'Rubik', sans-serif; padding: 0; color: #1a202c; line-height: 1.4; background: #fff; }
-        .report-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #2d3748; padding-bottom: 20px; margin-bottom: 30px; }
-        .student-info { display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 20px; margin-bottom: 30px; border: 1px solid #e2e8f0; padding: 20px; border-radius: 12px; align-items: center; }
-        .stats-box { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
-        .stat-item { border: 1px solid #e2e8f0; padding: 15px; text-align: center; border-radius: 10px; background: #fff; }
+        body { font-family: 'Rubik', sans-serif; padding: 0; color: #1a202c; line-height: 1.6; background: #fff; }
+        .report-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #111F35; padding-bottom: 15px; margin-bottom: 30px; }
+        .student-info { display: grid; grid-template-columns: auto 1fr auto; gap: 30px; margin-bottom: 40px; border: 1px solid #E2E8F0; padding: 25px; border-radius: 12px; align-items: center; background: #F8FAFC; }
+        .stats-box { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 40px; }
+        .stat-item { border: 1px solid #E2E8F0; padding: 20px; text-align: center; border-radius: 12px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         .stat-item h4 { margin: 0 0 8px 0; color: #4a5568; font-size: 0.9em; text-transform: uppercase; }
         .stat-item span { font-size: 1.8em; font-weight: 800; color: #2d3748; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; }
@@ -42,20 +42,21 @@
     <?php if (!empty($print_settings['header'])): ?>
         <div class="custom-print-header"><?php echo $print_settings['header']; ?></div>
     <?php else: ?>
-        <div class="report-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="report-header">
             <div style="text-align: right; flex: 1;">
-                <h2 style="margin: 0; color: #0073aa;"><?php echo esc_html($school['school_name']); ?></h2>
-                <p style="margin: 5px 0; font-size: 14px;"><?php echo esc_html($school['address']); ?></p>
-                <p style="margin: 5px 0; font-size: 14px;"><?php echo esc_html($school['phone']); ?></p>
+                <h2 style="margin: 0; color: #111F35; font-weight: 900;"><?php echo esc_html($school['school_name']); ?></h2>
+                <p style="margin: 5px 0; font-size: 13px; font-weight: 600; color: #4A5568;">وزارة التعليم - إدارة الانضباط المدرسي</p>
+                <p style="margin: 2px 0; font-size: 12px; color: #718096;"><?php echo esc_html($school['address']); ?></p>
             </div>
             <div style="flex: 1; text-align: center;">
                 <?php if ($school['school_logo']): ?>
-                    <img src="<?php echo esc_url($school['school_logo']); ?>" style="max-height: 80px;">
+                    <img src="<?php echo esc_url($school['school_logo']); ?>" style="max-height: 90px; object-fit: contain;">
                 <?php endif; ?>
             </div>
             <div style="text-align: left; flex: 1;">
-                <h3 style="margin: 0;">سجل السلوك والانضباط</h3>
-                <p style="margin: 5px 0; font-size: 14px;">تاريخ الصدور: <?php echo date('Y-m-d'); ?></p>
+                <h3 style="margin: 0; color: #F63049; font-weight: 800;">التقرير الانضباطي الرسمي</h3>
+                <p style="margin: 5px 0; font-size: 12px; color: #718096;">الرقم المرجعي: <?php echo 'REP-' . date('Ym') . '-' . $student->id; ?></p>
+                <p style="margin: 2px 0; font-size: 12px; color: #718096;">تاريخ الطباعة: <?php echo date('Y/m/d'); ?></p>
             </div>
         </div>
     <?php endif; ?>
@@ -63,21 +64,23 @@
     <div class="student-info">
         <div style="text-align: center;">
             <?php if ($student->photo_url): ?>
-                <img src="<?php echo esc_url($student->photo_url); ?>" style="width: 100px; height: 100px; border-radius: 8px; object-fit: cover; border: 2px solid #edf2f7;">
+                <img src="<?php echo esc_url($student->photo_url); ?>" style="width: 110px; height: 110px; border-radius: 12px; object-fit: cover; border: 3px solid #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
             <?php else: ?>
-                <div style="width: 100px; height: 100px; border-radius: 8px; background: #f7fafc; display: flex; align-items: center; justify-content: center; font-size: 40px; border: 2px solid #edf2f7;">👤</div>
+                <div style="width: 110px; height: 110px; border-radius: 12px; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 50px; border: 3px solid #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.1); color: #CBD5E0;">👤</div>
             <?php endif; ?>
         </div>
-        <div>
-            <h2 style="margin:0 0 10px 0; color:#2d3748; border:none; padding:0;"><?php echo esc_html($student->name); ?></h2>
-            <table style="margin:0; font-size: 13px;">
-                <tr><td style="border:none; padding:2px 0;"><strong>الصف الدراسي:</strong></td><td style="border:none; padding:2px 10px;"><?php echo esc_html($student->class_name); ?></td></tr>
-                <tr><td style="border:none; padding:2px 0;"><strong>الرقم الأكاديمي:</strong></td><td style="border:none; padding:2px 10px;"><?php echo esc_html($student->student_code); ?></td></tr>
-            </table>
+        <div style="padding-right: 20px;">
+            <h2 style="margin:0 0 15px 0; color:#111F35; border:none; padding:0; font-size: 24px; font-weight: 800;"><?php echo esc_html($student->name); ?></h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div><span style="color: #718096; font-size: 12px; display: block;">الصف الدراسي</span><strong style="color: #2D3748;"><?php echo esc_html($student->class_name); ?></strong></div>
+                <div><span style="color: #718096; font-size: 12px; display: block;">الرقم الأكاديمي</span><strong style="color: #2D3748; font-family: sans-serif;"><?php echo esc_html($student->student_code); ?></strong></div>
+            </div>
         </div>
-        <div style="text-align: left;">
-            <p style="margin:0; font-size:12px;">تاريخ الصدور: <?php echo date('Y-m-d'); ?></p>
-            <p style="margin:5px 0 0 0; font-size:12px;">وقت الطباعة: <?php echo date('H:i'); ?></p>
+        <div style="text-align: center; border-right: 1px solid #CBD5E0; padding-right: 30px;">
+            <div style="background: #111F35; color: #fff; padding: 10px 20px; border-radius: 8px;">
+                <div style="font-size: 10px; opacity: 0.8;">إجمالي النقاط المسجلة</div>
+                <div style="font-size: 24px; font-weight: 900;"><?php echo count($records); ?></div>
+            </div>
         </div>
     </div>
 
@@ -133,16 +136,18 @@
         </tbody>
     </table>
 
-    <div style="margin-top: 50px; display: flex; justify-content: space-between;">
-        <div style="text-align: center;">
-            <p>توقيع المشرف التربوي</p>
-            <br><br>
-            <p>..........................</p>
+    <div style="margin-top: 60px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 30px; text-align: center;">
+        <div>
+            <p style="font-weight: 700; margin-bottom: 40px; color: #4A5568;">توقيع رائد الفصل</p>
+            <div style="border-bottom: 1px dashed #718096; width: 150px; margin: 0 auto;"></div>
         </div>
-        <div style="text-align: center;">
-            <p>ختم الإدارة</p>
-            <br><br>
-            <p>..........................</p>
+        <div>
+            <p style="font-weight: 700; margin-bottom: 40px; color: #4A5568;">توقيع المشرف التربوي</p>
+            <div style="border-bottom: 1px dashed #718096; width: 150px; margin: 0 auto;"></div>
+        </div>
+        <div>
+            <p style="font-weight: 700; margin-bottom: 40px; color: #4A5568;">مصادقة مدير المدرسة</p>
+            <div style="border-bottom: 1px dashed #718096; width: 150px; margin: 0 auto;"></div>
         </div>
     </div>
     <?php if (!empty($print_settings['footer'])): ?>

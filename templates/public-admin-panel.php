@@ -173,6 +173,10 @@ $is_parent = in_array('sm_parent', $roles);
 $is_teacher = in_array('sm_teacher', $roles);
 $active_tab = isset($_GET['sm_tab']) ? sanitize_text_field($_GET['sm_tab']) : 'summary';
 $school = SM_Settings::get_school_info();
+
+// Dynamic Greeting logic
+$hour = (int)current_time('G');
+$greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء الخير';
 ?>
 
 <div class="sm-admin-dashboard" dir="rtl" style="font-family: 'Rubik', sans-serif; background: #fff; border: 1px solid var(--sm-border-color); border-radius: 12px; overflow: hidden;">
@@ -190,9 +194,12 @@ $school = SM_Settings::get_school_info();
                 </h1>
                 <div style="font-size: 0.75em; color: var(--sm-text-gray); font-weight: 600; margin-top: 4px;">
                     <?php 
-                    if ($is_admin) echo 'نظام إدارة المدرسة - لوحة الإدارة';
-                    elseif (in_array('sm_parent', $roles)) echo 'بوابة ولي الأمر الإلكترونية';
-                    else echo 'نظام الإدارة المدرسية الشامل';
+                    if ($is_admin) echo 'مدير النظام';
+                    elseif (in_array('sm_school_admin', $roles)) echo 'مدير المدرسة';
+                    elseif (in_array('sm_discipline_officer', $roles)) echo 'وكيل شؤون الطلاب';
+                    elseif (in_array('sm_teacher', $roles)) echo 'معلم';
+                    elseif (in_array('sm_parent', $roles)) echo 'ولي أمر';
+                    else echo 'مستخدم النظام';
                     ?>
                 </div>
             </div>
@@ -200,13 +207,13 @@ $school = SM_Settings::get_school_info();
 
         <div style="display: flex; align-items: center; gap: 20px;">
             <?php if ($is_admin || current_user_can('تسجيل_مخالفة')): ?>
-                <button onclick="smOpenViolationModal()" class="sm-btn" style="background: var(--sm-primary-color); height: 38px; font-size: 12px;">+ تسجيل مخالفة</button>
+                <button onclick="smOpenViolationModal()" class="sm-btn" style="background: var(--sm-primary-color); height: 38px; font-size: 12px; color: white !important;">+ تسجيل مخالفة</button>
             <?php endif; ?>
 
             <div class="sm-user-dropdown" style="position: relative;">
                 <div class="sm-user-profile-nav" onclick="smToggleUserDropdown()" style="display: flex; align-items: center; gap: 12px; background: white; padding: 6px 12px; border-radius: 50px; border: 1px solid var(--sm-border-color); cursor: pointer;">
                     <div style="text-align: right;">
-                        <div style="font-size: 0.85em; font-weight: 700; color: var(--sm-dark-color);"><?php echo $user->display_name; ?></div>
+                        <div style="font-size: 0.85em; font-weight: 700; color: var(--sm-dark-color);"><?php echo $greeting . '، ' . $user->display_name; ?></div>
                         <div style="font-size: 0.7em; color: #38a169;">متصل الآن <span class="dashicons dashicons-arrow-down-alt2" style="font-size: 10px; width: 10px; height: 10px;"></span></div>
                     </div>
                     <?php echo get_avatar($user->ID, 32, '', '', array('style' => 'border-radius: 50%; border: 2px solid var(--sm-primary-color);')); ?>
@@ -250,8 +257,7 @@ $school = SM_Settings::get_school_info();
             </div>
 
             <div class="sm-header-info-box" style="text-align: left; border-right: 1px solid var(--sm-border-color); padding-right: 15px;">
-                <div style="font-size: 0.7em; color: var(--sm-text-gray); text-transform: uppercase;"><?php echo date_i18n('l'); ?></div>
-                <div style="font-size: 0.85em; font-weight: 700; color: var(--sm-dark-color);"><?php echo date_i18n('j F Y'); ?></div>
+                <div style="font-size: 0.85em; font-weight: 700; color: var(--sm-dark-color);"><?php echo date_i18n('l j F Y'); ?></div>
             </div>
         </div>
     </div>
@@ -263,12 +269,6 @@ $school = SM_Settings::get_school_info();
                 <li class="sm-sidebar-item <?php echo $active_tab == 'summary' ? 'sm-active' : ''; ?>">
                     <a href="<?php echo add_query_arg('sm_tab', 'summary'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-dashboard"></span> لوحة المعلومات</a>
                 </li>
-                
-                <?php if ($is_admin || current_user_can('تسجيل_مخالفة')): ?>
-                    <li class="sm-sidebar-item">
-                        <a href="javascript:smOpenViolationModal()" class="sm-sidebar-link"><span class="dashicons dashicons-edit-page"></span> تسجيل مخالفة</a>
-                    </li>
-                <?php endif; ?>
 
                 <?php if ($is_admin || current_user_can('إدارة_المخالفات') || $is_parent): ?>
                     <li class="sm-sidebar-item <?php echo $active_tab == 'stats' ? 'sm-active' : ''; ?>">
