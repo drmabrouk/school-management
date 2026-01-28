@@ -116,7 +116,43 @@
 
     window.smToggleUserDropdown = function() {
         const menu = document.getElementById('sm-user-dropdown-menu');
-        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        if (menu.style.display === 'none') {
+            menu.style.display = 'block';
+            document.getElementById('sm-profile-view').style.display = 'block';
+            document.getElementById('sm-profile-edit').style.display = 'none';
+        } else {
+            menu.style.display = 'none';
+        }
+    };
+
+    window.smEditProfile = function() {
+        document.getElementById('sm-profile-view').style.display = 'none';
+        document.getElementById('sm-profile-edit').style.display = 'block';
+    };
+
+    window.smSaveProfile = function() {
+        const name = document.getElementById('sm_edit_display_name').value;
+        const email = document.getElementById('sm_edit_user_email').value;
+        const pass = document.getElementById('sm_edit_user_pass').value;
+        const nonce = '<?php echo wp_create_nonce("sm_profile_action"); ?>';
+
+        const formData = new FormData();
+        formData.append('action', 'sm_update_profile_ajax');
+        formData.append('display_name', name);
+        formData.append('user_email', email);
+        formData.append('user_pass', pass);
+        formData.append('nonce', nonce);
+
+        fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                smShowNotification('تم تحديث الملف الشخصي بنجاح');
+                setTimeout(() => location.reload(), 500);
+            } else {
+                smShowNotification('خطأ: ' + res.data, true);
+            }
+        });
     };
 
     document.addEventListener('click', function(e) {
@@ -175,12 +211,39 @@ $school = SM_Settings::get_school_info();
                     </div>
                     <?php echo get_avatar($user->ID, 32, '', '', array('style' => 'border-radius: 50%; border: 2px solid var(--sm-primary-color);')); ?>
                 </div>
-                <div id="sm-user-dropdown-menu" style="display: none; position: absolute; top: 110%; left: 0; background: white; border: 1px solid var(--sm-border-color); border-radius: 8px; width: 200px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 1000; animation: smFadeIn 0.2s ease-out;">
-                    <a href="<?php echo admin_url('profile.php'); ?>" class="sm-dropdown-item"><span class="dashicons dashicons-admin-users"></span> الملف الشخصي</a>
-                    <?php if ($is_admin): ?>
-                        <a href="<?php echo add_query_arg('sm_tab', 'global-settings'); ?>" class="sm-dropdown-item"><span class="dashicons dashicons-admin-generic"></span> الإعدادات العامة</a>
-                    <?php endif; ?>
-                    <a href="javascript:location.reload()" class="sm-dropdown-item"><span class="dashicons dashicons-update"></span> تحديث الصفحة</a>
+                <div id="sm-user-dropdown-menu" style="display: none; position: absolute; top: 110%; left: 0; background: white; border: 1px solid var(--sm-border-color); border-radius: 8px; width: 260px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 1000; animation: smFadeIn 0.2s ease-out; padding: 10px 0;">
+                    <div id="sm-profile-view">
+                        <div style="padding: 10px 20px; border-bottom: 1px solid #f0f0f0; margin-bottom: 5px;">
+                            <div style="font-weight: 800; color: var(--sm-dark-color);"><?php echo $user->display_name; ?></div>
+                            <div style="font-size: 11px; color: var(--sm-text-gray);"><?php echo $user->user_email; ?></div>
+                        </div>
+                        <a href="javascript:smEditProfile()" class="sm-dropdown-item"><span class="dashicons dashicons-edit"></span> تعديل البيانات الشخصية</a>
+                        <?php if ($is_admin): ?>
+                            <a href="<?php echo add_query_arg('sm_tab', 'global-settings'); ?>" class="sm-dropdown-item"><span class="dashicons dashicons-admin-generic"></span> إعدادات النظام</a>
+                        <?php endif; ?>
+                        <a href="javascript:location.reload()" class="sm-dropdown-item"><span class="dashicons dashicons-update"></span> تحديث الصفحة</a>
+                    </div>
+
+                    <div id="sm-profile-edit" style="display: none; padding: 15px;">
+                        <div style="font-weight: 800; margin-bottom: 15px; font-size: 13px; border-bottom: 1px solid #eee; padding-bottom: 10px;">تعديل الملف الشخصي</div>
+                        <div class="sm-form-group" style="margin-bottom: 10px;">
+                            <label class="sm-label" style="font-size: 11px;">الاسم المفضل:</label>
+                            <input type="text" id="sm_edit_display_name" class="sm-input" style="padding: 8px; font-size: 12px;" value="<?php echo esc_attr($user->display_name); ?>">
+                        </div>
+                        <div class="sm-form-group" style="margin-bottom: 10px;">
+                            <label class="sm-label" style="font-size: 11px;">البريد الإلكتروني:</label>
+                            <input type="email" id="sm_edit_user_email" class="sm-input" style="padding: 8px; font-size: 12px;" value="<?php echo esc_attr($user->user_email); ?>">
+                        </div>
+                        <div class="sm-form-group" style="margin-bottom: 15px;">
+                            <label class="sm-label" style="font-size: 11px;">كلمة مرور جديدة (اختياري):</label>
+                            <input type="password" id="sm_edit_user_pass" class="sm-input" style="padding: 8px; font-size: 12px;" placeholder="********">
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="smSaveProfile()" class="sm-btn" style="flex: 1; height: 32px; font-size: 11px; padding: 0;">حفظ</button>
+                            <button onclick="document.getElementById('sm-profile-edit').style.display='none'; document.getElementById('sm-profile-view').style.display='block';" class="sm-btn sm-btn-outline" style="flex: 1; height: 32px; font-size: 11px; padding: 0;">إلغاء</button>
+                        </div>
+                    </div>
+
                     <hr style="margin: 5px 0; border: none; border-top: 1px solid #eee;">
                     <a href="<?php echo wp_logout_url(home_url('/sm-login')); ?>" class="sm-dropdown-item" style="color: #e53e3e;"><span class="dashicons dashicons-logout"></span> تسجيل الخروج</a>
                 </div>

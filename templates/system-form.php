@@ -328,7 +328,7 @@ document.getElementById('violation-form').addEventListener('submit', function(e)
                     <div style="margin-bottom: 15px;">✅ تم حفظ السجل بنجاح وإرسال التنبيهات اللازمة.</div>
                     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                         <a href="${printUrl}" target="_blank" class="sm-btn" style="width:auto; padding: 8px 15px; font-size:13px; background:#38a169;">🖨️ طباعة الإشعار</a>
-                        <a href="https://wa.me/?text=${waMsg}" target="_blank" class="sm-btn" style="width:auto; padding: 8px 15px; font-size:13px; background:#25D366; border:none;">📱 مشاركة عبر WhatsApp</a>
+                        <a href="https://wa.me/?text=${waMsg}" target="_blank" class="sm-btn" style="width:auto; padding: 8px 15px; font-size:13px; background:#25D366; border:none;">📱 مشاركة عبر واتساب</a>
                     </div>
                 </div>
             `;

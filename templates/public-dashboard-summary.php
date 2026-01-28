@@ -6,15 +6,15 @@
     </div>
     <div class="sm-stat-card">
         <div style="font-size: 0.85em; color: var(--sm-text-gray); margin-bottom: 10px; font-weight: 700;">إجمالي المعلمين</div>
-        <div style="font-size: 2.5em; font-weight: 900; color: #9b59b6;"><?php echo esc_html($stats['total_teachers'] ?? 0); ?></div>
+        <div style="font-size: 2.5em; font-weight: 900; color: var(--sm-secondary-color);"><?php echo esc_html($stats['total_teachers'] ?? 0); ?></div>
     </div>
     <div class="sm-stat-card">
         <div style="font-size: 0.85em; color: var(--sm-text-gray); margin-bottom: 10px; font-weight: 700;">مخالفات اليوم</div>
-        <div style="font-size: 2.5em; font-weight: 900; color: #e74c3c;"><?php echo esc_html($stats['violations_today'] ?? 0); ?></div>
+        <div style="font-size: 2.5em; font-weight: 900; color: var(--sm-accent-color);"><?php echo esc_html($stats['violations_today'] ?? 0); ?></div>
     </div>
     <div class="sm-stat-card">
         <div style="font-size: 0.85em; color: var(--sm-text-gray); margin-bottom: 10px; font-weight: 700;">الإجراءات المتخذة</div>
-        <div style="font-size: 2.5em; font-weight: 900; color: #27ae60;"><?php echo esc_html($stats['total_actions'] ?? 0); ?></div>
+        <div style="font-size: 2.5em; font-weight: 900; color: var(--sm-dark-color);"><?php echo esc_html($stats['total_actions'] ?? 0); ?></div>
     </div>
 </div>
 

@@ -22,11 +22,40 @@
 
     <div class="sm-parents-rows-container" style="display: flex; flex-direction: column; gap: 15px;">
         <?php 
+        $search = !empty($_GET['parent_search']) ? sanitize_text_field($_GET['parent_search']) : '';
         $args = array('role' => 'sm_parent');
-        if (!empty($_GET['parent_search'])) {
-            $args['search'] = '*' . esc_attr($_GET['parent_search']) . '*';
+
+        if ($search) {
+            $args['search'] = '*' . $search . '*';
             $args['search_columns'] = array('user_login', 'display_name', 'user_email');
+
+            // Advanced Search: Join with students and check meta
+            global $wpdb;
+            $extra_parent_ids = $wpdb->get_col($wpdb->prepare(
+                "SELECT DISTINCT parent_user_id FROM {$wpdb->prefix}sm_students WHERE (name LIKE %s OR parent_email LIKE %s) AND parent_user_id IS NOT NULL",
+                '%' . $wpdb->esc_like($search) . '%',
+                '%' . $wpdb->esc_like($search) . '%'
+            ));
+
+            $phone_parent_ids = $wpdb->get_col($wpdb->prepare(
+                "SELECT user_id FROM {$wpdb->prefix}usermeta WHERE meta_key = 'sm_phone' AND meta_value LIKE %s",
+                '%' . $wpdb->esc_like($search) . '%'
+            ));
+
+            $all_ids = array_unique(array_merge($extra_parent_ids, $phone_parent_ids));
+
+            if (!empty($all_ids)) {
+                // Get users by search first
+                $search_parents = get_users($args);
+                $search_ids = wp_list_pluck($search_parents, 'ID');
+
+                // Combine and fetch all
+                $final_ids = array_unique(array_merge($search_ids, $all_ids));
+                unset($args['search'], $args['search_columns']);
+                $args['include'] = $final_ids;
+            }
         }
+
         $parents = get_users($args);
         if (empty($parents)): ?>
             <div style="padding: 60px; text-align: center; background: #fff; border-radius: 12px; border: 1px solid var(--sm-border-color); color: #a0aec0;">
