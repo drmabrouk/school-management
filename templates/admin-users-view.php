@@ -62,8 +62,10 @@
 
 <div id="add-user-modal" class="sm-modal-overlay">
     <div class="sm-modal-content">
-        <button class="sm-modal-close" onclick="document.getElementById('add-user-modal').style.display='none'">&times;</button>
-        <h3 style="margin:0 0 25px 0; border-bottom:1px solid #eee; padding-bottom:15px;">إضافة مستخدم جديد</h3>
+        <div class="sm-modal-header">
+            <h3>إضافة مستخدم جديد</h3>
+            <button class="sm-modal-close" onclick="document.getElementById('add-user-modal').style.display='none'">&times;</button>
+        </div>
         <form id="add-user-form">
             <?php wp_nonce_field('sm_user_action', 'sm_nonce'); ?>
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
@@ -93,15 +95,17 @@
                     <input type="password" name="user_pass" class="sm-input" required>
                 </div>
             </div>
-            <button type="submit" class="sm-btn" style="margin-top:20px;">إنشاء الحساب الآن</button>
+            <button type="submit" class="sm-btn" style="margin-top:20px; width: 100%;">إنشاء الحساب الآن</button>
         </form>
     </div>
 </div>
 
 <div id="edit-user-modal" class="sm-modal-overlay">
     <div class="sm-modal-content">
-        <button class="sm-modal-close" onclick="document.getElementById('edit-user-modal').style.display='none'">&times;</button>
-        <h3 style="margin:0 0 25px 0; border-bottom:1px solid #eee; padding-bottom:15px;">تعديل بيانات المستخدم</h3>
+        <div class="sm-modal-header">
+            <h3>تعديل بيانات المستخدم</h3>
+            <button class="sm-modal-close" onclick="document.getElementById('edit-user-modal').style.display='none'">&times;</button>
+        </div>
         <form id="edit-user-form">
             <?php wp_nonce_field('sm_user_action', 'sm_nonce'); ?>
             <input type="hidden" name="edit_user_id" id="edit_u_id">
@@ -128,7 +132,7 @@
                     <input type="password" name="user_pass" class="sm-input" placeholder="اتركه فارغاً لعدم التغيير">
                 </div>
             </div>
-            <button type="submit" class="sm-btn" style="margin-top:20px;">حفظ التغييرات</button>
+            <button type="submit" class="sm-btn" style="margin-top:20px; width: 100%;">حفظ التغييرات</button>
         </form>
     </div>
 </div>

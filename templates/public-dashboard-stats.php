@@ -3,12 +3,12 @@
     <h3>سجل سجلات الطلاب</h3>
     
     <?php $is_parent = in_array('sm_parent', (array) wp_get_current_user()->roles); ?>
-    <div style="margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-        <form method="get" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+    <div style="background: white; padding: 30px; border: 1px solid var(--sm-border-color); border-radius: var(--sm-radius); margin-bottom: 30px; box-shadow: var(--sm-shadow);">
+        <form method="get" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) auto; gap: 15px; align-items: end;">
             <?php if (!$is_parent): ?>
-            <div style="display: flex; align-items: center; gap: 5px;">
-                <label class="sm-label" style="margin:0;">الطالب:</label>
-                <select name="student_filter" class="sm-select" style="width: auto; padding: 8px;">
+            <div class="sm-form-group" style="margin-bottom:0;">
+                <label class="sm-label">الطالب:</label>
+                <select name="student_filter" class="sm-select">
                     <option value="">كل الطلاب</option>
                     <?php 
                     $all_students = SM_DB::get_students();
@@ -19,19 +19,19 @@
             </div>
             <?php endif; ?>
             
-            <div style="display: flex; align-items: center; gap: 5px;">
-                <label class="sm-label" style="margin:0;">من:</label>
-                <input type="date" name="start_date" class="sm-input" value="<?php echo esc_attr(isset($_GET['start_date']) ? $_GET['start_date'] : ''); ?>" style="width: auto; padding: 8px;">
+            <div class="sm-form-group" style="margin-bottom:0;">
+                <label class="sm-label">تاريخ البداية:</label>
+                <input type="date" name="start_date" class="sm-input" value="<?php echo esc_attr(isset($_GET['start_date']) ? $_GET['start_date'] : ''); ?>">
             </div>
 
-            <div style="display: flex; align-items: center; gap: 5px;">
-                <label class="sm-label" style="margin:0;">إلى:</label>
-                <input type="date" name="end_date" class="sm-input" value="<?php echo esc_attr(isset($_GET['end_date']) ? $_GET['end_date'] : ''); ?>" style="width: auto; padding: 8px;">
+            <div class="sm-form-group" style="margin-bottom:0;">
+                <label class="sm-label">تاريخ النهاية:</label>
+                <input type="date" name="end_date" class="sm-input" value="<?php echo esc_attr(isset($_GET['end_date']) ? $_GET['end_date'] : ''); ?>">
             </div>
             
-            <div style="display: flex; align-items: center; gap: 5px;">
-                <label class="sm-label" style="margin:0;">النوع:</label>
-                <select name="type_filter" class="sm-select" style="width: auto; padding: 8px;">
+            <div class="sm-form-group" style="margin-bottom:0;">
+                <label class="sm-label">النوع:</label>
+                <select name="type_filter" class="sm-select">
                     <option value="">كل الأنواع</option>
                     <?php foreach (SM_Settings::get_violation_types() as $k => $v): ?>
                         <option value="<?php echo esc_attr($k); ?>" <?php selected(isset($_GET['type_filter']) && $_GET['type_filter'] == $k); ?>><?php echo esc_html($v); ?></option>
@@ -39,15 +39,14 @@
                 </select>
             </div>
 
-            <button type="submit" class="sm-btn" style="width:auto; padding: 8px 20px;">تصفية</button>
+            <div style="display: flex; gap: 10px;">
+                <button type="submit" class="sm-btn">تطبيق الفلتر</button>
+                <?php if (!$is_parent): ?>
+                    <button type="button" onclick="document.getElementById('violation-import-form').style.display='block'" class="sm-btn sm-btn-secondary">استيراد (Excel)</button>
+                <?php endif; ?>
+                <button type="button" onclick="window.print()" class="sm-btn" style="background:#27ae60;">طباعة</button>
+            </div>
         </form>
-        
-        <div style="display: flex; gap: 10px;">
-            <?php if (!$is_parent): ?>
-                <button onclick="document.getElementById('violation-import-form').style.display='block'" class="sm-btn" style="width:auto; background:var(--sm-secondary-color);">استيراد (Excel)</button>
-            <?php endif; ?>
-            <button onclick="window.print()" class="sm-btn" style="width:auto; background:#27ae60;">طباعة التقرير</button>
-        </div>
     </div>
 
     <div id="violation-import-form" style="display:none; background: #f8fafc; padding: 30px; border: 2px dashed #cbd5e0; border-radius: 12px; margin-bottom: 30px;">
@@ -152,63 +151,69 @@
     }
     </script>
 
-    <div class="sm-records-stacked-list" style="display: flex; flex-direction: column; gap: 20px;">
-        <?php if (empty($records)): ?>
-            <div style="padding: 60px; text-align: center; background: #fff; border-radius: 12px; border: 1px solid var(--sm-border-color); color: #a0aec0;">
-                <span class="dashicons dashicons-clipboard" style="font-size:48px; width:48px; height:48px; margin-bottom:15px;"></span>
-                <p>لا توجد سجلات مطابقة حالياً.</p>
-            </div>
-        <?php else: ?>
-            <?php 
-            $type_labels = SM_Settings::get_violation_types();
-            $severity_labels = SM_Settings::get_severities();
-            $classifications = array(
-                'general' => 'عام', 'inside_class' => 'داخل الفصل', 'yard' => 'في الساحة', 'labs' => 'في المختبرات', 'bus' => 'الحافلة المدرسية'
-            );
-            foreach ($records as $row): 
-                $waMsg = rawurlencode("تنبيه من المدرسة بخصوص الطالب: {$row->student_name}\nنوع المخالفة: {$row->type}\nالتاريخ: ".date('Y-m-d', strtotime($row->created_at))."\nالتفاصيل: {$row->details}");
-            ?>
-                <div class="sm-record-card-full" id="record-card-<?php echo $row->id; ?>" style="background: #fff; border-radius: 12px; border: 1px solid var(--sm-border-color); padding: 20px 30px; display: flex; align-items: center; justify-content: space-between; gap: 30px; border-right: 6px solid <?php echo $row->severity == 'high' ? '#e53e3e' : ($row->severity == 'medium' ? '#dd6b20' : '#3182ce'); ?>;">
-                    
-                    <div style="flex: 2;">
-                        <div style="font-weight: 800; color: var(--sm-secondary-color); font-size: 1.2em;"><?php echo esc_html($row->student_name); ?></div>
-                        <div style="display:flex; gap:15px; margin-top:5px; font-size:12px; color:#718096;">
-                            <span><span class="dashicons dashicons-welcome-learn-more" style="font-size:14px;"></span> <?php echo esc_html($row->class_name); ?></span>
-                            <span><span class="dashicons dashicons-clock" style="font-size:14px;"></span> <?php echo date('Y-m-d', strtotime($row->created_at)); ?></span>
-                            <span><strong>النوع:</strong> <?php echo $type_labels[$row->type] ?? $row->type; ?></span>
-                        </div>
-                    </div>
-
-                    <div style="flex: 3; background: #f8fafc; padding: 10px 15px; border-radius: 8px; border: 1px solid #edf2f7; font-size: 13px; line-height: 1.5; color: #4a5568;">
-                        <?php echo esc_html($row->details); ?>
-                    </div>
-
-                    <div style="flex: 1; text-align: center;">
-                        <span class="sm-badge sm-badge-<?php echo esc_attr($row->severity); ?>">
-                            <?php echo $severity_labels[$row->severity] ?? $row->severity; ?>
-                        </span>
-                    </div>
-
-                    <div style="flex: 2; display: flex; gap: 10px; justify-content: flex-end;">
-                        <a href="<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=single_violation&record_id=' . $row->id); ?>" target="_blank" class="sm-icon-btn-row" title="طباعة"><span class="dashicons dashicons-printer"></span></a>
-                        <?php if (current_user_can('إدارة_المخالفات')): ?>
-                            <button onclick="editSmRecord(<?php echo htmlspecialchars(json_encode($row)); ?>)" class="sm-icon-btn-row" title="تعديل"><span class="dashicons dashicons-edit"></span></button>
-                            <button onclick="confirmDeleteRecord(<?php echo $row->id; ?>)" class="sm-icon-btn-row" style="color:#e53e3e;" title="حذف"><span class="dashicons dashicons-trash"></span></button>
-                        <?php endif; ?>
-                        <div style="width:1px; background:#eee; margin:0 5px;"></div>
-                        <a href="https://wa.me/?text=<?php echo $waMsg; ?>" target="_blank" class="sm-icon-btn-row" style="color:#38a169;" title="WhatsApp"><span class="dashicons dashicons-whatsapp"></span></a>
-                    </div>
-                </div>
-                    
-                    <?php if ($row->status === 'pending' && current_user_can('إدارة_المخالفات')): ?>
-                        <div style="margin-top: 15px; display: flex; gap: 10px;">
-                            <button onclick="updateRecordStatus(<?php echo $row->id; ?>, 'accepted')" class="sm-btn" style="flex:1; background: #38a169; font-size: 12px; padding: 8px;">اعتماد ✅</button>
-                            <button onclick="updateRecordStatus(<?php echo $row->id; ?>, 'rejected')" class="sm-btn" style="flex:1; background: #e53e3e; font-size: 12px; padding: 8px;">رفض ✖</button>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            <?php endforeach; ?>
-        <?php endif; ?>
+    <div class="sm-table-container">
+        <table class="sm-table">
+            <thead>
+                <tr>
+                    <th>الطالب</th>
+                    <th>التاريخ</th>
+                    <th>نوع المخالفة</th>
+                    <th>التفاصيل</th>
+                    <th>الحدة</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($records)): ?>
+                    <tr>
+                        <td colspan="6" style="padding: 60px; text-align: center; color: var(--sm-text-gray);">
+                            <span class="dashicons dashicons-clipboard" style="font-size:48px; width:48px; height:48px; margin-bottom:15px;"></span>
+                            <p>لا توجد سجلات مطابقة حالياً.</p>
+                        </td>
+                    </tr>
+                <?php else: ?>
+                    <?php
+                    $type_labels = SM_Settings::get_violation_types();
+                    $severity_labels = SM_Settings::get_severities();
+                    foreach ($records as $row):
+                        $waMsg = rawurlencode("تنبيه من المدرسة بخصوص الطالب: {$row->student_name}\nنوع المخالفة: {$row->type}\nالتاريخ: ".date('Y-m-d', strtotime($row->created_at))."\nالتفاصيل: {$row->details}");
+                    ?>
+                        <tr id="record-row-<?php echo $row->id; ?>">
+                            <td>
+                                <div style="font-weight: 800;"><?php echo esc_html($row->student_name); ?></div>
+                                <div style="font-size: 11px; color: var(--sm-text-gray);"><?php echo esc_html($row->class_name); ?></div>
+                            </td>
+                            <td><?php echo date('Y-m-d', strtotime($row->created_at)); ?></td>
+                            <td><span class="sm-badge sm-badge-low" style="background: var(--sm-pastel-red); color: var(--sm-primary-color);"><?php echo $type_labels[$row->type] ?? $row->type; ?></span></td>
+                            <td>
+                                <div style="max-width: 300px; font-size: 13px; color: #4a5568;"><?php echo esc_html($row->details); ?></div>
+                            </td>
+                            <td>
+                                <span class="sm-badge sm-badge-<?php echo esc_attr($row->severity); ?>">
+                                    <?php echo $severity_labels[$row->severity] ?? $row->severity; ?>
+                                </span>
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                                    <a href="<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=single_violation&record_id=' . $row->id); ?>" target="_blank" class="sm-btn sm-btn-outline" style="padding: 5px;" title="طباعة"><span class="dashicons dashicons-printer"></span></a>
+                                    <?php if (current_user_can('إدارة_المخالفات')): ?>
+                                        <button onclick="editSmRecord(<?php echo htmlspecialchars(json_encode($row)); ?>)" class="sm-btn sm-btn-outline" style="padding: 5px;" title="تعديل"><span class="dashicons dashicons-edit"></span></button>
+                                        <button onclick="confirmDeleteRecord(<?php echo $row->id; ?>)" class="sm-btn sm-btn-outline" style="padding: 5px; color:#e53e3e;" title="حذف"><span class="dashicons dashicons-trash"></span></button>
+                                    <?php endif; ?>
+                                    <a href="https://wa.me/?text=<?php echo $waMsg; ?>" target="_blank" class="sm-btn sm-btn-outline" style="padding: 5px; color:#38a169;" title="WhatsApp"><span class="dashicons dashicons-whatsapp"></span></a>
+                                </div>
+                                <?php if ($row->status === 'pending' && current_user_can('إدارة_المخالفات')): ?>
+                                    <div style="margin-top: 8px; display: flex; gap: 5px;">
+                                        <button onclick="updateRecordStatus(<?php echo $row->id; ?>, 'accepted')" class="sm-btn" style="background: #38a169; font-size: 10px; padding: 4px 8px;">اعتماد</button>
+                                        <button onclick="updateRecordStatus(<?php echo $row->id; ?>, 'rejected')" class="sm-btn" style="background: #e53e3e; font-size: 10px; padding: 4px 8px;">رفض</button>
+                                    </div>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
     </div>
 
     <!-- Delete Record Confirmation Modal -->

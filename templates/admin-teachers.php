@@ -54,15 +54,15 @@
         </form>
     </div>
 
-    <div style="background: var(--sm-bg-light); padding: 25px; border: 1px solid var(--sm-border-color); border-radius: 8px; margin-bottom: 30px;">
-        <form method="get" style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 300px;">
+    <div style="background: white; padding: 30px; border: 1px solid var(--sm-border-color); border-radius: var(--sm-radius); margin-bottom: 30px; box-shadow: var(--sm-shadow);">
+        <form method="get" style="display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: end;">
+            <div class="sm-form-group" style="margin-bottom:0;">
                 <label class="sm-label">بحث عن معلم بالاسم أو البريد أو الكود:</label>
                 <input type="text" name="teacher_search" class="sm-input" value="<?php echo esc_attr(isset($_GET['teacher_search']) ? $_GET['teacher_search'] : ''); ?>" placeholder="أدخل بيانات المعلم...">
             </div>
-            <div style="display: flex; gap: 10px; align-self: flex-end;">
-                <button type="submit" class="sm-btn" style="width:auto;">بحث</button>
-                <a href="<?php echo remove_query_arg('teacher_search'); ?>" class="sm-btn" style="width:auto; background:var(--sm-text-gray); text-decoration:none;">عرض الكل</a>
+            <div style="display: flex; gap: 10px;">
+                <button type="submit" class="sm-btn">بدء البحث</button>
+                <a href="<?php echo remove_query_arg('teacher_search'); ?>" class="sm-btn sm-btn-outline" style="text-decoration:none;">عرض الكل</a>
             </div>
         </form>
     </div>
@@ -92,13 +92,13 @@
                 <?php else: ?>
                     <?php foreach ($teachers as $teacher): ?>
                         <tr>
-                            <td style="font-family: monospace; font-weight: 700;"><?php echo esc_html(get_user_meta($teacher->ID, 'sm_teacher_id', true)); ?></td>
-                            <td style="font-weight: 700; color: var(--sm-primary-color);"><?php echo esc_html($teacher->display_name); ?></td>
-                            <td><?php echo esc_html(get_user_meta($teacher->ID, 'sm_job_title', true)); ?></td>
+                            <td style="font-family: monospace; font-weight: 700; color: var(--sm-primary-color);"><?php echo esc_html(get_user_meta($teacher->ID, 'sm_teacher_id', true)); ?></td>
+                            <td style="font-weight: 800; color: var(--sm-dark-color);"><?php echo esc_html($teacher->display_name); ?></td>
+                            <td><span class="sm-badge sm-badge-low"><?php echo esc_html(get_user_meta($teacher->ID, 'sm_job_title', true)); ?></span></td>
                             <td dir="ltr" style="text-align: right;"><?php echo esc_html(get_user_meta($teacher->ID, 'sm_phone', true)); ?></td>
                             <td><?php echo esc_html($teacher->user_email); ?></td>
                             <td>
-                                <div style="display:flex; gap:5px;">
+                                <div style="display:flex; gap:8px; justify-content: flex-end;">
                                     <button onclick='editSmTeacher(<?php echo json_encode(array(
                                         "id" => $teacher->ID,
                                         "name" => $teacher->display_name,
@@ -107,12 +107,12 @@
                                         "teacher_id" => get_user_meta($teacher->ID, "sm_teacher_id", true),
                                         "job_title" => get_user_meta($teacher->ID, "sm_job_title", true),
                                         "phone" => get_user_meta($teacher->ID, "sm_phone", true)
-                                    )); ?>)' class="sm-btn" style="background:#edf2f7; color:#2d3748; padding:5px 10px; width:auto; font-size:11px;">تعديل</button>
+                                    )); ?>)' class="sm-btn sm-btn-outline" style="padding: 5px 12px; font-size: 12px;">تعديل</button>
                                     
                                     <form method="post" style="display:inline;" onsubmit="return confirm('هل أنت متأكد من حذف هذا المعلم؟ لا يمكن التراجع.')">
                                         <?php wp_nonce_field('sm_teacher_action', 'sm_nonce'); ?>
                                         <input type="hidden" name="delete_teacher_id" value="<?php echo $teacher->ID; ?>">
-                                        <button type="submit" name="sm_delete_teacher" class="sm-btn" style="background:#e53e3e; padding:5px 10px; width:auto; font-size:11px;">حذف</button>
+                                        <button type="submit" name="sm_delete_teacher" class="sm-btn sm-btn-outline" style="padding: 5px 12px; font-size: 12px; color:#e53e3e;">حذف</button>
                                     </form>
                                 </div>
                             </td>
@@ -139,8 +139,10 @@
 
     <div id="edit-teacher-modal" class="sm-modal-overlay">
         <div class="sm-modal-content">
-            <button class="sm-modal-close" onclick="document.getElementById('edit-teacher-modal').style.display='none'">&times;</button>
-            <h3 style="margin:0 0 25px 0; border-bottom:1px solid #eee; padding-bottom:15px;">تعديل بيانات المعلم</h3>
+            <div class="sm-modal-header">
+                <h3>تعديل بيانات المعلم</h3>
+                <button class="sm-modal-close" onclick="document.getElementById('edit-teacher-modal').style.display='none'">&times;</button>
+            </div>
             <form id="edit-teacher-form">
                 <?php wp_nonce_field('sm_teacher_action', 'sm_nonce'); ?>
                 <input type="hidden" name="edit_teacher_id" id="edit_t_id">
@@ -177,8 +179,10 @@
 
     <div id="add-teacher-modal" class="sm-modal-overlay">
         <div class="sm-modal-content">
-            <button class="sm-modal-close" onclick="document.getElementById('add-teacher-modal').style.display='none'">&times;</button>
-            <h3 style="margin:0 0 25px 0; border-bottom:1px solid #eee; padding-bottom:15px;">إضافة معلم جديد للنظام</h3>
+            <div class="sm-modal-header">
+                <h3>إضافة معلم جديد للنظام</h3>
+                <button class="sm-modal-close" onclick="document.getElementById('add-teacher-modal').style.display='none'">&times;</button>
+            </div>
             <form id="add-teacher-form">
                 <?php wp_nonce_field('sm_teacher_action', 'sm_nonce'); ?>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">

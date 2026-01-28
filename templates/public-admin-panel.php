@@ -105,6 +105,14 @@
             }
         });
     };
+
+    window.smOpenViolationModal = function() {
+        document.getElementById('sm-global-violation-modal').style.display = 'flex';
+    };
+
+    window.smCloseViolationModal = function() {
+        document.getElementById('sm-global-violation-modal').style.display = 'none';
+    };
 })(window);
 </script>
 
@@ -119,39 +127,48 @@ $school = SM_Settings::get_school_info();
 ?>
 
 <div class="sm-admin-dashboard" dir="rtl" style="font-family: Arial, sans-serif; background: #fff; border: 1px solid var(--sm-border-color); border-radius: 12px; overflow: hidden;">
-    <!-- ENHANCED HEADER -->
-    <div style="background: var(--sm-bg-light); padding: 15px 40px; border-bottom: 1px solid var(--sm-border-color); display: flex; justify-content: space-between; align-items: center;">
-        <div style="display: flex; align-items: center; gap: 20px;">
+    <!-- OFFICIAL SYSTEM HEADER -->
+    <div class="sm-main-header">
+        <div style="display: flex; align-items: center; gap: 25px;">
             <?php if ($school['school_logo']): ?>
-                <img src="<?php echo esc_url($school['school_logo']); ?>" style="height: 50px; width: auto; object-fit: contain;">
+                <div style="background: white; padding: 5px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                    <img src="<?php echo esc_url($school['school_logo']); ?>" style="height: 45px; width: auto; object-fit: contain;">
+                </div>
             <?php endif; ?>
             <div>
-                <h2 style="margin:0; border: none; padding: 0; color: var(--sm-secondary-color); font-weight: 800; font-size: 1.2em; text-decoration: none;">
+                <h1 style="margin:0; border: none; padding: 0; color: white; font-weight: 800; font-size: 1.4em; text-decoration: none; line-height: 1;">
                     <?php echo esc_html($school['school_name']); ?>
-                </h2>
-                <div style="font-size: 0.75em; color: #718096; font-weight: 600;">
+                </h1>
+                <div style="font-size: 0.8em; color: #cbd5e0; font-weight: 600; margin-top: 5px;">
                     <?php 
-                    if ($is_admin) echo 'لوحة تحكم مدير النظام';
-                    elseif (in_array('sm_parent', $roles)) echo 'بوابة ولي الأمر';
-                    else echo 'نظام إدارة المدرسة';
+                    if ($is_admin) echo 'نظام إدارة المدرسة - لوحة الإدارة';
+                    elseif (in_array('sm_parent', $roles)) echo 'بوابة ولي الأمر الإلكترونية';
+                    else echo 'نظام الإدارة المدرسية الشامل';
                     ?>
                 </div>
             </div>
-            <div class="sm-header-separator" style="width: 1px; height: 30px; background: #ddd; margin: 0 15px;"></div>
-            <div class="sm-user-greeting" style="display: flex; align-items: center; gap: 10px; font-weight: 600;">
-                <?php echo get_avatar($user->ID, 32, '', '', array('style' => 'border-radius: 50%; border: 2px solid var(--sm-primary-color);')); ?>
-                <span>أهلاً بك، <?php echo $user->display_name; ?></span>
-            </div>
         </div>
-        <div class="sm-header-controls" style="display: flex; align-items: center; gap: 15px;">
-            <div style="font-size: 0.85em; color: var(--sm-text-gray); border-left: 1px solid #ddd; padding-left: 15px; font-weight: 600;">
-                <?php echo date_i18n('l, j F Y'); ?>
+
+        <div style="display: flex; align-items: center; gap: 30px;">
+            <div class="sm-header-info-box" style="text-align: left; border-left: 1px solid rgba(255,255,255,0.1); padding-left: 20px;">
+                <div style="font-size: 0.75em; color: #a0aec0; text-transform: uppercase;"><?php echo date_i18n('l'); ?></div>
+                <div style="font-size: 0.9em; font-weight: 700;"><?php echo date_i18n('j F Y'); ?></div>
             </div>
-            <?php if ($is_admin || current_user_can('تسجيل_مخالفة')): ?>
-                <a href="<?php echo add_query_arg('sm_tab', 'record'); ?>" class="sm-quick-btn" style="text-decoration:none;">+ مخالفة جديدة</a>
-            <?php endif; ?>
-            <button onclick="window.location.reload()" class="sm-refresh-btn">تحديث ↻</button>
-            <a href="<?php echo wp_logout_url(home_url('/sm-login')); ?>" class="sm-logout-btn">خروج</a>
+
+            <div class="sm-user-profile-nav" style="display: flex; align-items: center; gap: 15px; background: rgba(255,255,255,0.05); padding: 8px 15px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.1);">
+                <div style="text-align: right;">
+                    <div style="font-size: 0.9em; font-weight: 700;"><?php echo $user->display_name; ?></div>
+                    <div style="font-size: 0.7em; color: #a0aec0;">متصل الآن</div>
+                </div>
+                <?php echo get_avatar($user->ID, 36, '', '', array('style' => 'border-radius: 50%; border: 2px solid var(--sm-primary-color);')); ?>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <?php if ($is_admin || current_user_can('تسجيل_مخالفة')): ?>
+                    <button onclick="smOpenViolationModal()" class="sm-btn" style="background: var(--sm-primary-color); height: 40px; font-size: 13px;">+ تسجيل مخالفة</button>
+                <?php endif; ?>
+                <a href="<?php echo wp_logout_url(home_url('/sm-login')); ?>" class="sm-btn" style="background: rgba(255,255,255,0.1); color: white; height: 40px; font-size: 13px; text-decoration: none;">خروج</a>
+            </div>
         </div>
     </div>
 
@@ -302,7 +319,8 @@ $school = SM_Settings::get_school_info();
                         ?>
                         <div class="sm-tabs-wrapper" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #eee;">
                             <button class="sm-tab-btn sm-active" onclick="smOpenInternalTab('school-settings', this)">بيانات المدرسة</button>
-                            <button class="sm-tab-btn" onclick="smOpenInternalTab('app-settings', this)">المخالفات والمظهر</button>
+                            <button class="sm-tab-btn" onclick="smOpenInternalTab('design-settings', this)">تصميم النظام</button>
+                            <button class="sm-tab-btn" onclick="smOpenInternalTab('app-settings', this)">إعدادات المخالفات</button>
                             <button class="sm-tab-btn" onclick="smOpenInternalTab('user-settings', this)">إدارة المستخدمين</button>
                             <button class="sm-tab-btn" onclick="smOpenInternalTab('backup-settings', this)">مركز النسخ الاحتياطي</button>
                             <?php if ($is_admin): ?>
@@ -328,12 +346,42 @@ $school = SM_Settings::get_school_info();
                                 <button type="submit" name="sm_save_settings_unified" class="sm-btn" style="width:auto;">حفظ بيانات المدرسة</button>
                             </form>
                         </div>
-                        <div id="app-settings" class="sm-internal-tab" style="display:none;">
+                        <div id="design-settings" class="sm-internal-tab" style="display:none;">
                             <form method="post">
                                 <?php wp_nonce_field('sm_admin_action', 'sm_admin_nonce'); $appearance = SM_Settings::get_appearance(); ?>
+                                <h4 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">إعدادات الألوان والمظهر</h4>
+                                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-top:20px;">
+                                    <div class="sm-form-group"><label class="sm-label">اللون الأساسي (#F63049):</label><input type="color" name="primary_color" value="<?php echo esc_attr($appearance['primary_color'] ?? '#F63049'); ?>" class="sm-input"></div>
+                                    <div class="sm-form-group"><label class="sm-label">اللون الثانوي (#D02752):</label><input type="color" name="secondary_color" value="<?php echo esc_attr($appearance['secondary_color'] ?? '#D02752'); ?>" class="sm-input"></div>
+                                    <div class="sm-form-group"><label class="sm-label">لون التمييز (#8A244B):</label><input type="color" name="accent_color" value="<?php echo esc_attr($appearance['accent_color'] ?? '#8A244B'); ?>" class="sm-input"></div>
+                                    <div class="sm-form-group"><label class="sm-label">لون الهيدر (#111F35):</label><input type="color" name="dark_color" value="<?php echo esc_attr($appearance['dark_color'] ?? '#111F35'); ?>" class="sm-input"></div>
+                                    <div class="sm-form-group"><label class="sm-label">حجم الخط (بكسل):</label><input type="text" name="font_size" value="<?php echo esc_attr($appearance['font_size'] ?? '15px'); ?>" class="sm-input"></div>
+                                    <div class="sm-form-group"><label class="sm-label">نصف قطر الزوايا (بكسل):</label><input type="text" name="border_radius" value="<?php echo esc_attr($appearance['border_radius'] ?? '12px'); ?>" class="sm-input"></div>
+                                </div>
+                                <h4 style="margin-top:20px; border-bottom:1px solid #eee; padding-bottom:10px;">مكونات واجهة المستخدم</h4>
+                                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-top:20px;">
+                                    <div class="sm-form-group">
+                                        <label class="sm-label">نمط الجداول:</label>
+                                        <select name="table_style" class="sm-select">
+                                            <option value="modern" <?php selected($appearance['table_style'] ?? '', 'modern'); ?>>عصري - بدون حدود</option>
+                                            <option value="classic" <?php selected($appearance['table_style'] ?? '', 'classic'); ?>>كلاسيكي - بحدود كاملة</option>
+                                        </select>
+                                    </div>
+                                    <div class="sm-form-group">
+                                        <label class="sm-label">نمط الأزرار:</label>
+                                        <select name="button_style" class="sm-select">
+                                            <option value="flat" <?php selected($appearance['button_style'] ?? '', 'flat'); ?>>مسطح (Flat)</option>
+                                            <option value="gradient" <?php selected($appearance['button_style'] ?? '', 'gradient'); ?>>متدرج (Gradient)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <button type="submit" name="sm_save_appearance" class="sm-btn" style="width:auto;">حفظ تصميم النظام</button>
+                            </form>
+                        </div>
+                        <div id="app-settings" class="sm-internal-tab" style="display:none;">
+                            <form method="post">
+                                <?php wp_nonce_field('sm_admin_action', 'sm_admin_nonce'); ?>
                                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
-                                    <div class="sm-form-group"><label class="sm-label">اللون الأساسي للنظام:</label><input type="color" name="primary_color" value="<?php echo esc_attr($appearance['primary_color']); ?>" class="sm-input"></div>
-                                    <div class="sm-form-group"><label class="sm-label">حجم الخط الأساسي:</label><input type="text" name="font_size" value="<?php echo esc_attr($appearance['font_size']); ?>" class="sm-input"></div>
                                     <div class="sm-form-group">
                                         <label class="sm-label">أنواع المخالفات (مفتاح|اسم):</label>
                                         <textarea name="violation_types" class="sm-textarea" rows="5"><?php foreach(SM_Settings::get_violation_types() as $k=>$v) echo "$k|$v\n"; ?></textarea>
@@ -349,7 +397,7 @@ $school = SM_Settings::get_school_info();
                                         <textarea name="suggested_high" class="sm-textarea" rows="2"><?php echo esc_textarea($actions['high']); ?></textarea>
                                     </div>
                                 </div>
-                                <button type="submit" name="sm_save_appearance" class="sm-btn" style="width:auto;">حفظ الإعدادات</button>
+                                <button type="submit" name="sm_save_violation_settings" class="sm-btn" style="width:auto;">حفظ إعدادات المخالفات</button>
                             </form>
                         </div>
                         <div id="user-settings" class="sm-internal-tab" style="display:none;">
@@ -423,6 +471,19 @@ $school = SM_Settings::get_school_info();
             }
             ?>
 
+        </div>
+    </div>
+</div>
+
+<!-- GLOBAL VIOLATION MODAL -->
+<div id="sm-global-violation-modal" class="sm-modal-overlay">
+    <div class="sm-modal-content" style="max-width: 800px;">
+        <div class="sm-modal-header">
+            <h3>تسجيل مخالفة جديدة</h3>
+            <button class="sm-modal-close" onclick="smCloseViolationModal()">&times;</button>
+        </div>
+        <div id="sm-violation-modal-body">
+            <?php include SM_PLUGIN_DIR . 'templates/system-form.php'; ?>
         </div>
     </div>
 </div>

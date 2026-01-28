@@ -77,6 +77,19 @@ class SM_Admin {
 
     public function enqueue_styles() {
         wp_enqueue_style($this->plugin_name, SM_PLUGIN_URL . 'assets/css/sm-admin.css', array(), $this->version, 'all');
+
+        $appearance = SM_Settings::get_appearance();
+        $custom_css = "
+            :root {
+                --sm-primary-color: {$appearance['primary_color']};
+                --sm-secondary-color: {$appearance['secondary_color']};
+                --sm-accent-color: {$appearance['accent_color']};
+                --sm-dark-color: {$appearance['dark_color']};
+                --sm-radius: {$appearance['border_radius']};
+            }
+            .sm-content-wrapper { font-size: {$appearance['font_size']}; }
+        ";
+        wp_add_inline_style($this->plugin_name, $custom_css);
     }
 
     public function display_dashboard() {
@@ -98,6 +111,54 @@ class SM_Admin {
     }
 
     public function display_settings() {
+        if (isset($_POST['sm_save_settings_unified'])) {
+            check_admin_referer('sm_admin_action', 'sm_admin_nonce');
+            SM_Settings::save_school_info(array(
+                'school_name' => sanitize_text_field($_POST['school_name']),
+                'phone' => sanitize_text_field($_POST['school_phone']),
+                'email' => sanitize_email($_POST['school_email']),
+                'school_logo' => esc_url_raw($_POST['school_logo']),
+                'address' => sanitize_text_field($_POST['school_address'])
+            ));
+            echo '<div class="updated"><p>تم حفظ بيانات المدرسة بنجاح.</p></div>';
+        }
+
+        if (isset($_POST['sm_save_appearance'])) {
+            check_admin_referer('sm_admin_action', 'sm_admin_nonce');
+            SM_Settings::save_appearance(array(
+                'primary_color' => sanitize_hex_color($_POST['primary_color']),
+                'secondary_color' => sanitize_hex_color($_POST['secondary_color']),
+                'accent_color' => sanitize_hex_color($_POST['accent_color']),
+                'dark_color' => sanitize_hex_color($_POST['dark_color']),
+                'font_size' => sanitize_text_field($_POST['font_size']),
+                'border_radius' => sanitize_text_field($_POST['border_radius']),
+                'table_style' => sanitize_text_field($_POST['table_style']),
+                'button_style' => sanitize_text_field($_POST['button_style'])
+            ));
+            echo '<div class="updated"><p>تم حفظ إعدادات التصميم بنجاح.</p></div>';
+        }
+
+        if (isset($_POST['sm_save_violation_settings'])) {
+            check_admin_referer('sm_admin_action', 'sm_admin_nonce');
+            // Logic to save violation types and suggested actions
+            $types_raw = explode("\n", str_replace("\r", "", $_POST['violation_types']));
+            $types = array();
+            foreach ($types_raw as $line) {
+                if (strpos($line, '|') !== false) {
+                    list($k, $v) = explode('|', $line);
+                    $types[trim($k)] = trim($v);
+                }
+            }
+            if (!empty($types)) SM_Settings::save_violation_types($types);
+
+            SM_Settings::save_suggested_actions(array(
+                'low' => sanitize_textarea_field($_POST['suggested_low']),
+                'medium' => sanitize_textarea_field($_POST['suggested_medium']),
+                'high' => sanitize_textarea_field($_POST['suggested_high'])
+            ));
+            echo '<div class="updated"><p>تم حفظ إعدادات المخالفات بنجاح.</p></div>';
+        }
+
         $student_filters = array();
         $records = array();
         $students = SM_DB::get_students();

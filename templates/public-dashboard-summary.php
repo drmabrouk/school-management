@@ -245,7 +245,7 @@ if ($is_power_admin): ?>
                     labels: <?php echo json_encode(array_map(function($t) use ($typeLabels){ return $typeLabels[$t->type] ?? $t->type; }, $stats['by_type'] ?? [])); ?>,
                     datasets: [{
                         data: <?php echo json_encode(array_map(function($t){ return $t->count; }, $stats['by_type'] ?? [])); ?>,
-                        backgroundColor: ['#3182ce', '#38a169', '#dd6b20', '#e53e3e', '#805ad5']
+                        backgroundColor: ['#F63049', '#D02752', '#8A244B', '#111F35', '#718096']
                     }]
                 },
                 options: {
