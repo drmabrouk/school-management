@@ -7,62 +7,80 @@
         </div>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 30px;">
-        <!-- Student ID Cards -->
-        <div style="background: #fff; padding: 25px; border-radius: 12px; border: 1px solid var(--sm-border-color); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-            <h4 style="margin-top:0; color:var(--sm-secondary-color); display:flex; align-items:center; gap:10px;">
-                <span class="dashicons dashicons-id-alt"></span> طباعة بطاقات الهوية
-            </h4>
-            <p style="font-size: 0.85em; color: #666; margin-bottom: 20px;">توليد بطاقات تعريفية للطلاب تحتوي على الكود والباركود للاتخدام مع ماسح النظام.</p>
-            <div class="sm-form-group">
-                <label class="sm-label" style="font-size: 12px;">تحديد الصف (اختياري):</label>
-                <select id="card_class_filter" class="sm-select">
-                    <option value="">كل الصفوف</option>
-                    <?php 
-                    global $wpdb;
-                    $classes = $wpdb->get_col("SELECT DISTINCT class_name FROM {$wpdb->prefix}sm_students");
-                    foreach($classes as $c) echo '<option value="'.$c.'">'.$c.'</option>';
-                    ?>
-                </select>
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;">
+        <!-- Student ID Cards (All) -->
+        <div style="background: #fff; padding: 25px; border-radius: 15px; border: 1px solid var(--sm-border-color); display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--sm-shadow);">
+            <div>
+                <div style="width: 50px; height: 50px; background: #F8FAFC; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; color: #3182CE;">
+                    <span class="dashicons dashicons-groups" style="font-size: 28px; width: 28px; height: 28px;"></span>
+                </div>
+                <h4 style="margin: 0 0 10px 0; border: none; font-weight: 800; font-size: 15px;">بطاقات الطلاب (الكل)</h4>
+                <p style="font-size: 11px; color: #718096; line-height: 1.6; margin-bottom: 20px;">طباعة بطاقات التعريف لكافة الطلاب في النظام أو حسب صف محدد.</p>
+                <div class="sm-form-group">
+                    <select id="card_class_filter" class="sm-select" style="font-size: 12px; padding: 8px;">
+                        <option value="">كافة الصفوف</option>
+                        <?php
+                        global $wpdb;
+                        $classes = $wpdb->get_col("SELECT DISTINCT class_name FROM {$wpdb->prefix}sm_students");
+                        foreach($classes as $c) echo '<option value="'.$c.'">'.$c.'</option>';
+                        ?>
+                    </select>
+                </div>
             </div>
-            <button onclick="printCards()" class="sm-btn" style="background:#27ae60;">توليد البطاقات للطباعة</button>
+            <button onclick="printCards()" class="sm-btn" style="background: #3182CE; font-size: 12px;">طباعة البطاقات</button>
+        </div>
+
+        <!-- Specific Student ID Card -->
+        <div style="background: #fff; padding: 25px; border-radius: 15px; border: 1px solid var(--sm-border-color); display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--sm-shadow);">
+            <div>
+                <div style="width: 50px; height: 50px; background: #FFF5F5; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; color: #E53E3E;">
+                    <span class="dashicons dashicons-id-alt" style="font-size: 28px; width: 28px; height: 28px;"></span>
+                </div>
+                <h4 style="margin: 0 0 10px 0; border: none; font-weight: 800; font-size: 15px;">بطاقة طالب محدد</h4>
+                <p style="font-size: 11px; color: #718096; line-height: 1.6; margin-bottom: 20px;">استخراج بطاقة تعريفية رسمية لطالب واحد فقط بالاسم والكود.</p>
+                <div class="sm-form-group">
+                    <select id="specific_card_student_id" class="sm-select" style="font-size: 12px; padding: 8px;">
+                        <?php
+                        $students = SM_DB::get_students();
+                        foreach($students as $s) echo '<option value="'.$s->id.'">'.$s->name.'</option>';
+                        ?>
+                    </select>
+                </div>
+            </div>
+            <button onclick="printSpecificCard()" class="sm-btn" style="background: #E53E3E; font-size: 12px;">توليد البطاقة</button>
         </div>
 
         <!-- Disciplinary Reports -->
-        <div style="background: #fff; padding: 25px; border-radius: 12px; border: 1px solid var(--sm-border-color); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-            <h4 style="margin-top:0; color:var(--sm-secondary-color); display:flex; align-items:center; gap:10px;">
-                <span class="dashicons dashicons-media-document"></span> التقارير الانضباطية المفصلة
-            </h4>
-            <p style="font-size: 0.85em; color: #666; margin-bottom: 20px;">استخراج سجل كامل للطالب مع الإحصائيات والمخالفات والإجراءات المتخذة.</p>
-            <div class="sm-form-group">
-                <label class="sm-label" style="font-size: 12px;">اختر الطالب:</label>
-                <select id="report_student_id" class="sm-select">
-                    <?php 
-                    $students = SM_DB::get_students();
-                    foreach($students as $s) echo '<option value="'.$s->id.'">'.$s->name.' ('.$s->class_name.')</option>';
-                    ?>
-                </select>
+        <div style="background: #fff; padding: 25px; border-radius: 15px; border: 1px solid var(--sm-border-color); display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--sm-shadow);">
+            <div>
+                <div style="width: 50px; height: 50px; background: #F0FFF4; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; color: #38A169;">
+                    <span class="dashicons dashicons-media-document" style="font-size: 28px; width: 28px; height: 28px;"></span>
+                </div>
+                <h4 style="margin: 0 0 10px 0; border: none; font-weight: 800; font-size: 15px;">التقارير الانضباطية</h4>
+                <p style="font-size: 11px; color: #718096; line-height: 1.6; margin-bottom: 20px;">تقرير رسمي مفصل وشامل لسلوك الطالب، جاهز للطباعة والختم.</p>
+                <div class="sm-form-group">
+                    <select id="report_student_id" class="sm-select" style="font-size: 12px; padding: 8px;">
+                        <?php foreach($students as $s) echo '<option value="'.$s->id.'">'.$s->name.'</option>'; ?>
+                    </select>
+                </div>
             </div>
-            <button onclick="printReport()" class="sm-btn">عرض التقرير المفصل</button>
+            <button onclick="printReport()" class="sm-btn" style="background: #38A169; font-size: 12px;">عرض التقرير</button>
         </div>
 
         <!-- General Disciplinary Log -->
-        <div style="background: #fff; padding: 25px; border-radius: 12px; border: 1px solid var(--sm-border-color); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-            <h4 style="margin-top:0; color:var(--sm-secondary-color); display:flex; align-items:center; gap:10px;">
-                <span class="dashicons dashicons-list-view"></span> سجل المخالفات العام
-            </h4>
-            <p style="font-size: 0.85em; color: #666; margin-bottom: 20px;">طباعة قائمة بكافة المخالفات المسجلة في النظام خلال فترة محددة.</p>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-                <div>
-                    <label class="sm-label" style="font-size: 11px;">من:</label>
-                    <input type="date" id="log_start_date" class="sm-input" style="font-size: 12px; padding: 8px;">
+        <div style="background: #fff; padding: 25px; border-radius: 15px; border: 1px solid var(--sm-border-color); display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--sm-shadow);">
+            <div>
+                <div style="width: 50px; height: 50px; background: #FFF9DB; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; color: #D69E2E;">
+                    <span class="dashicons dashicons-list-view" style="font-size: 28px; width: 28px; height: 28px;"></span>
                 </div>
-                <div>
-                    <label class="sm-label" style="font-size: 11px;">إلى:</label>
-                    <input type="date" id="log_end_date" class="sm-input" style="font-size: 12px; padding: 8px;">
+                <h4 style="margin: 0 0 10px 0; border: none; font-weight: 800; font-size: 15px;">سجل المخالفات العام</h4>
+                <p style="font-size: 11px; color: #718096; line-height: 1.6; margin-bottom: 20px;">طباعة كشف كامل بكافة المخالفات المسجلة بالمدرسة خلال فترة زمنية.</p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px;">
+                    <input type="date" id="log_start_date" class="sm-input" style="font-size: 10px; padding: 5px;">
+                    <input type="date" id="log_end_date" class="sm-input" style="font-size: 10px; padding: 5px;">
                 </div>
             </div>
-            <button onclick="printGeneralLog()" class="sm-btn" style="background: var(--sm-secondary-color);">توليد السجل العام</button>
+            <button onclick="printGeneralLog()" class="sm-btn" style="background: #111F35; font-size: 12px;">تحميل السجل</button>
         </div>
 
         <!-- Excel Templates Section -->
@@ -91,6 +109,11 @@
 function printCards() {
     const classFilter = document.getElementById('card_class_filter').value;
     window.open('<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=id_card'); ?>&class_name=' + encodeURIComponent(classFilter), '_blank');
+}
+
+function printSpecificCard() {
+    const studentId = document.getElementById('specific_card_student_id').value;
+    window.open('<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=id_card'); ?>&student_id=' + studentId, '_blank');
 }
 
 function printReport() {

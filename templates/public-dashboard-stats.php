@@ -4,10 +4,10 @@
     
     <?php $is_parent = in_array('sm_parent', (array) wp_get_current_user()->roles); ?>
     <div style="background: white; padding: 30px; border: 1px solid var(--sm-border-color); border-radius: var(--sm-radius); margin-bottom: 30px; box-shadow: var(--sm-shadow);">
-        <form method="get" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) auto; gap: 15px; align-items: end;">
+        <form method="get" style="display: grid; grid-template-columns: repeat(<?php echo $is_parent ? '3' : '4'; ?>, 1fr) auto; gap: 20px; align-items: end;">
             <?php if (!$is_parent): ?>
             <div class="sm-form-group" style="margin-bottom:0;">
-                <label class="sm-label">الطالب:</label>
+                <label class="sm-label">البحث عن طالب:</label>
                 <select name="student_filter" class="sm-select">
                     <option value="">كل الطلاب</option>
                     <?php 
@@ -20,17 +20,17 @@
             <?php endif; ?>
             
             <div class="sm-form-group" style="margin-bottom:0;">
-                <label class="sm-label">تاريخ البداية:</label>
+                <label class="sm-label">من تاريخ:</label>
                 <input type="date" name="start_date" class="sm-input" value="<?php echo esc_attr(isset($_GET['start_date']) ? $_GET['start_date'] : ''); ?>">
             </div>
 
             <div class="sm-form-group" style="margin-bottom:0;">
-                <label class="sm-label">تاريخ النهاية:</label>
+                <label class="sm-label">إلى تاريخ:</label>
                 <input type="date" name="end_date" class="sm-input" value="<?php echo esc_attr(isset($_GET['end_date']) ? $_GET['end_date'] : ''); ?>">
             </div>
             
             <div class="sm-form-group" style="margin-bottom:0;">
-                <label class="sm-label">النوع:</label>
+                <label class="sm-label">نوع السجل:</label>
                 <select name="type_filter" class="sm-select">
                     <option value="">كل الأنواع</option>
                     <?php foreach (SM_Settings::get_violation_types() as $k => $v): ?>
@@ -39,12 +39,12 @@
                 </select>
             </div>
 
-            <div style="display: flex; gap: 10px;">
-                <button type="submit" class="sm-btn">تطبيق الفلتر</button>
+            <div style="display: flex; gap: 8px;">
+                <button type="submit" class="sm-btn" style="padding: 10px 15px;">بحث</button>
                 <?php if (!$is_parent): ?>
-                    <button type="button" onclick="document.getElementById('violation-import-form').style.display='block'" class="sm-btn sm-btn-secondary">استيراد (Excel)</button>
+                    <button type="button" onclick="document.getElementById('violation-import-form').style.display='block'" class="sm-btn sm-btn-secondary" style="padding: 10px 15px;" title="استيراد">استيراد</button>
                 <?php endif; ?>
-                <button type="button" onclick="window.print()" class="sm-btn" style="background:#27ae60;">طباعة</button>
+                <button type="button" onclick="window.print()" class="sm-btn" style="background:#27ae60; padding: 10px 15px;" title="طباعة">طباعة</button>
             </div>
         </form>
     </div>
