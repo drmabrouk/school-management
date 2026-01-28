@@ -1,0 +1,162 @@
+<?php if (!defined('ABSPATH')) exit; ?>
+<div class="sm-content-wrapper" dir="rtl">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        <h3 style="margin:0; border:none; padding:0;">المواد المصادرة والممتلكات المحظورة</h3>
+        <button onclick="document.getElementById('add-confiscated-modal').style.display='flex'" class="sm-btn" style="width:auto;">+ تسجيل مادة جديدة</button>
+    </div>
+
+    <div class="sm-table-container">
+        <table class="sm-table">
+            <thead>
+                <tr>
+                    <th>الطالب</th>
+                    <th>المادة</th>
+                    <th>تاريخ المصادرة</th>
+                    <th>فترة الحجز</th>
+                    <th>نوع الحجز</th>
+                    <th>الوقت المتبقي</th>
+                    <th>الحالة</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($records)): ?>
+                    <tr><td colspan="7" style="padding: 40px; text-align: center;">لا توجد مواد مصادرة مسجلة حالياً.</td></tr>
+                <?php else: ?>
+                    <?php foreach ($records as $row): 
+                        $created = strtotime($row->created_at);
+                        $expires = $created + ($row->holding_period * 24 * 60 * 60);
+                        $remaining = $expires - time();
+                        $days_left = ceil($remaining / (24 * 60 * 60));
+                        $is_expired = $remaining <= 0;
+                    ?>
+                        <tr>
+                            <td style="font-weight: 700;"><?php echo esc_html($row->student_name); ?><br><small style="color:#718096;"><?php echo esc_html($row->class_name); ?></small></td>
+                            <td style="color:var(--sm-primary-color); font-weight:600;"><?php echo esc_html($row->item_name); ?></td>
+                            <td><?php echo date('Y-m-d', $created); ?></td>
+                            <td><?php echo (int)$row->holding_period; ?> يوم</td>
+                            <td><?php echo $row->is_returnable ? 'قابل للإعادة' : 'مصادرة نهائية'; ?></td>
+                            <td>
+                                <?php if ($row->status == 'returned'): ?>
+                                    <span style="color:#38a169;">تم التسليم</span>
+                                <?php elseif ($is_expired): ?>
+                                    <span style="color:#e53e3e; font-weight:800;">انتهت المدة! (يجب الإعادة)</span>
+                                <?php else: ?>
+                                    <span style="color:#dd6b20; font-weight:600;"><?php echo $days_left; ?> يوم متبقي</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <span class="sm-badge sm-badge-<?php echo $row->status == 'held' ? 'high' : 'low'; ?>">
+                                    <?php echo $row->status == 'held' ? 'محجوزة' : 'تمت الإعادة'; ?>
+                                </span>
+                            </td>
+                            <td>
+                                <?php if ($row->status == 'held'): ?>
+                                    <button onclick="markReturned(<?php echo $row->id; ?>)" class="sm-btn" style="background:#38a169; padding:5px 10px; font-size:11px; width:auto;">إعادة للطالب</button>
+                                <?php else: ?>
+                                    ---
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Add Item Modal -->
+    <div id="add-confiscated-modal" class="sm-modal-overlay">
+        <div class="sm-modal-content" style="max-width: 600px;">
+            <button class="sm-modal-close" onclick="document.getElementById('add-confiscated-modal').style.display='none'">&times;</button>
+            <h3 style="margin:0 0 25px 0; border-bottom:1px solid #eee; padding-bottom:15px;">تسجيل مادة مصادرة جديدة</h3>
+            <form id="add-confiscated-form">
+                <?php wp_nonce_field('sm_confiscated_action', 'nonce'); ?>
+                
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                    <div class="sm-form-group" style="grid-column: span 2;">
+                        <label class="sm-label">الطالب المعني:</label>
+                        <select name="student_id" class="sm-select" required>
+                            <option value="">-- اختر الطالب من القائمة --</option>
+                            <?php 
+                            $students = SM_DB::get_students();
+                            foreach($students as $s) echo '<option value="'.$s->id.'">'.$s->name.' ('.$s->class_name.')</option>';
+                            ?>
+                        </select>
+                    </div>
+
+                    <div class="sm-form-group">
+                        <label class="sm-label">نوع المادة المصادرة:</label>
+                        <select name="item_name" class="sm-select" required onchange="if(this.value=='other') document.getElementById('other_item').style.display='block'; else document.getElementById('other_item').style.display='none';">
+                            <option value="هاتف محمول">هاتف محمول</option>
+                            <option value="سماعات">سماعات</option>
+                            <option value="سيجارة إلكترونية">سيجارة إلكترونية</option>
+                            <option value="ألعاب إلكترونية">ألعاب إلكترونية</option>
+                            <option value="أدوات حادة">أدوات حادة</option>
+                            <option value="other">أخرى (اذكرها...)</option>
+                        </select>
+                        <input type="text" id="other_item" name="item_name_other" class="sm-input" style="display:none; margin-top:10px;" placeholder="اكتب اسم المادة...">
+                    </div>
+
+                    <div class="sm-form-group">
+                        <label class="sm-label">مدة الحجز (يوم):</label>
+                        <select name="holding_period" class="sm-select">
+                            <option value="7">أسبوع واحد</option>
+                            <option value="15">15 يوم</option>
+                            <option value="30" selected>شهر كامل (30 يوم)</option>
+                            <option value="90">فصل دراسي (90 يوم)</option>
+                            <option value="0">مصادرة نهائية (حتى نهاية العام)</option>
+                        </select>
+                    </div>
+
+                    <div class="sm-form-group" style="grid-column: span 2; background: #fdf2f2; padding: 15px; border-radius: 8px;">
+                        <label style="display:flex; align-items:center; gap:12px; cursor:pointer; font-weight:700; color:#8b0000;">
+                            <input type="checkbox" name="is_returnable" value="1" checked>
+                            <span>تعهد بإعادة المادة بعد انتهاء الفترة المحددة</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button type="submit" class="sm-btn" style="margin-top:20px; background:#8b0000; height:50px; font-size:1.1em;">تأكيد وحفظ عملية المصادرة</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const addForm = document.getElementById('add-confiscated-form');
+        if (addForm) {
+            addForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+                formData.append('action', 'sm_add_confiscated_ajax');
+                fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success) {
+                        smShowNotification('تم تسجيل المادة بنجاح');
+                        setTimeout(() => location.reload(), 500);
+                    }
+                });
+            });
+        }
+
+        window.markReturned = function(id) {
+            if (!confirm('تأكيد إعادة المادة للطالب؟')) return;
+            const formData = new FormData();
+            formData.append('action', 'sm_update_confiscated_ajax');
+            formData.append('item_id', id);
+            formData.append('status', 'returned');
+            formData.append('nonce', '<?php echo wp_create_nonce("sm_confiscated_action"); ?>');
+
+            fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    smShowNotification('تم تحديث الحالة: تمت الإعادة');
+                    setTimeout(() => location.reload(), 500);
+                }
+            });
+        };
+    })();
+    </script>
+</div>

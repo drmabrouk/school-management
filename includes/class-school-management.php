@@ -1,0 +1,80 @@
+<?php
+
+class School_Management {
+    protected $loader;
+    protected $plugin_name;
+    protected $version;
+
+    public function __construct() {
+        $this->plugin_name = 'school-management';
+        $this->version = SM_VERSION;
+        $this->load_dependencies();
+        $this->define_admin_hooks();
+        $this->define_public_hooks();
+    }
+
+    private function load_dependencies() {
+        require_once SM_PLUGIN_DIR . 'includes/class-sm-loader.php';
+        require_once SM_PLUGIN_DIR . 'includes/class-sm-db.php';
+        require_once SM_PLUGIN_DIR . 'includes/class-sm-settings.php';
+        require_once SM_PLUGIN_DIR . 'includes/class-sm-logger.php';
+        require_once SM_PLUGIN_DIR . 'includes/class-sm-notifications.php';
+        require_once SM_PLUGIN_DIR . 'admin/class-sm-admin.php';
+        require_once SM_PLUGIN_DIR . 'public/class-sm-public.php';
+        $this->loader = new SM_Loader();
+    }
+
+    private function define_admin_hooks() {
+        $plugin_admin = new SM_Admin($this->get_plugin_name(), $this->get_version());
+        $this->loader->add_action('admin_menu', $plugin_admin, 'add_menu_pages');
+        $this->loader->add_action('admin_enqueue_scripts', $plugin_admin, 'enqueue_styles');
+    }
+
+    private function define_public_hooks() {
+        $plugin_public = new SM_Public($this->get_plugin_name(), $this->get_version());
+        $this->loader->add_action('init', 'SM_DB', 'cleanup_old_messages');
+        $this->loader->add_filter('show_admin_bar', $plugin_public, 'hide_admin_bar_for_non_admins');
+        $this->loader->add_action('admin_init', $plugin_public, 'restrict_admin_access');
+        $this->loader->add_action('wp_enqueue_scripts', $plugin_public, 'enqueue_styles');
+        $this->loader->add_action('init', $plugin_public, 'register_shortcodes');
+        $this->loader->add_action('template_redirect', $plugin_public, 'handle_form_submission');
+        $this->loader->add_action('wp_login_failed', $plugin_public, 'login_failed');
+        $this->loader->add_action('wp_ajax_sm_get_student', $plugin_public, 'ajax_get_student');
+        $this->loader->add_action('wp_ajax_sm_search_students', $plugin_public, 'ajax_search_students');
+        $this->loader->add_action('wp_ajax_sm_get_student_intelligence', $plugin_public, 'ajax_get_student_intelligence');
+        $this->loader->add_action('wp_ajax_sm_refresh_dashboard', $plugin_public, 'ajax_refresh_dashboard');
+        $this->loader->add_action('wp_ajax_sm_save_record_ajax', $plugin_public, 'ajax_save_record');
+        $this->loader->add_action('wp_ajax_sm_update_student_photo', $plugin_public, 'ajax_update_student_photo');
+        $this->loader->add_action('wp_ajax_sm_send_message_ajax', $plugin_public, 'ajax_send_message');
+        $this->loader->add_action('wp_ajax_sm_get_conversation_ajax', $plugin_public, 'ajax_get_conversation');
+        $this->loader->add_action('wp_ajax_sm_mark_read', $plugin_public, 'ajax_mark_read');
+        $this->loader->add_action('wp_ajax_sm_update_record_status', $plugin_public, 'ajax_update_record_status');
+        $this->loader->add_action('wp_ajax_sm_send_group_message_ajax', $plugin_public, 'ajax_send_group_message');
+        $this->loader->add_action('wp_ajax_sm_print', $plugin_public, 'handle_print');
+        $this->loader->add_action('wp_ajax_sm_add_student_ajax', $plugin_public, 'ajax_add_student');
+        $this->loader->add_action('wp_ajax_sm_update_student_ajax', $plugin_public, 'ajax_update_student');
+        $this->loader->add_action('wp_ajax_sm_delete_student_ajax', $plugin_public, 'ajax_delete_student');
+        $this->loader->add_action('wp_ajax_sm_add_confiscated_ajax', $plugin_public, 'ajax_add_confiscated');
+        $this->loader->add_action('wp_ajax_sm_update_confiscated_ajax', $plugin_public, 'ajax_update_confiscated');
+        $this->loader->add_action('wp_ajax_sm_delete_confiscated_ajax', $plugin_public, 'ajax_delete_confiscated');
+        $this->loader->add_action('wp_ajax_sm_delete_record_ajax', $plugin_public, 'ajax_delete_record');
+        $this->loader->add_action('wp_ajax_sm_get_counts_ajax', $plugin_public, 'ajax_get_counts');
+        $this->loader->add_action('wp_ajax_sm_add_user_ajax', $plugin_public, 'ajax_add_user');
+        $this->loader->add_action('wp_ajax_sm_update_generic_user_ajax', $plugin_public, 'ajax_update_generic_user');
+        $this->loader->add_action('wp_ajax_sm_add_teacher_ajax', $plugin_public, 'ajax_add_teacher');
+        $this->loader->add_action('wp_ajax_sm_update_teacher_ajax', $plugin_public, 'ajax_update_teacher');
+        $this->loader->add_action('wp_ajax_sm_add_parent_ajax', $plugin_public, 'ajax_add_parent');
+    }
+
+    public function run() {
+        $this->loader->run();
+    }
+
+    public function get_plugin_name() {
+        return $this->plugin_name;
+    }
+
+    public function get_version() {
+        return $this->version;
+    }
+}

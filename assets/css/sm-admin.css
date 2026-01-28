@@ -1,0 +1,3 @@
+/* Admin styles for School Management */
+.sm-admin-panel th { background: #f1f1f1; }
+.sm-admin-panel td, .sm-admin-panel th { padding: 10px; border: 1px solid #ccc; }

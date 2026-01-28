@@ -1,0 +1,462 @@
+<?php if (!defined('ABSPATH')) exit; ?>
+<script>
+/**
+ * SCHOOL MANAGEMENT - CORE UI ENGINE (ULTRA HARDENED V5)
+ * Standard linking and routing fix.
+ */
+(function(window) {
+    const SM_UI = {
+        showNotification: function(message, isError = false) {
+            const toast = document.createElement('div');
+            toast.className = 'sm-toast';
+            toast.style.cssText = "position:fixed; top:20px; left:50%; transform:translateX(-50%); background:white; padding:15px 30px; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:10001; display:flex; align-items:center; gap:10px; border-right:5px solid " + (isError ? '#e53e3e' : '#38a169');
+            toast.innerHTML = `<strong>${isError ? '✖' : '✓'}</strong> <span>${message}</span>`;
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = '0.5s'; setTimeout(() => toast.remove(), 500); }, 3000);
+        },
+
+        openInternalTab: function(tabId, element) {
+            const target = document.getElementById(tabId);
+            if (!target || !element) return;
+            const container = target.parentElement;
+            container.querySelectorAll('.sm-internal-tab').forEach(p => p.style.setProperty('display', 'none', 'important'));
+            target.style.setProperty('display', 'block', 'important');
+            element.parentElement.querySelectorAll('.sm-tab-btn').forEach(b => b.classList.remove('sm-active'));
+            element.classList.add('sm-active');
+        }
+    };
+
+    window.smShowNotification = SM_UI.showNotification;
+    window.smOpenInternalTab = SM_UI.openInternalTab;
+
+    // REAL-TIME COUNTERS
+    function updateRealTimeCounters() {
+        fetch('<?php echo admin_url('admin-ajax.php'); ?>?action=sm_get_counts_ajax')
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                const badgeReports = document.getElementById('pending-reports-badge');
+                if (badgeReports) {
+                    const count = parseInt(res.data.pending_reports);
+                    badgeReports.innerText = count;
+                    badgeReports.style.display = count > 0 ? 'block' : 'none';
+                }
+                const badgeItems = document.getElementById('expired-items-badge');
+                if (badgeItems) {
+                    const count = parseInt(res.data.expired_items);
+                    badgeItems.innerText = count;
+                    badgeItems.style.display = count > 0 ? 'block' : 'none';
+                }
+            }
+        });
+    }
+    setInterval(updateRealTimeCounters, 10000); // Every 10 seconds
+    window.addEventListener('load', updateRealTimeCounters);
+
+    // MEDIA UPLOADER FOR LOGO
+    window.smOpenMediaUploader = function(inputId) {
+        const frame = wp.media({
+            title: 'اختر شعار المدرسة',
+            button: { text: 'استخدام هذا الشعار' },
+            multiple: false
+        });
+        frame.on('select', function() {
+            const attachment = frame.state().get('selection').first().toJSON();
+            document.getElementById(inputId).value = attachment.url;
+        });
+        frame.open();
+    };
+
+    // GLOBAL EDIT HANDLERS
+    window.editSmStudent = function(s) {
+        document.getElementById('edit_stu_id').value = s.id;
+        document.getElementById('edit_stu_name').value = s.name;
+        document.getElementById('edit_stu_class').value = s.class;
+        document.getElementById('edit_stu_email').value = s.parent_email;
+        document.getElementById('edit_stu_code').value = s.student_id;
+        if (document.getElementById('edit_stu_parent_user')) document.getElementById('edit_stu_parent_user').value = s.parent_id || '';
+        if (document.getElementById('edit_stu_teacher')) document.getElementById('edit_stu_teacher').value = s.teacher_id || '';
+        document.getElementById('edit-student-modal').style.display = 'flex';
+    };
+
+    window.editSmTeacher = function(t) {
+        document.getElementById('edit_t_id').value = t.id;
+        document.getElementById('edit_t_name').value = t.name;
+        document.getElementById('edit_t_code').value = t.teacher_id;
+        document.getElementById('edit_t_job').value = t.job_title;
+        document.getElementById('edit_t_phone').value = t.phone;
+        document.getElementById('edit_t_email').value = t.email;
+        document.getElementById('edit-teacher-modal').style.display = 'flex';
+    };
+
+    window.updateRecordStatus = function(id, status) {
+        const formData = new FormData();
+        formData.append('action', 'sm_update_record_status');
+        formData.append('record_id', id);
+        formData.append('status', status);
+        formData.append('nonce', '<?php echo wp_create_nonce("sm_record_action"); ?>');
+
+        fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                smShowNotification('تم تحديث حالة المخالفة');
+                setTimeout(() => location.reload(), 500);
+            }
+        });
+    };
+})(window);
+</script>
+
+<?php 
+$user = wp_get_current_user();
+$roles = (array)$user->roles;
+$is_admin = in_array('administrator', $roles) || current_user_can('manage_options');
+$is_parent = in_array('sm_parent', $roles);
+$is_teacher = in_array('sm_teacher', $roles);
+$active_tab = isset($_GET['sm_tab']) ? sanitize_text_field($_GET['sm_tab']) : 'summary';
+$school = SM_Settings::get_school_info();
+?>
+
+<div class="sm-admin-dashboard" dir="rtl" style="font-family: Arial, sans-serif; background: #fff; border: 1px solid var(--sm-border-color); border-radius: 12px; overflow: hidden;">
+    <!-- ENHANCED HEADER -->
+    <div style="background: var(--sm-bg-light); padding: 15px 40px; border-bottom: 1px solid var(--sm-border-color); display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <?php if ($school['school_logo']): ?>
+                <img src="<?php echo esc_url($school['school_logo']); ?>" style="height: 50px; width: auto; object-fit: contain;">
+            <?php endif; ?>
+            <div>
+                <h2 style="margin:0; border: none; padding: 0; color: var(--sm-secondary-color); font-weight: 800; font-size: 1.2em; text-decoration: none;">
+                    <?php echo esc_html($school['school_name']); ?>
+                </h2>
+                <div style="font-size: 0.75em; color: #718096; font-weight: 600;">
+                    <?php 
+                    if ($is_admin) echo 'لوحة تحكم مدير النظام';
+                    elseif (in_array('sm_parent', $roles)) echo 'بوابة ولي الأمر';
+                    else echo 'نظام إدارة المدرسة';
+                    ?>
+                </div>
+            </div>
+            <div class="sm-header-separator" style="width: 1px; height: 30px; background: #ddd; margin: 0 15px;"></div>
+            <div class="sm-user-greeting" style="display: flex; align-items: center; gap: 10px; font-weight: 600;">
+                <?php echo get_avatar($user->ID, 32, '', '', array('style' => 'border-radius: 50%; border: 2px solid var(--sm-primary-color);')); ?>
+                <span>أهلاً بك، <?php echo $user->display_name; ?></span>
+            </div>
+        </div>
+        <div class="sm-header-controls" style="display: flex; align-items: center; gap: 15px;">
+            <div style="font-size: 0.85em; color: var(--sm-text-gray); border-left: 1px solid #ddd; padding-left: 15px; font-weight: 600;">
+                <?php echo date_i18n('l, j F Y'); ?>
+            </div>
+            <?php if ($is_admin || current_user_can('تسجيل_مخالفة')): ?>
+                <a href="<?php echo add_query_arg('sm_tab', 'record'); ?>" class="sm-quick-btn" style="text-decoration:none;">+ مخالفة جديدة</a>
+            <?php endif; ?>
+            <button onclick="window.location.reload()" class="sm-refresh-btn">تحديث ↻</button>
+            <a href="<?php echo wp_logout_url(home_url('/sm-login')); ?>" class="sm-logout-btn">خروج</a>
+        </div>
+    </div>
+
+    <div class="sm-admin-layout" style="display: flex; min-height: 800px;">
+        <!-- SIDEBAR -->
+        <div class="sm-sidebar" style="width: 280px; flex-shrink: 0; background: var(--sm-bg-light); border-left: 1px solid var(--sm-border-color); padding: 20px 0;">
+            <ul style="list-style: none; padding: 0; margin: 0;">
+                <li class="sm-sidebar-item <?php echo $active_tab == 'summary' ? 'sm-active' : ''; ?>">
+                    <a href="<?php echo add_query_arg('sm_tab', 'summary'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-dashboard"></span> لوحة المعلومات</a>
+                </li>
+                
+                <?php if ($is_admin || current_user_can('تسجيل_مخالفة')): ?>
+                    <li class="sm-sidebar-item <?php echo $active_tab == 'record' ? 'sm-active' : ''; ?>">
+                        <a href="<?php echo add_query_arg('sm_tab', 'record'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-edit-page"></span> تسجيل مخالفة</a>
+                    </li>
+                <?php endif; ?>
+
+                <?php if ($is_admin || current_user_can('إدارة_المخالفات') || $is_parent): ?>
+                    <li class="sm-sidebar-item <?php echo $active_tab == 'stats' ? 'sm-active' : ''; ?>">
+                        <a href="<?php echo add_query_arg('sm_tab', 'stats'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-list-view"></span> سجل المخالفات</a>
+                    </li>
+                <?php endif; ?>
+
+                <?php if ($is_admin || current_user_can('إدارة_الطلاب')): ?>
+                    <li class="sm-sidebar-item <?php echo $active_tab == 'students' ? 'sm-active' : ''; ?>">
+                        <a href="<?php echo add_query_arg('sm_tab', 'students'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-groups"></span> إدارة الطلاب</a>
+                    </li>
+                <?php endif; ?>
+
+                <?php if ($is_admin || current_user_can('إدارة_المعلمين')): ?>
+                    <li class="sm-sidebar-item <?php echo $active_tab == 'teachers' ? 'sm-active' : ''; ?>">
+                        <a href="<?php echo add_query_arg('sm_tab', 'teachers'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-welcome-learn-more"></span> إدارة المعلمين</a>
+                    </li>
+                <?php endif; ?>
+
+                <?php if ($is_admin || current_user_can('إدارة_أولياء_الأمور')): ?>
+                    <li class="sm-sidebar-item <?php echo $active_tab == 'parents' ? 'sm-active' : ''; ?>">
+                        <a href="<?php echo add_query_arg('sm_tab', 'parents'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-admin-users"></span> إدارة أولياء الأمور</a>
+                    </li>
+                <?php endif; ?>
+
+                <?php if ($is_admin || current_user_can('إدارة_المخالفات')): ?>
+                    <li class="sm-sidebar-item <?php echo $active_tab == 'teacher-reports' ? 'sm-active' : ''; ?>" style="position:relative;">
+                        <a href="<?php echo add_query_arg('sm_tab', 'teacher-reports'); ?>" class="sm-sidebar-link">
+                            <span class="dashicons dashicons-warning"></span> بلاغات المعلمين
+                            <span id="pending-reports-badge" class="sm-sidebar-badge" style="display:none;">0</span>
+                        </a>
+                    </li>
+                <?php endif; ?>
+
+                <?php if ($is_admin || current_user_can('إدارة_المخالفات')): ?>
+                    <li class="sm-sidebar-item <?php echo $active_tab == 'confiscated' ? 'sm-active' : ''; ?>" style="position:relative;">
+                        <a href="<?php echo add_query_arg('sm_tab', 'confiscated'); ?>" class="sm-sidebar-link">
+                            <span class="dashicons dashicons-lock"></span> المواد المصادرة
+                            <span id="expired-items-badge" class="sm-sidebar-badge" style="display:none;">0</span>
+                        </a>
+                    </li>
+                <?php endif; ?>
+
+                <?php if ($is_admin || current_user_can('طباعة_التقارير')): ?>
+                    <li class="sm-sidebar-item <?php echo $active_tab == 'printing' ? 'sm-active' : ''; ?>">
+                        <a href="<?php echo add_query_arg('sm_tab', 'printing'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-printer"></span> مركز الطباعة</a>
+                    </li>
+                    <li class="sm-sidebar-item <?php echo $active_tab == 'reports' ? 'sm-active' : ''; ?>">
+                        <a href="<?php echo add_query_arg('sm_tab', 'reports'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-chart-area"></span> التقارير التحليلية</a>
+                    </li>
+                <?php endif; ?>
+
+                <?php if ($is_admin || current_user_can('إدارة_النظام')): ?>
+                    <li class="sm-sidebar-item <?php echo $active_tab == 'global-settings' ? 'sm-active' : ''; ?>">
+                        <a href="<?php echo add_query_arg('sm_tab', 'global-settings'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-admin-generic"></span> إعدادات النظام</a>
+                    </li>
+                <?php endif; ?>
+            </ul>
+        </div>
+
+        <!-- CONTENT AREA -->
+        <div class="sm-main-panel" style="flex: 1; min-width: 0; padding: 40px; background: #fff;">
+            
+            <?php 
+            switch ($active_tab) {
+                case 'summary':
+                    if ($is_parent) {
+                        if (isset($student) && $student) include SM_PLUGIN_DIR . 'templates/parent-student-summary.php';
+                        else echo '<p>لا يوجد بيانات لعرضها.</p>';
+                    } else {
+                        include SM_PLUGIN_DIR . 'templates/public-dashboard-summary.php'; 
+                    }
+                    break;
+
+                case 'students':
+                    if ($is_admin || current_user_can('إدارة_الطلاب')) {
+                        echo '<h3 style="margin-top:0;">إدارة الطلاب</h3>';
+                        include SM_PLUGIN_DIR . 'templates/admin-students.php';
+                    }
+                    break;
+
+                case 'record':
+                    if ($is_admin || current_user_can('تسجيل_مخالفة')) {
+                        include SM_PLUGIN_DIR . 'templates/system-form.php';
+                    }
+                    break;
+
+                case 'stats':
+                    if ($is_admin || current_user_can('إدارة_المخالفات') || $is_parent) {
+                        include SM_PLUGIN_DIR . 'templates/public-dashboard-stats.php'; 
+                    }
+                    break;
+
+                case 'messaging':
+                    include SM_PLUGIN_DIR . 'templates/messaging-center.php';
+                    break;
+
+                case 'teachers':
+                    if ($is_admin || current_user_can('إدارة_المعلمين')) {
+                        include SM_PLUGIN_DIR . 'templates/admin-teachers.php';
+                    }
+                    break;
+
+                case 'parents':
+                    if ($is_admin || current_user_can('إدارة_أولياء_الأمور')) {
+                        include SM_PLUGIN_DIR . 'templates/admin-parents.php';
+                    }
+                    break;
+
+                case 'printing':
+                    if ($is_admin || current_user_can('طباعة_التقارير')) {
+                        include SM_PLUGIN_DIR . 'templates/printing-cards.php';
+                    }
+                    break;
+
+                case 'reports':
+                    if ($is_admin || current_user_can('طباعة_التقارير')) {
+                        include SM_PLUGIN_DIR . 'templates/admin-reports.php'; 
+                    }
+                    break;
+
+                case 'teacher-reports':
+                    include SM_PLUGIN_DIR . 'templates/admin-teacher-reports.php';
+                    break;
+
+                case 'confiscated':
+                    include SM_PLUGIN_DIR . 'templates/admin-confiscated.php';
+                    break;
+
+                case 'global-settings':
+                    if ($is_admin || current_user_can('إدارة_النظام')) {
+                        ?>
+                        <div class="sm-tabs-wrapper" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #eee;">
+                            <button class="sm-tab-btn sm-active" onclick="smOpenInternalTab('school-settings', this)">بيانات المدرسة</button>
+                            <button class="sm-tab-btn" onclick="smOpenInternalTab('app-settings', this)">المخالفات والمظهر</button>
+                            <button class="sm-tab-btn" onclick="smOpenInternalTab('user-settings', this)">إدارة المستخدمين</button>
+                            <button class="sm-tab-btn" onclick="smOpenInternalTab('backup-settings', this)">مركز النسخ الاحتياطي</button>
+                            <?php if ($is_admin): ?>
+                                <button class="sm-tab-btn" onclick="smOpenInternalTab('activity-logs', this)">سجل النشاطات</button>
+                            <?php endif; ?>
+                        </div>
+                        <div id="school-settings" class="sm-internal-tab">
+                            <form method="post">
+                                <?php wp_nonce_field('sm_admin_action', 'sm_admin_nonce'); ?>
+                                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                                    <div class="sm-form-group"><label class="sm-label">اسم المدرسة:</label><input type="text" name="school_name" value="<?php echo esc_attr($school['school_name']); ?>" class="sm-input"></div>
+                                    <div class="sm-form-group"><label class="sm-label">رقم الهاتف:</label><input type="text" name="school_phone" value="<?php echo esc_attr($school['phone']); ?>" class="sm-input"></div>
+                                    <div class="sm-form-group"><label class="sm-label">البريد الإلكتروني:</label><input type="email" name="school_email" value="<?php echo esc_attr($school['email']); ?>" class="sm-input"></div>
+                                    <div class="sm-form-group">
+                                        <label class="sm-label">شعار المدرسة:</label>
+                                        <div style="display:flex; gap:10px;">
+                                            <input type="text" name="school_logo" id="sm_school_logo_url" value="<?php echo esc_attr($school['school_logo']); ?>" class="sm-input">
+                                            <button type="button" onclick="smOpenMediaUploader('sm_school_logo_url')" class="sm-btn" style="width:auto; font-size:12px; background:var(--sm-secondary-color);">رفع/اختيار</button>
+                                        </div>
+                                    </div>
+                                    <div class="sm-form-group" style="grid-column: span 2;"><label class="sm-label">العنوان:</label><input type="text" name="school_address" value="<?php echo esc_attr($school['address']); ?>" class="sm-input"></div>
+                                </div>
+                                <button type="submit" name="sm_save_settings_unified" class="sm-btn" style="width:auto;">حفظ بيانات المدرسة</button>
+                            </form>
+                        </div>
+                        <div id="app-settings" class="sm-internal-tab" style="display:none;">
+                            <form method="post">
+                                <?php wp_nonce_field('sm_admin_action', 'sm_admin_nonce'); $appearance = SM_Settings::get_appearance(); ?>
+                                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                                    <div class="sm-form-group"><label class="sm-label">اللون الأساسي للنظام:</label><input type="color" name="primary_color" value="<?php echo esc_attr($appearance['primary_color']); ?>" class="sm-input"></div>
+                                    <div class="sm-form-group"><label class="sm-label">حجم الخط الأساسي:</label><input type="text" name="font_size" value="<?php echo esc_attr($appearance['font_size']); ?>" class="sm-input"></div>
+                                    <div class="sm-form-group">
+                                        <label class="sm-label">أنواع المخالفات (مفتاح|اسم):</label>
+                                        <textarea name="violation_types" class="sm-textarea" rows="5"><?php foreach(SM_Settings::get_violation_types() as $k=>$v) echo "$k|$v\n"; ?></textarea>
+                                    </div>
+                                    <div class="sm-form-group">
+                                        <?php $actions = SM_Settings::get_suggested_actions(); ?>
+                                        <label class="sm-label">اقتراحات الإجراءات (كل سطر خيار):</label>
+                                        <div style="font-size:11px; margin-bottom:5px;">منخفضة:</div>
+                                        <textarea name="suggested_low" class="sm-textarea" rows="2"><?php echo esc_textarea($actions['low']); ?></textarea>
+                                        <div style="font-size:11px; margin-top:5px; margin-bottom:5px;">متوسطة:</div>
+                                        <textarea name="suggested_medium" class="sm-textarea" rows="2"><?php echo esc_textarea($actions['medium']); ?></textarea>
+                                        <div style="font-size:11px; margin-top:5px; margin-bottom:5px;">خطيرة:</div>
+                                        <textarea name="suggested_high" class="sm-textarea" rows="2"><?php echo esc_textarea($actions['high']); ?></textarea>
+                                    </div>
+                                </div>
+                                <button type="submit" name="sm_save_appearance" class="sm-btn" style="width:auto;">حفظ الإعدادات</button>
+                            </form>
+                        </div>
+                        <div id="user-settings" class="sm-internal-tab" style="display:none;">
+                            <?php include SM_PLUGIN_DIR . 'templates/admin-users-view.php'; ?>
+                        </div>
+                        <div id="backup-settings" class="sm-internal-tab" style="display:none;">
+                            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:30px;">
+                                <h4 style="margin-top:0;">مركز النسخ الاحتياطي وإدارة البيانات</h4>
+                                <?php $backup_info = SM_Settings::get_last_backup_info(); ?>
+                                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-bottom:30px;">
+                                    <div style="background:white; padding:15px; border-radius:8px; border:1px solid #eee;">
+                                        <div style="font-size:12px; color:#718096;">آخر تصدير ناجح:</div>
+                                        <div style="font-weight:700; color:var(--sm-primary-color);"><?php echo $backup_info['export']; ?></div>
+                                    </div>
+                                    <div style="background:white; padding:15px; border-radius:8px; border:1px solid #eee;">
+                                        <div style="font-size:12px; color:#718096;">آخر استيراد ناجح:</div>
+                                        <div style="font-weight:700; color:var(--sm-secondary-color);"><?php echo $backup_info['import']; ?></div>
+                                    </div>
+                                </div>
+                                <div style="display:flex; gap:20px; align-items: flex-start; flex-wrap:wrap;">
+                                    <div style="flex:1; min-width:300px; background:white; padding:20px; border-radius:8px; border:1px solid #eee;">
+                                        <h5 style="margin-top:0;">تصدير البيانات</h5>
+                                        <p style="font-size:12px; color:#666;">قم بتحميل نسخة كاملة من بيانات الطلاب والمخالفات بصيغة JSON.</p>
+                                        <form method="post"><button type="submit" name="sm_download_backup" class="sm-btn" style="background:#27ae60; width:auto;">تصدير الآن</button></form>
+                                    </div>
+                                    <div style="flex:1; min-width:300px; background:white; padding:20px; border-radius:8px; border:1px solid #eee;">
+                                        <h5 style="margin-top:0;">استيراد البيانات</h5>
+                                        <p style="font-size:12px; color:#e53e3e;">تحذير: سيقوم الاستيراد بمسح البيانات الحالية واستبدالها بالنسخة المرفوعة.</p>
+                                        <form method="post" enctype="multipart/form-data">
+                                            <?php wp_nonce_field('sm_admin_action', 'sm_admin_nonce'); ?>
+                                            <input type="file" name="backup_file" required style="margin-bottom:10px;">
+                                            <button type="submit" name="sm_restore_backup" class="sm-btn" style="background:#2980b9; width:auto;" onsubmit="return confirm('هل أنت متأكد؟ سيتم استبدال كافة البيانات.')">بدء الاستيراد</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <?php if ($is_admin): ?>
+                        <div id="activity-logs" class="sm-internal-tab" style="display:none;">
+                            <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:30px;">
+                                <h4 style="margin-top:0;">سجل نشاطات النظام (للمدير فقط)</h4>
+                                <div class="sm-table-container">
+                                    <table class="sm-table">
+                                        <thead>
+                                            <tr>
+                                                <th>الوقت</th>
+                                                <th>المستخدم</th>
+                                                <th>الإجراء</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php 
+                                            $all_logs = SM_Logger::get_logs(100);
+                                            foreach ($all_logs as $log): ?>
+                                                <tr>
+                                                    <td style="font-size: 0.8em; color: #718096;"><?php echo esc_html($log->created_at); ?></td>
+                                                    <td style="font-weight: 600;"><?php echo esc_html($log->display_name); ?></td>
+                                                    <td><?php echo esc_html($log->action); ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                        <?php
+                    }
+                    break;
+
+            }
+            ?>
+
+        </div>
+    </div>
+</div>
+
+<style>
+.sm-sidebar-item { border-bottom: 1px solid #e2e8f0; transition: 0.2s; }
+.sm-sidebar-link { 
+    padding: 15px 25px; 
+    cursor: pointer; font-weight: 600; color: #4a5568 !important;
+    display: flex; align-items: center; gap: 12px;
+    text-decoration: none !important;
+    width: 100%;
+}
+.sm-sidebar-item:hover { background: #edf2f7; }
+.sm-sidebar-item.sm-active { 
+    background: #fff !important; 
+    border-right: 4px solid var(--sm-primary-color) !important; 
+}
+.sm-sidebar-item.sm-active .sm-sidebar-link {
+    color: var(--sm-primary-color) !important;
+}
+
+.sm-sidebar-badge {
+    position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
+    background: #e53e3e; color: white; border-radius: 20px; padding: 2px 8px; font-size: 10px; font-weight: 800;
+}
+
+/* FORCE VISIBILITY FOR PANELS */
+.sm-admin-dashboard .sm-main-tab-panel {
+    width: 100% !important;
+}
+.sm-tab-btn { padding: 10px 20px; border: 1px solid #e2e8f0; background: #f8f9fa; cursor: pointer; border-radius: 5px 5px 0 0; }
+.sm-tab-btn.sm-active { background: var(--sm-primary-color) !important; color: #fff !important; border-bottom: none; }
+.sm-quick-btn { background: #48bb78 !important; color: white !important; padding: 8px 15px; border-radius: 6px; font-size: 13px; font-weight: 700; border: none; cursor: pointer; display: inline-block; }
+.sm-refresh-btn { background: #718096; color: white; padding: 8px 15px; border-radius: 6px; font-size: 13px; border: none; cursor: pointer; }
+.sm-logout-btn { background: #e53e3e; color: white; padding: 8px 15px; border-radius: 6px; font-size: 13px; text-decoration: none; font-weight: 700; display: inline-block; }
+</style>
