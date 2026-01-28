@@ -968,21 +968,20 @@ class SM_Public {
                         }
                     }
 
-                    // Mapping based on User Request:
-                    // Column J (index 9): Student ID & Class
-                    // Column K (index 10): Name (Arabic)
-                    // Column L (index 11): Name (English)
+                    // Mapping based on User Request (Updated):
+                    // Column A (index 0): Student Full Name
+                    // Column B (index 1): Student Code / ID
+                    // Column C (index 2): Grade / Class
 
-                    $student_code = isset($data[9])  ? trim($data[9])  : '';
-                    $class_name   = isset($data[9])  ? trim($data[9])  : '';
-                    $name_ar      = isset($data[10]) ? trim($data[10]) : '';
-                    $name_en      = isset($data[11]) ? trim($data[11]) : '';
+                    $full_display_name = isset($data[0]) ? trim($data[0]) : '';
+                    $student_code      = isset($data[1]) ? trim($data[1]) : '';
+                    $class_name        = isset($data[2]) ? trim($data[2]) : '';
 
                     $errors = array();
                     $warnings = array();
 
-                    if (empty($name_ar) && empty($name_en)) {
-                        $errors[] = "الاسم (بالعربي أو الإنجليزي) مفقود في السطر " . $row_index;
+                    if (empty($full_display_name)) {
+                        $errors[] = "الاسم الكامل مفقود في السطر " . $row_index;
                     }
 
                     if (empty($student_code)) {
@@ -997,11 +996,6 @@ class SM_Public {
                         $results['error']++;
                         foreach ($errors as $err) $results['details'][] = array('type' => 'error', 'msg' => $err);
                     } else {
-                        $full_display_name = !empty($name_ar) ? $name_ar : $name_en;
-                        if (!empty($name_ar) && !empty($name_en)) {
-                            $full_display_name .= " ({$name_en})";
-                        }
-
                         $imported_id = SM_DB::add_student($full_display_name, $class_name, '', $student_code);
                         if ($imported_id) {
                             $results['success']++;
