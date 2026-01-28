@@ -931,14 +931,30 @@ class SM_Public {
             }
         }
 
-        // Handle CSV Upload (Students)
+        // Handle CSV Upload (Students) - Configured for Excel Column Mapping (J, K, L)
         if (isset($_POST['sm_import_csv']) && wp_verify_nonce($_POST['sm_admin_nonce'], 'sm_admin_action')) {
             if (current_user_can('إدارة_الطلاب') && !empty($_FILES['csv_file']['tmp_name'])) {
                 $handle = fopen($_FILES['csv_file']['tmp_name'], "r");
                 $header = fgetcsv($handle); // skip header
                 while (($data = fgetcsv($handle)) !== FALSE) {
-                    if (count($data) >= 3) {
-                        SM_DB::add_student($data[0], $data[1], $data[2], isset($data[3]) ? $data[3] : '', isset($data[4]) ? intval($data[4]) : null);
+                    // Mapping based on User Request:
+                    // Column J (index 9): Student ID & Class
+                    // Column K (index 10): Name (Arabic)
+                    // Column L (index 11): Name (English)
+                    if (count($data) >= 11) {
+                        $student_code = trim($data[9] ?? '');
+                        $class_name   = trim($data[9] ?? '');
+                        $name_ar      = trim($data[10] ?? '');
+                        $name_en      = trim($data[11] ?? '');
+
+                        $full_display_name = $name_ar;
+                        if (!empty($name_en)) {
+                            $full_display_name .= " ({$name_en})";
+                        }
+
+                        if (!empty($name_ar) || !empty($name_en)) {
+                            SM_DB::add_student($full_display_name, $class_name, '', $student_code);
+                        }
                     }
                 }
                 fclose($handle);

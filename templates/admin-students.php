@@ -53,28 +53,25 @@
     <?php endif; ?>
 
     <div id="csv-import-form" style="display:none; background: #f8fafc; padding: 30px; border: 2px dashed #cbd5e0; border-radius: 12px; margin-bottom: 30px;">
-        <h3 style="margin-top:0; color:var(--sm-secondary-color);">دليل استيراد الطلاب (Excel/CSV)</h3>
+        <h3 style="margin-top:0; color:var(--sm-secondary-color);">دليل استيراد الطلاب (Excel Mapping)</h3>
         
-        <div style="background:#fff; padding:15px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:20px;">
-            <p style="font-size:13px; font-weight:700; margin-bottom:10px;">هيكل ملف الاستيراد الصحيح:</p>
-            <table style="width:100%; font-size:12px; border-collapse:collapse; text-align:center;">
-                <thead>
-                    <tr style="background:#edf2f7;">
-                        <th style="border:1px solid #cbd5e0; padding:5px;">الاسم الكامل</th>
-                        <th style="border:1px solid #cbd5e0; padding:5px;">الصف الدراسي</th>
-                        <th style="border:1px solid #cbd5e0; padding:5px;">بريد ولي الأمر</th>
-                        <th style="border:1px solid #cbd5e0; padding:5px;">الكود (اختياري)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td style="border:1px solid #cbd5e0; padding:5px;">محمد علي</td>
-                        <td style="border:1px solid #cbd5e0; padding:5px;">الصف الأول</td>
-                        <td style="border:1px solid #cbd5e0; padding:5px;">parent@mail.com</td>
-                        <td style="border:1px solid #cbd5e0; padding:5px;">STU101</td>
-                    </tr>
-                </tbody>
-            </table>
+        <div style="background:#fff; padding:20px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:20px;">
+            <p style="font-size:14px; font-weight:700; margin-bottom:15px; color: var(--sm-dark-color);">يتم استيراد البيانات وفقاً لخريطة الأعمدة التالية:</p>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
+                <div style="background: #f1f5f9; padding: 10px; border-radius: 6px; text-align: center;">
+                    <div style="font-size: 11px; color: #64748b;">العمود J</div>
+                    <div style="font-weight: 800;">رقم القيد / الصف</div>
+                </div>
+                <div style="background: #f1f5f9; padding: 10px; border-radius: 6px; text-align: center;">
+                    <div style="font-size: 11px; color: #64748b;">العمود K</div>
+                    <div style="font-weight: 800;">الاسم (بالعربي)</div>
+                </div>
+                <div style="background: #f1f5f9; padding: 10px; border-radius: 6px; text-align: center;">
+                    <div style="font-size: 11px; color: #64748b;">العمود L</div>
+                    <div style="font-weight: 800;">الاسم (بالإنجليزي)</div>
+                </div>
+            </div>
+            <p style="font-size:12px; color:#718096; line-height: 1.6;">يرجى التأكد من أن ملف الإكسل يحتوي على كافة سجلات الطلاب وأن البيانات مرتبة بدقة في الأعمدة المذكورة أعلاه (J, K, L) لضمان نجاح عملية الاستيراد.</p>
         </div>
 
         <form method="post" enctype="multipart/form-data">
