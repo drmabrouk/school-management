@@ -123,19 +123,6 @@
         </table>
     </div>
 
-    <!-- Modal Template Wrapper -->
-    <style>
-    .sm-modal-overlay {
-        display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(5px); z-index:10000; align-items:center; justify-content:center;
-    }
-    .sm-modal-content {
-        background:white; padding:40px; border-radius:20px; max-width:650px; width:95%; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); position:relative;
-    }
-    .sm-modal-close {
-        position:absolute; top:20px; left:20px; background:#f7fafc; border:1px solid #e2e8f0; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:20px; color:#4a5568; transition:0.2s;
-    }
-    .sm-modal-close:hover { background:#edf2f7; color:#e53e3e; }
-    </style>
 
     <div id="edit-teacher-modal" class="sm-modal-overlay">
         <div class="sm-modal-content">

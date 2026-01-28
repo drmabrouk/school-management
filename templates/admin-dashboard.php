@@ -25,7 +25,7 @@
         <div style="flex: 1; min-width: 300px; background: #fff; padding: 25px; border: 1px solid var(--sm-border-color); border-radius: var(--sm-radius); box-shadow: var(--sm-shadow);">
             <h3 style="color: var(--sm-primary-color);">تسجيل سريع</h3>
             <p>استخدم هذا القسم لتسجيل مخالفة جديدة بسرعة أو استخدام ماسح الباركود.</p>
-            <a href="admin.php?page=sm-record-violation" class="sm-btn">تسجيل مخالفة الآن</a>
+            <button onclick="smOpenViolationModal()" class="sm-btn">تسجيل مخالفة الآن</button>
         </div>
         <?php endif; ?>
         
