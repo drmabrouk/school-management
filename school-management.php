@@ -2,8 +2,8 @@
 /**
  * Plugin Name: School Management (إدارة المدرسة)
  * Description: نظام شامل لإدارة السلوك، المخالفات، والتقارير المدرسية.
- * Version: 94.0.0
- * Author: Gemini Partner
+ * Version: 95.0.0
+ * Author: AHMED MABROUK
  * Language: ar
  * Text Domain: school-management
  * Domain Path: /languages
@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('SM_VERSION', '94.0.0');
+define('SM_VERSION', '95.0.0');
 define('SM_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('SM_PLUGIN_URL', plugin_dir_url(__FILE__));
 
