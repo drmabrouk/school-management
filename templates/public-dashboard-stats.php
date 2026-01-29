@@ -43,33 +43,52 @@
     
     <?php $is_parent = in_array('sm_parent', (array) wp_get_current_user()->roles); ?>
     <div style="background: white; padding: 30px; border: 1px solid var(--sm-border-color); border-radius: var(--sm-radius); margin-bottom: 30px; box-shadow: var(--sm-shadow);">
-        <form method="get" style="display: grid; grid-template-columns: repeat(<?php echo $is_parent ? '3' : '4'; ?>, 1fr) auto; gap: 20px; align-items: end;">
+        <form method="get" style="display: grid; grid-template-columns: repeat(<?php echo $is_parent ? '4' : '6'; ?>, 1fr) auto; gap: 15px; align-items: end;">
+            <input type="hidden" name="page" value="sm-dashboard">
+            <input type="hidden" name="sm_tab" value="stats">
+
             <?php if (!$is_parent): ?>
             <div class="sm-form-group" style="margin-bottom:0;">
-                <label class="sm-label">البحث عن طالب:</label>
-                <select name="student_filter" class="sm-select">
-                    <option value="">كل الطلاب</option>
+                <label class="sm-label">الطالب:</label>
+                <input type="text" name="student_search" class="sm-input" value="<?php echo esc_attr($_GET['student_search'] ?? ''); ?>" placeholder="اسم/كود...">
+            </div>
+            <div class="sm-form-group" style="margin-bottom:0;">
+                <label class="sm-label">الصف:</label>
+                <select name="class_filter" class="sm-select">
+                    <option value="">كل الصفوف</option>
+                    <?php
+                    global $wpdb;
+                    $classes = $wpdb->get_col("SELECT DISTINCT class_name FROM {$wpdb->prefix}sm_students ORDER BY class_name ASC");
+                    foreach ($classes as $c): ?>
+                        <option value="<?php echo esc_attr($c); ?>" <?php selected(isset($_GET['class_filter']) && $_GET['class_filter'] == $c); ?>><?php echo esc_html($c); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="sm-form-group" style="margin-bottom:0;">
+                <label class="sm-label">الشعبة:</label>
+                <select name="section_filter" class="sm-select">
+                    <option value="">كل الشعب</option>
                     <?php 
-                    $all_students = SM_DB::get_students();
-                    foreach ($all_students as $s): ?>
-                        <option value="<?php echo $s->id; ?>" <?php selected(isset($_GET['student_filter']) && $_GET['student_filter'] == $s->id); ?>><?php echo esc_html($s->name); ?></option>
+                    $sections = $wpdb->get_col("SELECT DISTINCT section FROM {$wpdb->prefix}sm_students WHERE section != '' ORDER BY section ASC");
+                    foreach ($sections as $s): ?>
+                        <option value="<?php echo esc_attr($s); ?>" <?php selected(isset($_GET['section_filter']) && $_GET['section_filter'] == $s); ?>><?php echo esc_html($s); ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
             <?php endif; ?>
             
             <div class="sm-form-group" style="margin-bottom:0;">
-                <label class="sm-label">من تاريخ:</label>
-                <input type="date" name="start_date" class="sm-input" value="<?php echo esc_attr(isset($_GET['start_date']) ? $_GET['start_date'] : ''); ?>">
+                <label class="sm-label">من:</label>
+                <input type="date" name="start_date" class="sm-input" value="<?php echo esc_attr($_GET['start_date'] ?? ''); ?>">
             </div>
 
             <div class="sm-form-group" style="margin-bottom:0;">
-                <label class="sm-label">إلى تاريخ:</label>
-                <input type="date" name="end_date" class="sm-input" value="<?php echo esc_attr(isset($_GET['end_date']) ? $_GET['end_date'] : ''); ?>">
+                <label class="sm-label">إلى:</label>
+                <input type="date" name="end_date" class="sm-input" value="<?php echo esc_attr($_GET['end_date'] ?? ''); ?>">
             </div>
             
             <div class="sm-form-group" style="margin-bottom:0;">
-                <label class="sm-label">نوع السجل:</label>
+                <label class="sm-label">النوع:</label>
                 <select name="type_filter" class="sm-select">
                     <option value="">كل الأنواع</option>
                     <?php foreach (SM_Settings::get_violation_types() as $k => $v): ?>

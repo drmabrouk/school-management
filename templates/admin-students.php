@@ -60,22 +60,22 @@ if ($import_results) {
     <?php endif; ?>
 
     <div style="background: white; padding: 30px; border: 1px solid var(--sm-border-color); border-radius: var(--sm-radius); margin-bottom: 30px; box-shadow: var(--sm-shadow);">
-        <form method="get" style="display: grid; grid-template-columns: 1.5fr 1fr 1fr auto; gap: 20px; align-items: end;">
+        <form method="get" style="display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr auto; gap: 15px; align-items: end;">
             <input type="hidden" name="page" value="<?php echo esc_attr($_GET['page']); ?>">
             <input type="hidden" name="sm_tab" value="students">
 
             <div class="sm-form-group" style="margin-bottom:0;">
-                <label class="sm-label">بحث سريع عن طالب:</label>
-                <input type="text" name="student_search" class="sm-input" value="<?php echo esc_attr(isset($_GET['student_search']) ? $_GET['student_search'] : ''); ?>" placeholder="الاسم، الكود، أو الصف...">
+                <label class="sm-label">اسم الطالب:</label>
+                <input type="text" name="student_search" class="sm-input" value="<?php echo esc_attr(isset($_GET['student_search']) ? $_GET['student_search'] : ''); ?>" placeholder="بحث بالاسم أو الكود...">
             </div>
             
             <div class="sm-form-group" style="margin-bottom:0;">
-                <label class="sm-label">تصفية حسب الصف:</label>
+                <label class="sm-label">الصف:</label>
                 <select name="class_filter" class="sm-select">
                     <option value="">كل الصفوف</option>
                     <?php 
                     global $wpdb;
-                    $classes = $wpdb->get_col("SELECT DISTINCT class_name FROM {$wpdb->prefix}sm_students");
+                    $classes = $wpdb->get_col("SELECT DISTINCT class_name FROM {$wpdb->prefix}sm_students ORDER BY class_name ASC");
                     foreach ($classes as $c): ?>
                         <option value="<?php echo esc_attr($c); ?>" <?php selected(isset($_GET['class_filter']) && $_GET['class_filter'] == $c); ?>><?php echo esc_html($c); ?></option>
                     <?php endforeach; ?>
@@ -83,20 +83,20 @@ if ($import_results) {
             </div>
 
             <div class="sm-form-group" style="margin-bottom:0;">
-                <label class="sm-label">المعلم المسؤول:</label>
-                <select name="teacher_filter" class="sm-select">
-                    <option value="">كل المعلمين</option>
+                <label class="sm-label">الشعبة:</label>
+                <select name="section_filter" class="sm-select">
+                    <option value="">كل الشعب</option>
                     <?php
-                    $teachers = get_users(array('role' => 'sm_teacher'));
-                    foreach ($teachers as $t): ?>
-                        <option value="<?php echo $t->ID; ?>" <?php selected(isset($_GET['teacher_filter']) && $_GET['teacher_filter'] == $t->ID); ?>><?php echo esc_html($t->display_name); ?></option>
+                    $sections = $wpdb->get_col("SELECT DISTINCT section FROM {$wpdb->prefix}sm_students WHERE section != '' ORDER BY section ASC");
+                    foreach ($sections as $s): ?>
+                        <option value="<?php echo esc_attr($s); ?>" <?php selected(isset($_GET['section_filter']) && $_GET['section_filter'] == $s); ?>><?php echo esc_html($s); ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
-            
+
             <div style="display: flex; gap: 10px;">
-                <button type="submit" class="sm-btn">تطبيق</button>
-                <a href="<?php echo add_query_arg('sm_tab', 'students', remove_query_arg(['student_search', 'class_filter', 'teacher_filter'])); ?>" class="sm-btn sm-btn-outline" style="text-decoration:none;">إعادة ضبط</a>
+                <button type="submit" class="sm-btn">بحث</button>
+                <a href="<?php echo add_query_arg('sm_tab', 'students', remove_query_arg(['student_search', 'class_filter', 'section_filter', 'teacher_filter'])); ?>" class="sm-btn sm-btn-outline" style="text-decoration:none;">إعادة ضبط</a>
             </div>
         </form>
     </div>
@@ -149,17 +149,18 @@ if ($import_results) {
         <table class="sm-table">
             <thead>
                 <tr>
+                    <th>كود الطالب</th>
                     <th>الصورة</th>
                     <th>اسم الطالب</th>
-                    <th>الصف الدراسي</th>
-                    <th>كود الطالب</th>
+                    <th>الصف</th>
+                    <th>الشعبة</th>
                     <th>الإجراءات</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($students)): ?>
                     <tr>
-                        <td colspan="5" style="padding: 60px; text-align: center; color: var(--sm-text-gray);">
+                        <td colspan="6" style="padding: 60px; text-align: center; color: var(--sm-text-gray);">
                             <span class="dashicons dashicons-search" style="font-size: 40px; width:40px; height:40px; margin-bottom:10px;"></span>
                             <p>لا يوجد طلاب يطابقون معايير البحث الحالية.</p>
                         </td>
@@ -167,6 +168,7 @@ if ($import_results) {
                 <?php else: ?>
                     <?php foreach ($students as $student): ?>
                         <tr id="stu-row-<?php echo $student->id; ?>">
+                            <td style="font-family: 'Rubik', sans-serif; font-weight: 700; color: var(--sm-primary-color);"><?php echo esc_html($student->student_code); ?></td>
                             <td>
                                 <?php if ($student->photo_url): ?>
                                     <img src="<?php echo esc_url($student->photo_url); ?>" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--sm-border-color);">
@@ -175,8 +177,8 @@ if ($import_results) {
                                 <?php endif; ?>
                             </td>
                             <td style="font-weight: 800; color: var(--sm-dark-color);"><?php echo esc_html($student->name); ?></td>
-                            <td><span class="sm-badge sm-badge-low"><?php echo SM_Settings::format_grade_name($student->class_name, $student->section, 'short'); ?></span></td>
-                            <td style="font-family: 'Rubik', sans-serif; font-weight: 700; color: var(--sm-primary-color);"><?php echo esc_html($student->student_code); ?></td>
+                            <td><?php echo esc_html($student->class_name); ?></td>
+                            <td><span class="sm-badge sm-badge-low"><?php echo esc_html($student->section); ?></span></td>
                             <td>
                                 <div style="display: flex; gap: 8px; justify-content: flex-end;">
                                     <button onclick='viewSmStudent(<?php echo json_encode(array(
@@ -198,7 +200,9 @@ if ($import_results) {
                                             "section" => $student->section,
                                             "parent_id" => $student->parent_user_id,
                                             "parent_email" => $student->parent_email,
-                                            "teacher_id" => $student->teacher_id,
+                                            "guardian_phone" => $student->guardian_phone,
+                                            "nationality" => $student->nationality,
+                                            "registration_date" => $student->registration_date,
                                             "photo" => $student->photo_url
                                         )); ?>)' class="sm-btn sm-btn-outline" style="padding: 5px; min-width: 32px;" title="تعديل"><span class="dashicons dashicons-edit"></span></button>
 
@@ -297,12 +301,20 @@ if ($import_results) {
                         </select>
                     </div>
                     <div class="sm-form-group">
-                        <label class="sm-label">بريد ولي الأمر:</label>
-                        <input name="email" type="email" class="sm-input" placeholder="example@mail.com" required>
+                        <label class="sm-label">بريد ولي الأمر (اختياري):</label>
+                        <input name="email" type="email" class="sm-input" placeholder="example@mail.com">
                     </div>
                     <div class="sm-form-group">
-                        <label class="sm-label">رقم القيد / الكود:</label>
-                        <input name="code" type="text" value="<?php echo 'STU' . rand(1000, 9999); ?>" class="sm-input" style="font-family:'Rubik', sans-serif; font-weight:700; color:var(--sm-primary-color);">
+                        <label class="sm-label">رقم هاتف ولي الأمر:</label>
+                        <input name="guardian_phone" type="text" class="sm-input" placeholder="05xxxxxxxx">
+                    </div>
+                    <div class="sm-form-group">
+                        <label class="sm-label">جنسية الطالب:</label>
+                        <input name="nationality" type="text" class="sm-input" placeholder="مثال: إماراتي">
+                    </div>
+                    <div class="sm-form-group">
+                        <label class="sm-label">تاريخ التسجيل:</label>
+                        <input name="registration_date" type="date" class="sm-input" value="<?php echo date('Y-m-d'); ?>">
                     </div>
                     <div class="sm-form-group">
                         <label class="sm-label">ربط بحساب ولي أمر (اختياري):</label>
@@ -310,15 +322,6 @@ if ($import_results) {
                             <option value="">-- بلا ربط --</option>
                             <?php foreach (get_users(array('role' => 'sm_parent')) as $p): ?>
                                 <option value="<?php echo $p->ID; ?>"><?php echo esc_html($p->display_name); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="sm-form-group">
-                        <label class="sm-label">المعلم المسؤول:</label>
-                        <select name="teacher_id" class="sm-select">
-                            <option value="">-- بلا ربط --</option>
-                            <?php foreach (get_users(array('role' => 'sm_teacher')) as $t): ?>
-                                <option value="<?php echo $t->ID; ?>"><?php echo esc_html($t->display_name); ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -370,11 +373,23 @@ if ($import_results) {
                     </div>
                     <div class="sm-form-group">
                         <label class="sm-label">الرقم الأكاديمي (الكود):</label>
-                        <input type="text" name="student_code" id="edit_stu_code" class="sm-input" required>
+                        <input type="text" name="student_code" id="edit_stu_code" class="sm-input" readonly>
                     </div>
                     <div class="sm-form-group">
-                        <label class="sm-label">بريد التواصل (ولي الأمر):</label>
-                        <input type="email" name="parent_email" id="edit_stu_email" class="sm-input" required>
+                        <label class="sm-label">بريد ولي الأمر:</label>
+                        <input type="email" name="parent_email" id="edit_stu_email" class="sm-input">
+                    </div>
+                    <div class="sm-form-group">
+                        <label class="sm-label">رقم هاتف ولي الأمر:</label>
+                        <input name="guardian_phone" id="edit_stu_phone" type="text" class="sm-input">
+                    </div>
+                    <div class="sm-form-group">
+                        <label class="sm-label">جنسية الطالب:</label>
+                        <input name="nationality" id="edit_stu_nationality" type="text" class="sm-input">
+                    </div>
+                    <div class="sm-form-group">
+                        <label class="sm-label">تاريخ التسجيل:</label>
+                        <input name="registration_date" id="edit_stu_reg_date" type="date" class="sm-input">
                     </div>
 
                     <div style="grid-column: span 2; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-top: 15px; margin-bottom: 5px; color: var(--sm-primary-color); font-weight: 700;">الربط والمتابعة</div>
@@ -385,15 +400,6 @@ if ($import_results) {
                             <option value="">-- اختر من مستخدمي النظام --</option>
                             <?php foreach (get_users(array('role' => 'sm_parent')) as $p): ?>
                                 <option value="<?php echo $p->ID; ?>"><?php echo esc_html($p->display_name); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="sm-form-group">
-                        <label class="sm-label">المعلم المشرف / المسؤول:</label>
-                        <select name="teacher_id" id="edit_stu_teacher" class="sm-select">
-                            <option value="">-- اختر من المعلمين --</option>
-                            <?php foreach (get_users(array('role' => 'sm_teacher')) as $t): ?>
-                                <option value="<?php echo $t->ID; ?>"><?php echo esc_html($t->display_name); ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -443,6 +449,49 @@ if ($import_results) {
 
     <script>
     (function() {
+        const academicData = <?php echo json_encode(SM_Settings::get_academic_structure()); ?>;
+
+        function populateSections(gradeSelect, sectionSelect, currentSection = '') {
+            const gradeNum = gradeSelect.value.replace('الصف ', '');
+            let sections = [];
+
+            if (academicData.grade_sections && academicData.grade_sections[gradeNum]) {
+                sections = academicData.grade_sections[gradeNum].letters.split(',').map(s => s.trim());
+            } else {
+                sections = academicData.section_letters.split(',').map(s => s.trim());
+            }
+
+            sectionSelect.innerHTML = '<option value="">-- اختر الشعبة --</option>';
+            sections.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.textContent = s;
+                if (s === currentSection) opt.selected = true;
+                sectionSelect.appendChild(opt);
+            });
+        }
+
+        const addGradeSelect = document.querySelector('#add-student-form select[name="class"]');
+        const addSectionSelect = document.querySelector('#add-student-form select[name="section"]');
+        if (addGradeSelect && addSectionSelect) {
+            addGradeSelect.addEventListener('change', () => populateSections(addGradeSelect, addSectionSelect));
+        }
+
+        const editGradeSelect = document.getElementById('edit_stu_class');
+        const editSectionSelect = document.getElementById('edit_stu_section');
+        if (editGradeSelect && editSectionSelect) {
+            editGradeSelect.addEventListener('change', () => populateSections(editGradeSelect, editSectionSelect));
+        }
+
+        // Override editSmStudent to handle section population
+        const originalEditSmStudent = window.editSmStudent;
+        window.editSmStudent = function(s) {
+            originalEditSmStudent(s);
+            if (editGradeSelect && editSectionSelect) {
+                populateSections(editGradeSelect, editSectionSelect, s.section);
+            }
+        };
+
         // Handle View Record
         window.viewSmStudent = function(student) {
             const modal = document.getElementById('view-student-modal');

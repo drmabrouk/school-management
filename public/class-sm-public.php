@@ -134,6 +134,10 @@ class SM_Public {
                 } else {
                     if (isset($_GET['student_filter'])) $filters['student_id'] = intval($_GET['student_filter']);
                     if ($is_teacher && !$is_admin) $filters['teacher_id'] = $user->ID;
+
+                    if (isset($_GET['class_filter'])) $filters['class_name'] = sanitize_text_field($_GET['class_filter']);
+                    if (isset($_GET['section_filter'])) $filters['section'] = sanitize_text_field($_GET['section_filter']);
+                    if (isset($_GET['student_search'])) $filters['search'] = sanitize_text_field($_GET['student_search']);
                 }
                 if (isset($_GET['start_date'])) $filters['start_date'] = sanitize_text_field($_GET['start_date']);
                 if (isset($_GET['end_date'])) $filters['end_date'] = sanitize_text_field($_GET['end_date']);
@@ -435,13 +439,30 @@ class SM_Public {
         if (!current_user_can('إدارة_الطلاب')) wp_send_json_error('Unauthorized');
         if (!wp_verify_nonce($_POST['sm_nonce'], 'sm_add_student')) wp_send_json_error('Security check failed');
 
+        $name = sanitize_text_field($_POST['name'] ?? '');
+        $class = sanitize_text_field($_POST['class'] ?? '');
+
+        if (empty($name) || empty($class)) {
+            wp_send_json_error('الاسم والصف حقول إجبارية');
+        }
+
         $parent_user_id = !empty($_POST['parent_user_id']) ? intval($_POST['parent_user_id']) : null;
-        $teacher_id = !empty($_POST['teacher_id']) ? intval($_POST['teacher_id']) : null;
         $section = !empty($_POST['section']) ? sanitize_text_field($_POST['section']) : '';
-        $id = SM_DB::add_student($_POST['name'], $_POST['class'], $_POST['email'], $_POST['code'], $parent_user_id, $teacher_id, $section);
+        $email = !empty($_POST['email']) ? sanitize_email($_POST['email']) : '';
         
-        if ($id) wp_send_json_success($id);
-        else wp_send_json_error('Failed to add student');
+        $extra = array(
+            'guardian_phone' => sanitize_text_field($_POST['guardian_phone'] ?? ''),
+            'nationality' => sanitize_text_field($_POST['nationality'] ?? ''),
+            'registration_date' => sanitize_text_field($_POST['registration_date'] ?? '')
+        );
+
+        $id = SM_DB::add_student($name, $class, $email, '', $parent_user_id, null, $section, $extra);
+
+        if ($id) {
+            wp_send_json_success($id);
+        } else {
+            wp_send_json_error('فشل في إضافة الطالب. يرجى التحقق من البيانات والمحاولة مرة أخرى.');
+        }
     }
 
     public function ajax_update_student() {
@@ -945,6 +966,7 @@ class SM_Public {
                     'academic_stages' => $_POST['academic_stages'],
                     'grades_count' => intval($_POST['grades_count']),
                     'active_grades' => isset($_POST['active_grades']) ? array_map('intval', $_POST['active_grades']) : array(),
+                    'grade_sections' => $_POST['grade_sections'] ?? array(),
                     'sections_count' => intval($_POST['sections_count']),
                     'section_letters' => sanitize_text_field($_POST['section_letters'])
                 );
@@ -1088,8 +1110,33 @@ class SM_Public {
                 // Skip Header
                 fgetcsv($handle);
 
-                $row_index = 2; // Starting from row 2 because of header
+                $rows = array();
+                $row_index = 2;
                 while (($data = fgetcsv($handle)) !== FALSE) {
+                    $rows[] = array('data' => $data, 'index' => $row_index++);
+                }
+                fclose($handle);
+
+                // Sort rows by Grade (Column C) then Name (Column A)
+                usort($rows, function($a, $b) {
+                    // Normalize Grade for sorting (e.g. "Grade 1" vs "Grade 12")
+                    $gradeA = $a['data'][2] ?? '';
+                    $gradeB = $b['data'][2] ?? '';
+                    if ($gradeA != $gradeB) {
+                        // Extract number
+                        preg_match('/\d+/', $gradeA, $matchA);
+                        preg_match('/\d+/', $gradeB, $matchB);
+                        $numA = isset($matchA[0]) ? (int)$matchA[0] : 0;
+                        $numB = isset($matchB[0]) ? (int)$matchB[0] : 0;
+                        if ($numA != $numB) return $numA - $numB;
+                        return strcmp($gradeA, $gradeB);
+                    }
+                    return strcmp($a['data'][0] ?? '', $b['data'][0] ?? '');
+                });
+
+                foreach ($rows as $row_obj) {
+                    $data = $row_obj['data'];
+                    $row_index = $row_obj['index'];
                     $results['total']++;
 
                     // Attempt encoding conversion for Arabic (handles mixed encodings)
@@ -1147,7 +1194,7 @@ class SM_Public {
                         $results['error']++;
                         foreach ($errors as $err) $results['details'][] = array('type' => 'error', 'msg' => $err);
                     } else {
-                        $imported_id = SM_DB::add_student($full_display_name, $class_name, '', $student_code, null, null, $section);
+                        $imported_id = SM_DB::add_student($full_display_name, $class_name, '', '', null, null, $section);
                         if ($imported_id) {
                             $results['success']++;
                             if (!empty($warnings)) {
@@ -1159,9 +1206,7 @@ class SM_Public {
                             $results['details'][] = array('type' => 'error', 'msg' => "فشل حفظ البيانات في قاعدة البيانات للسطر " . $row_index);
                         }
                     }
-                    $row_index++;
                 }
-                fclose($handle);
 
                 SM_Logger::log('استيراد طلاب (جماعي)', "تم استيراد {$results['success']} طالب بنجاح من أصل {$results['total']}");
                 set_transient('sm_import_results_' . get_current_user_id(), $results, HOUR_IN_SECONDS);

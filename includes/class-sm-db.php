@@ -7,11 +7,15 @@ class SM_DB {
         
         if (!empty($filters['search'])) {
             $search = '%' . $wpdb->esc_like($filters['search']) . '%';
-            $query .= $wpdb->prepare(" AND (name LIKE %s OR student_code LIKE %s OR class_name LIKE %s)", $search, $search, $search);
+            $query .= $wpdb->prepare(" AND (name LIKE %s OR student_code LIKE %s OR class_name LIKE %s OR section LIKE %s)", $search, $search, $search, $search);
         }
         
         if (!empty($filters['class_name'])) {
             $query .= $wpdb->prepare(" AND class_name = %s", $filters['class_name']);
+        }
+
+        if (!empty($filters['section'])) {
+            $query .= $wpdb->prepare(" AND section = %s", $filters['section']);
         }
 
         if (!empty($filters['teacher_id']) && !empty($filters['include_reported'])) {
@@ -28,8 +32,26 @@ class SM_DB {
         return $wpdb->get_results($query);
     }
 
-    public static function add_student($name, $class, $email, $code, $parent_user_id = null, $teacher_id = null, $section = '') {
+    public static function generate_student_code() {
         global $wpdb;
+        $last_code = $wpdb->get_var("SELECT student_code FROM {$wpdb->prefix}sm_students WHERE student_code LIKE 'ST%' ORDER BY student_code DESC LIMIT 1");
+
+        if (!$last_code) {
+            return 'ST00001';
+        }
+
+        $number = (int) substr($last_code, 2);
+        $next_number = $number + 1;
+        return 'ST' . str_pad($next_number, 5, '0', STR_PAD_LEFT);
+    }
+
+    public static function add_student($name, $class, $email, $code = '', $parent_user_id = null, $teacher_id = null, $section = '', $extra = array()) {
+        global $wpdb;
+
+        if (empty($code)) {
+            $code = self::generate_student_code();
+        }
+
         SM_Logger::log('إضافة طالب', "الاسم: $name، الصف: $class، الشعبة: $section");
         $success = $wpdb->insert(
             "{$wpdb->prefix}sm_students",
@@ -38,6 +60,9 @@ class SM_DB {
                 'class_name' => $class,
                 'section' => $section,
                 'parent_email' => $email,
+                'guardian_phone' => sanitize_text_field($extra['guardian_phone'] ?? ''),
+                'nationality' => sanitize_text_field($extra['nationality'] ?? ''),
+                'registration_date' => !empty($extra['registration_date']) ? sanitize_text_field($extra['registration_date']) : current_time('mysql', 1),
                 'student_code' => $code,
                 'parent_user_id' => $parent_user_id,
                 'teacher_id' => $teacher_id
@@ -55,7 +80,10 @@ class SM_DB {
                 'name' => sanitize_text_field($data['name']),
                 'class_name' => sanitize_text_field($data['class_name']),
                 'section' => sanitize_text_field($data['section'] ?? ''),
-                'parent_email' => sanitize_email($data['parent_email']),
+                'parent_email' => sanitize_email($data['parent_email'] ?? ''),
+                'guardian_phone' => sanitize_text_field($data['guardian_phone'] ?? ''),
+                'nationality' => sanitize_text_field($data['nationality'] ?? ''),
+                'registration_date' => sanitize_text_field($data['registration_date'] ?? ''),
                 'student_code' => sanitize_text_field($data['student_code']),
                 'parent_user_id' => !empty($data['parent_user_id']) ? intval($data['parent_user_id']) : null,
                 'teacher_id' => !empty($data['teacher_id']) ? intval($data['teacher_id']) : null
@@ -122,6 +150,14 @@ class SM_DB {
         
         if (!empty($filters['student_id'])) {
             $query .= $wpdb->prepare(" AND r.student_id = %d", $filters['student_id']);
+        }
+
+        if (!empty($filters['class_name'])) {
+            $query .= $wpdb->prepare(" AND s.class_name = %s", $filters['class_name']);
+        }
+
+        if (!empty($filters['section'])) {
+            $query .= $wpdb->prepare(" AND s.section = %s", $filters['section']);
         }
 
         if (!empty($filters['teacher_id'])) {
