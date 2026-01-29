@@ -536,7 +536,12 @@ if ($import_results) {
                     if (res.success) {
                         smShowNotification('تمت إضافة الطالب بنجاح');
                         setTimeout(() => location.reload(), 500);
+                    } else {
+                        smShowNotification('خطأ: ' + res.data, true);
                     }
+                })
+                .catch(err => {
+                    smShowNotification('حدث خطأ أثناء الاتصال بالخادم', true);
                 });
             });
         }
@@ -555,7 +560,12 @@ if ($import_results) {
                     if (res.success) {
                         smShowNotification('تم تحديث بيانات الطالب');
                         setTimeout(() => location.reload(), 500);
+                    } else {
+                        smShowNotification('خطأ: ' + res.data, true);
                     }
+                })
+                .catch(err => {
+                    smShowNotification('حدث خطأ أثناء الاتصال بالخادم', true);
                 });
             });
         }
@@ -582,7 +592,12 @@ if ($import_results) {
                     if (res.success) {
                         smShowNotification('تم حذف الطالب');
                         setTimeout(() => location.reload(), 500);
+                    } else {
+                        smShowNotification('خطأ: ' + res.data, true);
                     }
+                })
+                .catch(err => {
+                    smShowNotification('حدث خطأ أثناء الاتصال بالخادم', true);
                 });
             });
         }
