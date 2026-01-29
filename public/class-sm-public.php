@@ -121,6 +121,7 @@ class SM_Public {
                 $args = array();
                 if (isset($_GET['student_search'])) $args['search'] = sanitize_text_field($_GET['student_search']);
                 if (isset($_GET['class_filter'])) $args['class_name'] = sanitize_text_field($_GET['class_filter']);
+                if (isset($_GET['section_filter'])) $args['section'] = sanitize_text_field($_GET['section_filter']);
                 if (isset($_GET['teacher_filter']) && !empty($_GET['teacher_filter'])) $args['teacher_id'] = intval($_GET['teacher_filter']);
                 if ($is_teacher && !$is_admin) $args['teacher_id'] = $user->ID;
                 $students = SM_DB::get_students($args);
@@ -1117,11 +1118,11 @@ class SM_Public {
                 }
                 fclose($handle);
 
-                // Sort rows by Grade (Column C) then Name (Column A)
+                // Sort rows by Grade (Column B) then Name (Column A)
                 usort($rows, function($a, $b) {
                     // Normalize Grade for sorting (e.g. "Grade 1" vs "Grade 12")
-                    $gradeA = $a['data'][2] ?? '';
-                    $gradeB = $b['data'][2] ?? '';
+                    $gradeA = $a['data'][1] ?? '';
+                    $gradeB = $b['data'][1] ?? '';
                     if ($gradeA != $gradeB) {
                         // Extract number
                         preg_match('/\d+/', $gradeA, $matchA);
@@ -1147,33 +1148,20 @@ class SM_Public {
                         }
                     }
 
-                    // Mapping based on User Request (Updated):
-                    // Column A (index 0): Student Full Name
-                    // Column B (index 1): Student Code / ID
-                    // Column C (index 2): Grade / Class
+                    // Mapping based on User Request (Excel Configuration):
+                    // Column A (0): Full Name
+                    // Column B (1): Grade / Class
+                    // Column C (2): Section
+                    // Column D (3): Student Nationality
+                    // Column E (4): Guardian Email
+                    // Column F (5): Guardian Phone Number
 
                     $full_display_name = isset($data[0]) ? trim($data[0]) : '';
-                    $student_code      = isset($data[1]) ? trim($data[1]) : '';
-                    $class_raw         = isset($data[2]) ? trim($data[2]) : '';
-
-                    $class_name = $class_raw;
-                    $section = '';
-
-                    // Attempt to parse short format "12 أ" or "الصف 12 أ"
-                    if (!empty($class_raw)) {
-                        $parts = preg_split('/\s+/', $class_raw);
-                        if (count($parts) >= 2) {
-                            $last_part = end($parts);
-                            // If last part is likely a section (1-2 chars)
-                            if (mb_strlen($last_part) <= 2) {
-                                $section = array_pop($parts);
-                                $class_name = implode(' ', $parts);
-                                if (is_numeric($class_name)) {
-                                    $class_name = 'الصف ' . $class_name;
-                                }
-                            }
-                        }
-                    }
+                    $class_name        = isset($data[1]) ? trim($data[1]) : '';
+                    $section           = isset($data[2]) ? trim($data[2]) : '';
+                    $nationality       = isset($data[3]) ? trim($data[3]) : '';
+                    $guardian_email    = isset($data[4]) ? trim($data[4]) : '';
+                    $guardian_phone    = isset($data[5]) ? trim($data[5]) : '';
 
                     $errors = array();
                     $warnings = array();
@@ -1182,19 +1170,19 @@ class SM_Public {
                         $errors[] = "الاسم الكامل مفقود في السطر " . $row_index;
                     }
 
-                    if (empty($student_code)) {
-                        $warnings[] = "رقم القيد / الكود مفقود في السطر " . $row_index . " (تم الاستيراد بدون كود)";
-                    }
-
                     if (empty($class_name)) {
-                        $warnings[] = "اسم الصف / الفصل مفقود في السطر " . $row_index;
+                        $errors[] = "الصف الدراسي مفقود في السطر " . $row_index;
                     }
 
                     if (!empty($errors)) {
                         $results['error']++;
                         foreach ($errors as $err) $results['details'][] = array('type' => 'error', 'msg' => $err);
                     } else {
-                        $imported_id = SM_DB::add_student($full_display_name, $class_name, '', '', null, null, $section);
+                        $extra = array(
+                            'guardian_phone' => $guardian_phone,
+                            'nationality' => $nationality
+                        );
+                        $imported_id = SM_DB::add_student($full_display_name, $class_name, $guardian_email, '', null, null, $section, $extra);
                         if ($imported_id) {
                             $results['success']++;
                             if (!empty($warnings)) {

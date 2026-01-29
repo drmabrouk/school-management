@@ -105,7 +105,7 @@ if ($import_results) {
     <div style="display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; align-items: center;">
         <button onclick="document.getElementById('add-single-student-modal').style.display='flex'" class="sm-btn">+ إضافة طالب جديد</button>
         <button onclick="document.getElementById('csv-import-form').style.display='block'" class="sm-btn sm-btn-secondary">استيراد طلاب (Excel)</button>
-        <a href="data:text/csv;charset=utf-8,<?php echo rawurlencode("الاسم,الكود,الصف الدراسي\nأحمد محمد,STU100,12 أ"); ?>" download="student_template.csv" class="sm-btn sm-btn-outline" style="text-decoration:none;">تحميل نموذج CSV</a>
+        <a href="data:text/csv;charset=utf-8,<?php echo rawurlencode("الاسم الكامل,الصف,الشعبة,الجنسية,البريد,الهاتف\nأحمد محمد,الصف 12,أ,إماراتي,parent@example.com,0501234567"); ?>" download="student_template.csv" class="sm-btn sm-btn-outline" style="text-decoration:none;">تحميل نموذج CSV</a>
         <a href="<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=id_card'); ?>" target="_blank" class="sm-btn sm-btn-accent" style="background: #27ae60; text-decoration:none;">طباعة كافة البطاقات</a>
     </div>
     <?php endif; ?>
@@ -122,11 +122,23 @@ if ($import_results) {
                 </div>
                 <div style="background: #f1f5f9; padding: 10px; border-radius: 6px; text-align: center;">
                     <div style="font-size: 11px; color: #64748b;">العمود B</div>
-                    <div style="font-weight: 800;">رقم القيد / الكود</div>
+                    <div style="font-weight: 800;">الصف الدراسي</div>
                 </div>
                 <div style="background: #f1f5f9; padding: 10px; border-radius: 6px; text-align: center;">
                     <div style="font-size: 11px; color: #64748b;">العمود C</div>
-                    <div style="font-weight: 800;">الصف / المرحلة</div>
+                    <div style="font-weight: 800;">الشعبة</div>
+                </div>
+                <div style="background: #f1f5f9; padding: 10px; border-radius: 6px; text-align: center;">
+                    <div style="font-size: 11px; color: #64748b;">العمود D</div>
+                    <div style="font-weight: 800;">الجنسية</div>
+                </div>
+                <div style="background: #f1f5f9; padding: 10px; border-radius: 6px; text-align: center;">
+                    <div style="font-size: 11px; color: #64748b;">العمود E</div>
+                    <div style="font-weight: 800;">بريد ولي الأمر</div>
+                </div>
+                <div style="background: #f1f5f9; padding: 10px; border-radius: 6px; text-align: center;">
+                    <div style="font-size: 11px; color: #64748b;">العمود F</div>
+                    <div style="font-weight: 800;">هاتف ولي الأمر</div>
                 </div>
             </div>
             <p style="font-size:12px; color:#718096; line-height: 1.6;">يرجى التأكد من أن ملف الإكسل يحتوي على كافة سجلات الطلاب وأن البيانات مرتبة بدقة في الأعمدة المذكورة أعلاه (A, B, C) لضمان نجاح عملية الاستيراد.</p>
