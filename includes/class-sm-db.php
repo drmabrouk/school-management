@@ -28,7 +28,7 @@ class SM_DB {
             $query .= $wpdb->prepare(" AND id IN (SELECT DISTINCT student_id FROM {$wpdb->prefix}sm_records WHERE teacher_id = %d)", $teacher_id);
         }
 
-        $query .= " ORDER BY name ASC";
+        $query .= " ORDER BY CAST(REPLACE(class_name, 'الصف ', '') AS UNSIGNED) ASC, name ASC";
         return $wpdb->get_results($query);
     }
 
@@ -150,6 +150,11 @@ class SM_DB {
         
         if (!empty($filters['student_id'])) {
             $query .= $wpdb->prepare(" AND r.student_id = %d", $filters['student_id']);
+        }
+
+        if (!empty($filters['search'])) {
+            $search = '%' . $wpdb->esc_like($filters['search']) . '%';
+            $query .= $wpdb->prepare(" AND (s.name LIKE %s OR s.student_code LIKE %s)", $search, $search);
         }
 
         if (!empty($filters['class_name'])) {
