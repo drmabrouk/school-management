@@ -72,7 +72,7 @@
         <div style="padding-right: 20px;">
             <h2 style="margin:0 0 15px 0; color:#111F35; border:none; padding:0; font-size: 24px; font-weight: 800;"><?php echo esc_html($student->name); ?></h2>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                <div><span style="color: #718096; font-size: 12px; display: block;">الصف الدراسي</span><strong style="color: #2D3748;"><?php echo esc_html($student->class_name); ?></strong></div>
+                <div><span style="color: #718096; font-size: 12px; display: block;">الصف الدراسي</span><strong style="color: #2D3748;"><?php echo SM_Settings::format_grade_name($student->class_name, $student->section); ?></strong></div>
                 <div><span style="color: #718096; font-size: 12px; display: block;">الرقم الأكاديمي</span><strong style="color: #2D3748; font-family: sans-serif;"><?php echo esc_html($student->student_code); ?></strong></div>
             </div>
         </div>

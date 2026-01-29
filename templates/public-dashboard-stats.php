@@ -27,7 +27,7 @@
                         <?php foreach (array_slice($recent_records, 0, 5) as $row): ?>
                             <tr>
                                 <td style="font-size: 0.85em;"><?php echo date('Y-m-d', strtotime($row->created_at)); ?></td>
-                                <td style="font-weight: 600;"><?php echo esc_html($row->student_name); ?></td>
+                                <td style="font-weight: 600;"><?php echo esc_html($row->student_name); ?><br><small style="color:#718096;"><?php echo SM_Settings::format_grade_name($row->class_name, $row->section, 'short'); ?></small></td>
                                 <td><span class="sm-badge" style="background:var(--sm-pastel-red); color:var(--sm-primary-color);"><?php echo $all_labels[$row->type] ?? $row->type; ?></span></td>
                                 <td><span class="sm-badge sm-badge-<?php echo esc_attr($row->severity); ?>"><?php echo $severity_labels[$row->severity] ?? $row->severity; ?></span></td>
                                 <td><?php echo esc_html($row->action_taken); ?></td>
@@ -223,7 +223,7 @@
                         <tr id="record-row-<?php echo $row->id; ?>">
                             <td>
                                 <div style="font-weight: 800;"><?php echo esc_html($row->student_name); ?></div>
-                                <div style="font-size: 11px; color: var(--sm-text-gray);"><?php echo esc_html($row->class_name); ?></div>
+                                <div style="font-size: 11px; color: var(--sm-text-gray);"><?php echo SM_Settings::format_grade_name($row->class_name, $row->section, 'short'); ?></div>
                             </td>
                             <td><?php echo date('Y-m-d', strtotime($row->created_at)); ?></td>
                             <td><span class="sm-badge sm-badge-low" style="background: var(--sm-pastel-red); color: var(--sm-primary-color);"><?php echo $type_labels[$row->type] ?? $row->type; ?></span></td>

@@ -15,6 +15,7 @@ class SM_Activator {
             id bigint(20) NOT NULL AUTO_INCREMENT,
             name varchar(255) NOT NULL,
             class_name varchar(100) NOT NULL,
+            section varchar(50) DEFAULT '',
             parent_email varchar(100),
             student_code varchar(50),
             parent_user_id bigint(20) DEFAULT NULL,

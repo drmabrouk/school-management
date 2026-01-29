@@ -28,14 +28,15 @@ class SM_DB {
         return $wpdb->get_results($query);
     }
 
-    public static function add_student($name, $class, $email, $code, $parent_user_id = null, $teacher_id = null) {
+    public static function add_student($name, $class, $email, $code, $parent_user_id = null, $teacher_id = null, $section = '') {
         global $wpdb;
-        SM_Logger::log('إضافة طالب', "الاسم: $name، الصف: $class");
+        SM_Logger::log('إضافة طالب', "الاسم: $name، الصف: $class، الشعبة: $section");
         $success = $wpdb->insert(
             "{$wpdb->prefix}sm_students",
             array(
                 'name' => $name,
                 'class_name' => $class,
+                'section' => $section,
                 'parent_email' => $email,
                 'student_code' => $code,
                 'parent_user_id' => $parent_user_id,
@@ -53,6 +54,7 @@ class SM_DB {
             array(
                 'name' => sanitize_text_field($data['name']),
                 'class_name' => sanitize_text_field($data['class_name']),
+                'section' => sanitize_text_field($data['section'] ?? ''),
                 'parent_email' => sanitize_email($data['parent_email']),
                 'student_code' => sanitize_text_field($data['student_code']),
                 'parent_user_id' => !empty($data['parent_user_id']) ? intval($data['parent_user_id']) : null,
@@ -109,14 +111,14 @@ class SM_DB {
     public static function get_record_by_id($id) {
         global $wpdb;
         return $wpdb->get_row($wpdb->prepare(
-            "SELECT r.*, s.name as student_name, s.class_name, s.student_code FROM {$wpdb->prefix}sm_records r JOIN {$wpdb->prefix}sm_students s ON r.student_id = s.id WHERE r.id = %d",
+            "SELECT r.*, s.name as student_name, s.class_name, s.section, s.student_code FROM {$wpdb->prefix}sm_records r JOIN {$wpdb->prefix}sm_students s ON r.student_id = s.id WHERE r.id = %d",
             $id
         ));
     }
 
     public static function get_records($filters = array()) {
         global $wpdb;
-        $query = "SELECT r.*, s.name as student_name, s.class_name FROM {$wpdb->prefix}sm_records r JOIN {$wpdb->prefix}sm_students s ON r.student_id = s.id WHERE 1=1";
+        $query = "SELECT r.*, s.name as student_name, s.class_name, s.section FROM {$wpdb->prefix}sm_records r JOIN {$wpdb->prefix}sm_students s ON r.student_id = s.id WHERE 1=1";
         
         if (!empty($filters['student_id'])) {
             $query .= $wpdb->prepare(" AND r.student_id = %d", $filters['student_id']);
@@ -437,7 +439,7 @@ class SM_DB {
 
     public static function get_confiscated_items($filters = array()) {
         global $wpdb;
-        $query = "SELECT c.*, s.name as student_name, s.class_name FROM {$wpdb->prefix}sm_confiscated_items c 
+        $query = "SELECT c.*, s.name as student_name, s.class_name, s.section FROM {$wpdb->prefix}sm_confiscated_items c
                   JOIN {$wpdb->prefix}sm_students s ON c.student_id = s.id WHERE 1=1";
         if (!empty($filters['student_id'])) {
             $query .= $wpdb->prepare(" AND c.student_id = %d", $filters['student_id']);
