@@ -18,45 +18,6 @@
     </div>
 </div>
 
-<div style="background: #fff; padding: 30px; border-radius: 12px; border: 1px solid var(--sm-border-color); margin-bottom: 40px; box-shadow: var(--sm-shadow);">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <h3 style="margin:0; border:none; font-weight: 800;">سجل المخالفات العام (الأحدث)</h3>
-        <a href="<?php echo add_query_arg('sm_tab', 'stats'); ?>" class="sm-btn" style="width:auto; font-size:12px; background:var(--sm-secondary-color); text-decoration:none; color:white !important;">عرض السجل الكامل</a>
-    </div>
-    <?php
-    $recent_records = SM_DB::get_records(['limit' => 10]);
-    if (empty($recent_records)): ?>
-        <p style="text-align: center; color: var(--sm-text-gray); padding: 20px;">لا توجد مخالفات مسجلة حالياً.</p>
-    <?php else:
-        $all_labels = SM_Settings::get_violation_types();
-        $severity_labels = SM_Settings::get_severities();
-    ?>
-        <div class="sm-table-container" style="box-shadow: none; border: none; margin-bottom: 0;">
-            <table class="sm-table">
-                <thead>
-                    <tr>
-                        <th>التاريخ</th>
-                        <th>الطالب</th>
-                        <th>النوع</th>
-                        <th>الحدة</th>
-                        <th>الإجراء</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach (array_slice($recent_records, 0, 8) as $row): ?>
-                        <tr>
-                            <td style="font-size: 0.85em;"><?php echo date('Y-m-d', strtotime($row->created_at)); ?></td>
-                            <td style="font-weight: 600;"><?php echo esc_html($row->student_name); ?></td>
-                            <td><span class="sm-badge" style="background:var(--sm-pastel-red); color:var(--sm-primary-color);"><?php echo $all_labels[$row->type] ?? $row->type; ?></span></td>
-                            <td><span class="sm-badge sm-badge-<?php echo esc_attr($row->severity); ?>"><?php echo $severity_labels[$row->severity] ?? $row->severity; ?></span></td>
-                            <td><?php echo esc_html($row->action_taken); ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-    <?php endif; ?>
-</div>
 
 <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px; margin-bottom: 40px;">
     <!-- Trends and Categories Charts -->

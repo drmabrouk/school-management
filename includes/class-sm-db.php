@@ -78,7 +78,7 @@ class SM_DB {
         );
     }
 
-    public static function add_record($data) {
+    public static function add_record($data, $skip_log = false) {
         global $wpdb;
         $user = wp_get_current_user();
         $status = 'accepted';
@@ -86,7 +86,9 @@ class SM_DB {
             $status = 'pending';
         }
 
-        SM_Logger::log('تسجيل مخالفة', "معرف الطالب: {$data['student_id']}، النوع: {$data['type']}، الحالة: $status");
+        if (!$skip_log) {
+            SM_Logger::log('تسجيل مخالفة', "معرف الطالب: {$data['student_id']}، النوع: {$data['type']}، الحالة: $status");
+        }
         $inserted = $wpdb->insert(
             "{$wpdb->prefix}sm_records",
             array(
@@ -156,15 +158,23 @@ class SM_DB {
 
     public static function delete_record($id) {
         global $wpdb;
-        SM_Logger::log('حذف مخالفة', "معرف السجل: $id");
-        return $wpdb->delete("{$wpdb->prefix}sm_records", array('id' => $id));
+        $record = self::get_record_by_id($id);
+        if ($record) {
+            SM_Logger::log('حذف مخالفة', 'ROLLBACK_DATA:' . json_encode(array('table' => 'records', 'data' => $record)));
+            return $wpdb->delete("{$wpdb->prefix}sm_records", array('id' => $id));
+        }
+        return false;
     }
 
     public static function delete_student($id) {
         global $wpdb;
-        SM_Logger::log('حذف طالب', "معرف الطالب: $id");
-        $wpdb->delete("{$wpdb->prefix}sm_records", array('student_id' => $id));
-        return $wpdb->delete("{$wpdb->prefix}sm_students", array('id' => $id));
+        $student = self::get_student_by_id($id);
+        if ($student) {
+            SM_Logger::log('حذف طالب', 'ROLLBACK_DATA:' . json_encode(array('table' => 'students', 'data' => $student)));
+            $wpdb->delete("{$wpdb->prefix}sm_records", array('student_id' => $id));
+            return $wpdb->delete("{$wpdb->prefix}sm_students", array('id' => $id));
+        }
+        return false;
     }
 
     public static function delete_all_data() {

@@ -297,19 +297,23 @@ class SM_Public {
         if (!is_user_logged_in() || !current_user_can('تسجيل_مخالفة')) wp_send_json_error('Unauthorized');
         if (!wp_verify_nonce($_POST['sm_nonce'], 'sm_record_action')) wp_send_json_error('Security check failed');
 
-        $student_ids = explode(',', $_POST['student_ids']);
+        $student_ids = array_filter(array_map('intval', explode(',', $_POST['student_ids'])));
         $last_record_id = 0;
+        $count = 0;
         
         foreach ($student_ids as $sid) {
-            $sid = intval($sid);
-            if (!$sid) continue;
-            
             $data = $_POST;
             $data['student_id'] = $sid;
-            $last_record_id = SM_DB::add_record($data);
-            if ($last_record_id) {
-                SM_Notifications::send_violation_alert($last_record_id);
+            $rid = SM_DB::add_record($data, true); // Skip individual logs
+            if ($rid) {
+                $last_record_id = $rid;
+                $count++;
+                SM_Notifications::send_violation_alert($rid);
             }
+        }
+
+        if ($count > 0) {
+            SM_Logger::log('تسجيل مخالفة جماعية', "تم تسجيل مخالفة لعدد ($count) من الطلاب بنجاح.");
         }
 
         if ($last_record_id) {
@@ -595,6 +599,116 @@ class SM_Public {
         $result = wp_update_user($user_data);
         if (is_wp_error($result)) wp_send_json_error($result->get_error_message());
         else wp_send_json_success('Profile updated');
+    }
+
+    public function ajax_bulk_delete() {
+        if (!current_user_can('إدارة_النظام')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_admin_action')) wp_send_json_error('Security check failed');
+
+        global $wpdb;
+        $type = sanitize_text_field($_POST['delete_type']);
+        $count = 0;
+
+        switch ($type) {
+            case 'students':
+                $wpdb->query("TRUNCATE TABLE {$wpdb->prefix}sm_students");
+                $wpdb->query("TRUNCATE TABLE {$wpdb->prefix}sm_records");
+                SM_Logger::log('مسح كافة الطلاب والسجلات', 'إجراء جماعي');
+                break;
+            case 'teachers':
+                $teachers = get_users(array('role' => 'sm_teacher'));
+                foreach ($teachers as $t) {
+                    wp_delete_user($t->ID);
+                    $count++;
+                }
+                SM_Logger::log('مسح كافة المعلمين', 'إجراء جماعي');
+                break;
+            case 'parents':
+                $parents = get_users(array('role' => 'sm_parent'));
+                foreach ($parents as $p) {
+                    wp_delete_user($p->ID);
+                    $count++;
+                }
+                SM_Logger::log('مسح كافة أولياء الأمور', 'إجراء جماعي');
+                break;
+            case 'records':
+                $wpdb->query("TRUNCATE TABLE {$wpdb->prefix}sm_records");
+                SM_Logger::log('مسح كافة المخالفات', 'إجراء جماعي');
+                break;
+        }
+
+        wp_send_json_success('تم مسح البيانات بنجاح');
+    }
+
+    public function ajax_rollback_log() {
+        if (!current_user_can('إدارة_النظام')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_admin_action')) wp_send_json_error('Security check failed');
+
+        $log_id = intval($_POST['log_id']);
+        global $wpdb;
+        $log = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}sm_logs WHERE id = %d", $log_id));
+
+        if (!$log || strpos($log->details, 'ROLLBACK_DATA:') !== 0) {
+            wp_send_json_error('لا يمكن استعادة هذه العملية');
+        }
+
+        $json = substr($log->details, strlen('ROLLBACK_DATA:'));
+        $data_obj = json_decode($json, true);
+
+        if (!$data_obj || !isset($data_obj['table']) || !isset($data_obj['data'])) {
+            wp_send_json_error('بيانات الاستعادة تالفة');
+        }
+
+        $table = $data_obj['table'];
+        $data = $data_obj['data'];
+
+        // Remove 'id' if we want to insert as new, or keep if we want to restore exact ID (risky if ID taken)
+        // For students/records, restoring exact ID is better for relations.
+
+        $table_name = $wpdb->prefix . 'sm_' . $table;
+
+        // Check if ID already exists
+        $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM $table_name WHERE id = %d", $data['id']));
+        if ($exists) {
+            wp_send_json_error('البيانات موجودة بالفعل أو تم استخدام المعرف');
+        }
+
+        $result = $wpdb->insert($table_name, $data);
+
+        if ($result) {
+            $wpdb->delete("{$wpdb->prefix}sm_logs", array('id' => $log_id)); // Remove log after rollback
+            SM_Logger::log('استعادة عملية محذوفة', "الجدول: $table، المعرف الأصلي: {$data['id']}");
+            wp_send_json_success('تمت الاستعادة بنجاح');
+        } else {
+            wp_send_json_error('فشلت عملية الاستعادة في قاعدة البيانات');
+        }
+    }
+
+    public function ajax_initialize_system() {
+        if (!current_user_can('إدارة_النظام')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_admin_action')) wp_send_json_error('Security check failed');
+
+        if ($_POST['confirm_code'] !== '1011996') {
+            wp_send_json_error('كود التأكيد غير صحيح');
+        }
+
+        global $wpdb;
+        require_once(ABSPATH . 'wp-admin/includes/user.php');
+
+        $wpdb->query("TRUNCATE TABLE {$wpdb->prefix}sm_students");
+        $wpdb->query("TRUNCATE TABLE {$wpdb->prefix}sm_records");
+        $wpdb->query("TRUNCATE TABLE {$wpdb->prefix}sm_messages");
+        $wpdb->query("TRUNCATE TABLE {$wpdb->prefix}sm_confiscated_items");
+        $wpdb->query("TRUNCATE TABLE {$wpdb->prefix}sm_logs");
+
+        $teachers = get_users(array('role' => 'sm_teacher'));
+        foreach ($teachers as $t) wp_delete_user($t->ID);
+
+        $parents = get_users(array('role' => 'sm_parent'));
+        foreach ($parents as $p) wp_delete_user($p->ID);
+
+        SM_Logger::log('تهيأة النظام بالكامل', 'تم مسح كافة البيانات والجداول');
+        wp_send_json_success('تمت تهيأة النظام بالكامل بنجاح');
     }
 
     public function ajax_update_teacher() {
@@ -1012,6 +1126,7 @@ class SM_Public {
                 }
                 fclose($handle);
 
+                SM_Logger::log('استيراد طلاب (جماعي)', "تم استيراد {$results['success']} طالب بنجاح من أصل {$results['total']}");
                 set_transient('sm_import_results_' . get_current_user_id(), $results, HOUR_IN_SECONDS);
                 wp_redirect(add_query_arg('sm_admin_msg', 'import_completed', $_SERVER['REQUEST_URI']));
                 exit;
@@ -1023,6 +1138,7 @@ class SM_Public {
             if (current_user_can('إدارة_المعلمين') && !empty($_FILES['csv_file']['tmp_name'])) {
                 $handle = fopen($_FILES['csv_file']['tmp_name'], "r");
                 $header = fgetcsv($handle); // skip header
+                $count = 0;
                 while (($data = fgetcsv($handle)) !== FALSE) {
                     if (count($data) >= 3) {
                         // username, email, name, teacher_id, job_title, phone, pass
@@ -1034,6 +1150,7 @@ class SM_Public {
                             'role' => 'sm_teacher'
                         ));
                         if (!is_wp_error($user_id)) {
+                            $count++;
                             update_user_meta($user_id, 'sm_teacher_id', isset($data[3]) ? $data[3] : '');
                             update_user_meta($user_id, 'sm_job_title', isset($data[4]) ? $data[4] : '');
                             update_user_meta($user_id, 'sm_phone', isset($data[5]) ? $data[5] : '');
@@ -1041,6 +1158,7 @@ class SM_Public {
                     }
                 }
                 fclose($handle);
+                SM_Logger::log('استيراد معلمين (جماعي)', "تم استيراد ($count) معلم بنجاح.");
                 wp_redirect(add_query_arg('sm_admin_msg', 'csv_imported', $_SERVER['REQUEST_URI']));
                 exit;
             }
@@ -1051,6 +1169,7 @@ class SM_Public {
             if (current_user_can('إدارة_المخالفات')) {
                 $handle = fopen($_FILES['csv_file']['tmp_name'], "r");
                 $header = fgetcsv($handle); // skip header
+                $count = 0;
                 while (($data = fgetcsv($handle)) !== FALSE) {
                     if (count($data) >= 4) {
                         // code, type, severity, details, action, reward
@@ -1063,14 +1182,16 @@ class SM_Public {
                                 'details' => $data[3],
                                 'action_taken' => isset($data[4]) ? $data[4] : '',
                                 'reward_penalty' => isset($data[5]) ? $data[5] : ''
-                            ));
+                            ), true); // Skip individual logs
                             if ($rid) {
+                                $count++;
                                 SM_Notifications::send_violation_alert($rid);
                             }
                         }
                     }
                 }
                 fclose($handle);
+                SM_Logger::log('استيراد مخالفات (جماعي)', "تم استيراد ($count) مخالفة بنجاح.");
                 wp_redirect(add_query_arg('sm_admin_msg', 'csv_imported', $_SERVER['REQUEST_URI']));
                 exit;
             }

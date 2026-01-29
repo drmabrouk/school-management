@@ -65,6 +65,9 @@ class School_Management {
         $this->loader->add_action('wp_ajax_sm_update_teacher_ajax', $plugin_public, 'ajax_update_teacher');
         $this->loader->add_action('wp_ajax_sm_add_parent_ajax', $plugin_public, 'ajax_add_parent');
         $this->loader->add_action('wp_ajax_sm_update_profile_ajax', $plugin_public, 'ajax_update_profile');
+        $this->loader->add_action('wp_ajax_sm_bulk_delete_ajax', $plugin_public, 'ajax_bulk_delete');
+        $this->loader->add_action('wp_ajax_sm_initialize_system_ajax', $plugin_public, 'ajax_initialize_system');
+        $this->loader->add_action('wp_ajax_sm_rollback_log_ajax', $plugin_public, 'ajax_rollback_log');
     }
 
     public function run() {
