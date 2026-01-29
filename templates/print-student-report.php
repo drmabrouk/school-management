@@ -71,9 +71,13 @@
         </div>
         <div style="padding-right: 20px;">
             <h2 style="margin:0 0 15px 0; color:#111F35; border:none; padding:0; font-size: 24px; font-weight: 800;"><?php echo esc_html($student->name); ?></h2>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                <div><span style="color: #718096; font-size: 12px; display: block;">الصف الدراسي</span><strong style="color: #2D3748;"><?php echo SM_Settings::format_grade_name($student->class_name, $student->section); ?></strong></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                <div><span style="color: #718096; font-size: 12px; display: block;">الصف والشعبة</span><strong style="color: #2D3748;"><?php echo SM_Settings::format_grade_name($student->class_name, $student->section); ?></strong></div>
                 <div><span style="color: #718096; font-size: 12px; display: block;">الرقم الأكاديمي</span><strong style="color: #2D3748; font-family: sans-serif;"><?php echo esc_html($student->student_code); ?></strong></div>
+                <div><span style="color: #718096; font-size: 12px; display: block;">تاريخ التسجيل</span><strong style="color: #2D3748;"><?php echo esc_html($student->registration_date); ?></strong></div>
+                <div><span style="color: #718096; font-size: 12px; display: block;">الجنسية</span><strong style="color: #2D3748;"><?php echo esc_html($student->nationality); ?></strong></div>
+                <div><span style="color: #718096; font-size: 12px; display: block;">هاتف ولي الأمر</span><strong style="color: #2D3748;"><?php echo esc_html($student->guardian_phone); ?></strong></div>
+                <div><span style="color: #718096; font-size: 12px; display: block;">البريد الإلكتروني</span><strong style="color: #2D3748;"><?php echo esc_html($student->parent_email); ?></strong></div>
             </div>
         </div>
         <div style="text-align: center; border-right: 1px solid #CBD5E0; padding-right: 30px;">

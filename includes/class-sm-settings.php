@@ -82,6 +82,7 @@ class SM_Settings {
             ),
             'grades_count' => 12,
             'active_grades' => array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
+            'grade_sections' => array(), // Per-grade sections: [grade_num => [count => 5, letters => "أ, ب..."]]
             'sections_count' => 5,
             'section_letters' => "أ, ب, ج, د, هـ",
             'academic_stages' => array(

@@ -73,10 +73,14 @@
         document.getElementById('edit_stu_name').value = s.name;
         document.getElementById('edit_stu_class').value = s.class_name || s.class;
         if (document.getElementById('edit_stu_section')) document.getElementById('edit_stu_section').value = s.section || '';
-        document.getElementById('edit_stu_email').value = s.parent_email;
-        document.getElementById('edit_stu_code').value = s.student_id;
+        document.getElementById('edit_stu_email').value = s.parent_email || '';
+        document.getElementById('edit_stu_code').value = s.student_id || '';
+
+        if (document.getElementById('edit_stu_phone')) document.getElementById('edit_stu_phone').value = s.guardian_phone || '';
+        if (document.getElementById('edit_stu_nationality')) document.getElementById('edit_stu_nationality').value = s.nationality || '';
+        if (document.getElementById('edit_stu_reg_date')) document.getElementById('edit_stu_reg_date').value = s.registration_date || '';
+
         if (document.getElementById('edit_stu_parent_user')) document.getElementById('edit_stu_parent_user').value = s.parent_id || '';
-        if (document.getElementById('edit_stu_teacher')) document.getElementById('edit_stu_teacher').value = s.teacher_id || '';
         document.getElementById('edit-student-modal').style.display = 'flex';
     };
 
@@ -611,15 +615,36 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                                             </div>
                                         </div>
                                     </div>
-                                    <div style="background:#fff; padding:20px; border-radius:12px; border:1px solid #e2e8f0;">
-                                        <div class="sm-form-group">
-                                            <label class="sm-label">عدد الشعب لكل صف:</label>
-                                            <input type="number" name="sections_count" value="<?php echo esc_attr($academic['sections_count'] ?? 5); ?>" class="sm-input" min="1" max="10">
+                                    <div style="background:#fff; padding:20px; border-radius:12px; border:1px solid #e2e8f0; grid-column: span 2;">
+                                        <label class="sm-label">تخصيص الشعب لكل صف (اختياري):</label>
+                                        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:15px; background:#f8fafc; padding:15px; border-radius:8px; max-height: 400px; overflow-y: auto;">
+                                            <?php for($i=1; $i<=$academic['grades_count']; $i++):
+                                                $gs = $academic['grade_sections'][$i] ?? array('count' => $academic['sections_count'], 'letters' => $academic['section_letters']);
+                                            ?>
+                                            <div style="border:1px solid #e2e8f0; padding:10px; border-radius:6px; background:white;">
+                                                <div style="font-weight:700; margin-bottom:8px; font-size:12px; border-bottom:1px solid #eee; padding-bottom:5px;">الصف <?php echo $i; ?></div>
+                                                <div class="sm-form-group" style="margin-bottom:5px;">
+                                                    <label style="font-size:10px;">عدد الشعب:</label>
+                                                    <input type="number" name="grade_sections[<?php echo $i; ?>][count]" value="<?php echo esc_attr($gs['count']); ?>" class="sm-input" style="padding:4px; height:28px; font-size:11px;">
+                                                </div>
+                                                <div class="sm-form-group" style="margin-bottom:0;">
+                                                    <label style="font-size:10px;">رموز الشعب:</label>
+                                                    <input type="text" name="grade_sections[<?php echo $i; ?>][letters]" value="<?php echo esc_attr($gs['letters']); ?>" class="sm-input" style="padding:4px; height:28px; font-size:11px;">
+                                                </div>
+                                            </div>
+                                            <?php endfor; ?>
                                         </div>
-                                        <div class="sm-form-group">
-                                            <label class="sm-label">رموز الشعب (مفصولة بفاصلة):</label>
-                                            <input type="text" name="section_letters" value="<?php echo esc_attr($academic['section_letters'] ?? 'أ, ب, ج, د, هـ'); ?>" class="sm-input" placeholder="أ, ب, ج...">
-                                            <p style="font-size:11px; color:#718096; margin-top:5px;">سيتم استخدام هذه الحروف لتسمية الشعب تلقائياً.</p>
+                                        <p style="font-size:11px; color:#718096; margin-top:10px;">إذا ترك فارغاً، سيتم استخدام الإعدادات الافتراضية (5 شعب، أ-هـ).</p>
+
+                                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
+                                            <div class="sm-form-group">
+                                                <label class="sm-label">العدد الافتراضي للشعب:</label>
+                                                <input type="number" name="sections_count" value="<?php echo esc_attr($academic['sections_count'] ?? 5); ?>" class="sm-input" min="1" max="10">
+                                            </div>
+                                            <div class="sm-form-group">
+                                                <label class="sm-label">الرموز الافتراضية:</label>
+                                                <input type="text" name="section_letters" value="<?php echo esc_attr($academic['section_letters'] ?? 'أ, ب, ج, د, هـ'); ?>" class="sm-input">
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
