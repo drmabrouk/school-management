@@ -437,7 +437,8 @@ class SM_Public {
 
         $parent_user_id = !empty($_POST['parent_user_id']) ? intval($_POST['parent_user_id']) : null;
         $teacher_id = !empty($_POST['teacher_id']) ? intval($_POST['teacher_id']) : null;
-        $id = SM_DB::add_student($_POST['name'], $_POST['class'], $_POST['email'], $_POST['code'], $parent_user_id, $teacher_id);
+        $section = !empty($_POST['section']) ? sanitize_text_field($_POST['section']) : '';
+        $id = SM_DB::add_student($_POST['name'], $_POST['class'], $_POST['email'], $_POST['code'], $parent_user_id, $teacher_id, $section);
         
         if ($id) wp_send_json_success($id);
         else wp_send_json_error('Failed to add student');
@@ -936,6 +937,23 @@ class SM_Public {
             }
         }
 
+        // Handle Academic Structure Save
+        if (isset($_POST['sm_save_academic_structure']) && wp_verify_nonce($_POST['sm_admin_nonce'], 'sm_admin_action')) {
+            if (current_user_can('إدارة_النظام')) {
+                $academic_data = array(
+                    'term_dates' => $_POST['term_dates'],
+                    'academic_stages' => $_POST['academic_stages'],
+                    'grades_count' => intval($_POST['grades_count']),
+                    'active_grades' => isset($_POST['active_grades']) ? array_map('intval', $_POST['active_grades']) : array(),
+                    'sections_count' => intval($_POST['sections_count']),
+                    'section_letters' => sanitize_text_field($_POST['section_letters'])
+                );
+                SM_Settings::save_academic_structure($academic_data);
+                wp_redirect(add_query_arg('sm_admin_msg', 'settings_saved', $_SERVER['REQUEST_URI']));
+                exit;
+            }
+        }
+
         // Handle Unified Settings Save (School Info)
         if (isset($_POST['sm_save_settings_unified']) && wp_verify_nonce($_POST['sm_admin_nonce'], 'sm_admin_action')) {
             if (current_user_can('إدارة_النظام')) {
@@ -1089,7 +1107,26 @@ class SM_Public {
 
                     $full_display_name = isset($data[0]) ? trim($data[0]) : '';
                     $student_code      = isset($data[1]) ? trim($data[1]) : '';
-                    $class_name        = isset($data[2]) ? trim($data[2]) : '';
+                    $class_raw         = isset($data[2]) ? trim($data[2]) : '';
+
+                    $class_name = $class_raw;
+                    $section = '';
+
+                    // Attempt to parse short format "12 أ" or "الصف 12 أ"
+                    if (!empty($class_raw)) {
+                        $parts = preg_split('/\s+/', $class_raw);
+                        if (count($parts) >= 2) {
+                            $last_part = end($parts);
+                            // If last part is likely a section (1-2 chars)
+                            if (mb_strlen($last_part) <= 2) {
+                                $section = array_pop($parts);
+                                $class_name = implode(' ', $parts);
+                                if (is_numeric($class_name)) {
+                                    $class_name = 'الصف ' . $class_name;
+                                }
+                            }
+                        }
+                    }
 
                     $errors = array();
                     $warnings = array();
@@ -1110,7 +1147,7 @@ class SM_Public {
                         $results['error']++;
                         foreach ($errors as $err) $results['details'][] = array('type' => 'error', 'msg' => $err);
                     } else {
-                        $imported_id = SM_DB::add_student($full_display_name, $class_name, '', $student_code);
+                        $imported_id = SM_DB::add_student($full_display_name, $class_name, '', $student_code, null, null, $section);
                         if ($imported_id) {
                             $results['success']++;
                             if (!empty($warnings)) {

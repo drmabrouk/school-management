@@ -105,7 +105,7 @@ if ($import_results) {
     <div style="display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; align-items: center;">
         <button onclick="document.getElementById('add-single-student-modal').style.display='flex'" class="sm-btn">+ إضافة طالب جديد</button>
         <button onclick="document.getElementById('csv-import-form').style.display='block'" class="sm-btn sm-btn-secondary">استيراد طلاب (Excel)</button>
-        <a href="data:text/csv;charset=utf-8,<?php echo rawurlencode("الاسم,الصف,البريد,الكود\nأحمد محمد,الصف الأول,parent@example.com,STU100"); ?>" download="student_template.csv" class="sm-btn sm-btn-outline" style="text-decoration:none;">تحميل نموذج CSV</a>
+        <a href="data:text/csv;charset=utf-8,<?php echo rawurlencode("الاسم,الكود,الصف الدراسي\nأحمد محمد,STU100,12 أ"); ?>" download="student_template.csv" class="sm-btn sm-btn-outline" style="text-decoration:none;">تحميل نموذج CSV</a>
         <a href="<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=id_card'); ?>" target="_blank" class="sm-btn sm-btn-accent" style="background: #27ae60; text-decoration:none;">طباعة كافة البطاقات</a>
     </div>
     <?php endif; ?>
@@ -175,7 +175,7 @@ if ($import_results) {
                                 <?php endif; ?>
                             </td>
                             <td style="font-weight: 800; color: var(--sm-dark-color);"><?php echo esc_html($student->name); ?></td>
-                            <td><span class="sm-badge sm-badge-low"><?php echo esc_html($student->class_name); ?></span></td>
+                            <td><span class="sm-badge sm-badge-low"><?php echo SM_Settings::format_grade_name($student->class_name, $student->section, 'short'); ?></span></td>
                             <td style="font-family: 'Rubik', sans-serif; font-weight: 700; color: var(--sm-primary-color);"><?php echo esc_html($student->student_code); ?></td>
                             <td>
                                 <div style="display: flex; gap: 8px; justify-content: flex-end;">
@@ -183,7 +183,7 @@ if ($import_results) {
                                         "id" => $student->id,
                                         "name" => $student->name,
                                         "student_id" => $student->student_code,
-                                        "class" => $student->class_name,
+                                        "class" => SM_Settings::format_grade_name($student->class_name, $student->section),
                                         "photo" => $student->photo_url
                                     )); ?>)' class="sm-btn sm-btn-outline" style="padding: 5px 12px; font-size: 12px;">
                                         <span class="dashicons dashicons-visibility"></span> عرض السجل
@@ -194,7 +194,8 @@ if ($import_results) {
                                             "id" => $student->id,
                                             "name" => $student->name,
                                             "student_id" => $student->student_code,
-                                            "class" => $student->class_name,
+                                            "class_name" => $student->class_name,
+                                            "section" => $student->section,
                                             "parent_id" => $student->parent_user_id,
                                             "parent_email" => $student->parent_email,
                                             "teacher_id" => $student->teacher_id,
@@ -276,8 +277,22 @@ if ($import_results) {
                             <option value="">-- اختر الصف --</option>
                             <?php 
                             $academic = SM_Settings::get_academic_structure();
-                            $grades = explode(',', $academic['academic_stages']);
-                            for($i=1; $i<=$academic['grades_count']; $i++) echo "<option value='الصف $i'>الصف $i</option>";
+                            foreach ($academic['active_grades'] as $grade_num) {
+                                echo "<option value='الصف $grade_num'>الصف $grade_num</option>";
+                            }
+                            ?>
+                        </select>
+                    </div>
+                    <div class="sm-form-group">
+                        <label class="sm-label">الشعبة:</label>
+                        <select name="section" class="sm-select" required>
+                            <option value="">-- اختر الشعبة --</option>
+                            <?php
+                            $letters = explode(',', $academic['section_letters']);
+                            foreach ($letters as $letter) {
+                                $letter = trim($letter);
+                                echo "<option value='$letter'>$letter</option>";
+                            }
                             ?>
                         </select>
                     </div>
@@ -333,8 +348,25 @@ if ($import_results) {
                         <input type="text" name="name" id="edit_stu_name" class="sm-input" required>
                     </div>
                     <div class="sm-form-group">
-                        <label class="sm-label">الصف الدراسي / المستوى:</label>
-                        <input type="text" name="class_name" id="edit_stu_class" class="sm-input" required>
+                        <label class="sm-label">الصف الدراسي:</label>
+                        <select name="class_name" id="edit_stu_class" class="sm-select" required>
+                            <?php
+                            foreach ($academic['active_grades'] as $grade_num) {
+                                echo "<option value='الصف $grade_num'>الصف $grade_num</option>";
+                            }
+                            ?>
+                        </select>
+                    </div>
+                    <div class="sm-form-group">
+                        <label class="sm-label">الشعبة:</label>
+                        <select name="section" id="edit_stu_section" class="sm-select" required>
+                            <?php
+                            foreach ($letters as $letter) {
+                                $letter = trim($letter);
+                                echo "<option value='$letter'>$letter</option>";
+                            }
+                            ?>
+                        </select>
                     </div>
                     <div class="sm-form-group">
                         <label class="sm-label">الرقم الأكاديمي (الكود):</label>

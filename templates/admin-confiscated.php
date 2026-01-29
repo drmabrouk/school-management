@@ -31,7 +31,7 @@
                         $is_expired = $remaining <= 0;
                     ?>
                         <tr>
-                            <td style="font-weight: 700;"><?php echo esc_html($row->student_name); ?><br><small style="color:#718096;"><?php echo esc_html($row->class_name); ?></small></td>
+                            <td style="font-weight: 700;"><?php echo esc_html($row->student_name); ?><br><small style="color:#718096;"><?php echo SM_Settings::format_grade_name($row->class_name, $row->section, 'short'); ?></small></td>
                             <td style="color:var(--sm-primary-color); font-weight:600;"><?php echo esc_html($row->item_name); ?></td>
                             <td><?php echo date('Y-m-d', $created); ?></td>
                             <td><?php echo (int)$row->holding_period; ?> يوم</td>
@@ -81,7 +81,7 @@
                             <option value="">-- اختر الطالب من القائمة --</option>
                             <?php 
                             $students = SM_DB::get_students();
-                            foreach($students as $s) echo '<option value="'.$s->id.'">'.$s->name.' ('.$s->class_name.')</option>';
+                            foreach($students as $s) echo '<option value="'.$s->id.'">'.$s->name.' ('.SM_Settings::format_grade_name($s->class_name, $s->section, 'short').')</option>';
                             ?>
                         </select>
                     </div>

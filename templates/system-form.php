@@ -169,7 +169,7 @@ document.getElementById('student_unified_search').addEventListener('input', func
                             ${s.photo_url ? `<img src="${s.photo_url}" style="width:30px; height:30px; border-radius:50%; object-fit:cover;">` : '<span class="dashicons dashicons-admin-users"></span>'}
                             <div>
                                 <div style="font-weight:700;">${s.name}</div>
-                                <div style="font-size:11px; color:#666;">كود: ${s.student_code} | فصل: ${s.class_name}</div>
+                                <div style="font-size:11px; color:#666;">كود: ${s.student_code} | فصل: ${s.class_name} ${s.section || ''}</div>
                             </div>
                         `;
                         div.onclick = () => selectStudent(s);

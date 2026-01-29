@@ -75,17 +75,47 @@ class SM_Settings {
     public static function get_academic_structure() {
         $default = array(
             'terms_count' => 3,
+            'term_dates' => array(
+                'term1' => array('start' => '', 'end' => ''),
+                'term2' => array('start' => '', 'end' => ''),
+                'term3' => array('start' => '', 'end' => '')
+            ),
             'grades_count' => 12,
-            'grade_options' => "أ, ب, ج",
-            'semester_start' => '',
-            'semester_end' => '',
-            'academic_stages' => 'ابتدائي, متوسط, ثانوي'
+            'active_grades' => array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
+            'sections_count' => 5,
+            'section_letters' => "أ, ب, ج, د, هـ",
+            'academic_stages' => array(
+                array('name' => 'المرحلة الابتدائية', 'start' => 1, 'end' => 4),
+                array('name' => 'المرحلة المتوسطة', 'start' => 5, 'end' => 8),
+                array('name' => 'المرحلة الثانوية', 'start' => 9, 'end' => 12)
+            )
         );
-        return get_option('sm_academic_structure', $default);
+        return wp_parse_args(get_option('sm_academic_structure', array()), $default);
     }
 
     public static function save_academic_structure($data) {
         update_option('sm_academic_structure', $data);
+    }
+
+    /**
+     * Standardized Naming for Grades and Sections
+     */
+    public static function format_grade_name($grade, $section = '', $format = 'full') {
+        if (empty($grade)) return '---';
+
+        // Remove "الصف" prefix if it exists in data
+        $grade_num = str_replace('الصف ', '', $grade);
+
+        if ($format === 'short') {
+            return trim($grade_num . ' ' . $section);
+        }
+
+        // Full format: "Grade + Number + Section"
+        $output = 'الصف ' . $grade_num;
+        if (!empty($section)) {
+            $output .= ' شعبة ' . $section;
+        }
+        return $output;
     }
 
     public static function get_retention_settings() {

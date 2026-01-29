@@ -203,7 +203,7 @@
                     <tr>
                         <td style="white-space: nowrap; font-size: 0.85em;"><?php echo esc_html($row->created_at); ?></td>
                         <td style="font-weight: 600;"><?php echo esc_html($row->student_name); ?></td>
-                        <td><?php echo esc_html($row->class_name); ?></td>
+                        <td><?php echo SM_Settings::format_grade_name($row->class_name, $row->section, 'short'); ?></td>
                         <td><?php echo isset($all_labels[$row->type]) ? $all_labels[$row->type] : esc_html($row->type); ?></td>
                         <td>
                             <span class="sm-badge sm-badge-<?php echo esc_attr($row->severity); ?>">

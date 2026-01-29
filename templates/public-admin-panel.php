@@ -71,7 +71,8 @@
     window.editSmStudent = function(s) {
         document.getElementById('edit_stu_id').value = s.id;
         document.getElementById('edit_stu_name').value = s.name;
-        document.getElementById('edit_stu_class').value = s.class;
+        document.getElementById('edit_stu_class').value = s.class_name || s.class;
+        if (document.getElementById('edit_stu_section')) document.getElementById('edit_stu_section').value = s.section || '';
         document.getElementById('edit_stu_email').value = s.parent_email;
         document.getElementById('edit_stu_code').value = s.student_id;
         if (document.getElementById('edit_stu_parent_user')) document.getElementById('edit_stu_parent_user').value = s.parent_id || '';
@@ -466,6 +467,7 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                             <button class="sm-tab-btn" onclick="smOpenInternalTab('design-settings', this)">تصميم النظام</button>
                             <button class="sm-tab-btn" onclick="smOpenInternalTab('app-settings', this)">إعدادات المخالفات</button>
                             <button class="sm-tab-btn" onclick="smOpenInternalTab('user-settings', this)">إدارة المستخدمين</button>
+                            <button class="sm-tab-btn" onclick="smOpenInternalTab('school-structure', this)">الهيكل المدرسي</button>
                             <button class="sm-tab-btn" onclick="smOpenInternalTab('backup-settings', this)">مركز النسخ الاحتياطي</button>
                             <?php if ($is_admin): ?>
                                 <button class="sm-tab-btn" onclick="smOpenInternalTab('activity-logs', this)">سجل النشاطات</button>
@@ -547,6 +549,93 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                         <div id="user-settings" class="sm-internal-tab" style="display:none;">
                             <?php include SM_PLUGIN_DIR . 'templates/admin-users-view.php'; ?>
                         </div>
+                        <div id="school-structure" class="sm-internal-tab" style="display:none;">
+                            <?php $academic = SM_Settings::get_academic_structure(); ?>
+                            <form method="post" id="sm-academic-structure-form">
+                                <?php wp_nonce_field('sm_admin_action', 'sm_admin_nonce'); ?>
+
+                                <h4 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">التقويم الأكاديمي (UAE Framework)</h4>
+                                <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:20px; margin-bottom:30px;">
+                                    <?php for($i=1; $i<=3; $i++): ?>
+                                    <div style="background:#f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0;">
+                                        <div style="font-weight:700; margin-bottom:10px; color:var(--sm-primary-color);">الفصل الدراسي <?php echo $i; ?></div>
+                                        <div class="sm-form-group">
+                                            <label class="sm-label" style="font-size:11px;">تاريخ البدء:</label>
+                                            <input type="date" name="term_dates[term<?php echo $i; ?>][start]" value="<?php echo esc_attr($academic['term_dates']["term$i"]['start'] ?? ''); ?>" class="sm-input">
+                                        </div>
+                                        <div class="sm-form-group">
+                                            <label class="sm-label" style="font-size:11px;">تاريخ الانتهاء:</label>
+                                            <input type="date" name="term_dates[term<?php echo $i; ?>][end]" value="<?php echo esc_attr($academic['term_dates']["term$i"]['end'] ?? ''); ?>" class="sm-input">
+                                        </div>
+                                    </div>
+                                    <?php endfor; ?>
+                                </div>
+
+                                <h4 style="border-bottom:1px solid #eee; padding-bottom:10px;">المراحل التعليمية</h4>
+                                <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:20px; margin-bottom:30px;">
+                                    <?php foreach($academic['academic_stages'] as $index => $stage): ?>
+                                    <div style="background:#fff; padding:15px; border-radius:8px; border:1px solid #e2e8f0;">
+                                        <div class="sm-form-group">
+                                            <label class="sm-label">اسم المرحلة:</label>
+                                            <input type="text" name="academic_stages[<?php echo $index; ?>][name]" value="<?php echo esc_attr($stage['name']); ?>" class="sm-input">
+                                        </div>
+                                        <div style="display:flex; gap:10px;">
+                                            <div class="sm-form-group" style="flex:1;">
+                                                <label class="sm-label">من صف:</label>
+                                                <input type="number" name="academic_stages[<?php echo $index; ?>][start]" value="<?php echo esc_attr($stage['start']); ?>" class="sm-input">
+                                            </div>
+                                            <div class="sm-form-group" style="flex:1;">
+                                                <label class="sm-label">إلى صف:</label>
+                                                <input type="number" name="academic_stages[<?php echo $index; ?>][end]" value="<?php echo esc_attr($stage['end']); ?>" class="sm-input">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <?php endforeach; ?>
+                                </div>
+
+                                <h4 style="border-bottom:1px solid #eee; padding-bottom:10px;">إدارة الصفوف والشعب</h4>
+                                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:30px; margin-bottom:30px;">
+                                    <div style="background:#fff; padding:20px; border-radius:12px; border:1px solid #e2e8f0;">
+                                        <div class="sm-form-group">
+                                            <label class="sm-label">إجمالي عدد الصفوف:</label>
+                                            <input type="number" name="grades_count" value="<?php echo esc_attr($academic['grades_count']); ?>" class="sm-input" min="1" max="15">
+                                        </div>
+                                        <div class="sm-form-group">
+                                            <label class="sm-label">الصفوف النشطة:</label>
+                                            <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; background:#f8fafc; padding:10px; border-radius:8px;">
+                                                <?php for($i=1; $i<=$academic['grades_count']; $i++): ?>
+                                                <label style="font-size:12px; display:flex; align-items:center; gap:5px;">
+                                                    <input type="checkbox" name="active_grades[]" value="<?php echo $i; ?>" <?php checked(in_array($i, $academic['active_grades'] ?? [])); ?>> صف <?php echo $i; ?>
+                                                </label>
+                                                <?php endfor; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div style="background:#fff; padding:20px; border-radius:12px; border:1px solid #e2e8f0;">
+                                        <div class="sm-form-group">
+                                            <label class="sm-label">عدد الشعب لكل صف:</label>
+                                            <input type="number" name="sections_count" value="<?php echo esc_attr($academic['sections_count'] ?? 5); ?>" class="sm-input" min="1" max="10">
+                                        </div>
+                                        <div class="sm-form-group">
+                                            <label class="sm-label">رموز الشعب (مفصولة بفاصلة):</label>
+                                            <input type="text" name="section_letters" value="<?php echo esc_attr($academic['section_letters'] ?? 'أ, ب, ج, د, هـ'); ?>" class="sm-input" placeholder="أ, ب, ج...">
+                                            <p style="font-size:11px; color:#718096; margin-top:5px;">سيتم استخدام هذه الحروف لتسمية الشعب تلقائياً.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style="background:#f0fff4; border:1px solid #c6f6d5; border-radius:8px; padding:15px; margin-bottom:25px;">
+                                    <p style="margin:0; font-size:13px; color:#2f855a; font-weight:700;">💡 نظام التسمية الموحد:</p>
+                                    <ul style="margin:10px 0 0 0; font-size:12px; color:#276749;">
+                                        <li>التنسيق الكامل: <strong>الصف 12 شعبة أ</strong></li>
+                                        <li>التنسيق المختصر: <strong>12 أ</strong></li>
+                                    </ul>
+                                </div>
+
+                                <button type="submit" name="sm_save_academic_structure" class="sm-btn" style="width:auto; padding:0 40px; height:45px;">حفظ الهيكل المدرسي</button>
+                            </form>
+                        </div>
+
                         <div id="backup-settings" class="sm-internal-tab" style="display:none;">
                             <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:30px;">
                                 <h4 style="margin-top:0;">مركز النسخ الاحتياطي وإدارة البيانات</h4>

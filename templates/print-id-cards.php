@@ -56,7 +56,7 @@
                 </div>
                 <div class="info">
                     <p><strong>الطالب:</strong> <?php echo esc_html($s->name); ?></p>
-                    <p><strong>الصف:</strong> <?php echo esc_html($s->class_name); ?></p>
+                    <p><strong>الصف:</strong> <?php echo SM_Settings::format_grade_name($s->class_name, $s->section, 'short'); ?></p>
                     <p><strong>الكود:</strong> <?php echo esc_html($s->student_code); ?></p>
                 </div>
                 <div class="barcode">
