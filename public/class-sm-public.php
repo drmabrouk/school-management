@@ -1108,12 +1108,29 @@ class SM_Public {
                     rewind($handle);
                 }
 
+                // Detect delimiter
+                $first_line = fgets($handle);
+                rewind($handle);
+                $bom = fread($handle, 3);
+                if ($bom != "\xEF\xBB\xBF") rewind($handle);
+
+                $delimiters = [',', ';', "\t", '|'];
+                $delimiter = ',';
+                $max_count = -1;
+                foreach ($delimiters as $d) {
+                    $count = substr_count($first_line, $d);
+                    if ($count > $max_count) {
+                        $max_count = $count;
+                        $delimiter = $d;
+                    }
+                }
+
                 // Skip Header
-                fgetcsv($handle);
+                fgetcsv($handle, 0, $delimiter);
 
                 $rows = array();
                 $row_index = 2;
-                while (($data = fgetcsv($handle)) !== FALSE) {
+                while (($data = fgetcsv($handle, 0, $delimiter)) !== FALSE) {
                     $rows[] = array('data' => $data, 'index' => $row_index++);
                 }
                 fclose($handle);
@@ -1159,6 +1176,14 @@ class SM_Public {
                     $full_display_name = isset($data[0]) ? trim($data[0]) : '';
                     $class_name        = isset($data[1]) ? trim($data[1]) : '';
                     $section           = isset($data[2]) ? trim($data[2]) : '';
+
+                    // Normalize Grade format (e.g., "12" or "Grade 12" -> "الصف 12")
+                    if (!empty($class_name)) {
+                        $grade_number = preg_replace('/[^0-9]/', '', $class_name);
+                        if (!empty($grade_number)) {
+                            $class_name = 'الصف ' . $grade_number;
+                        }
+                    }
                     $nationality       = isset($data[3]) ? trim($data[3]) : '';
                     $guardian_email    = isset($data[4]) ? trim($data[4]) : '';
                     $guardian_phone    = isset($data[5]) ? trim($data[5]) : '';

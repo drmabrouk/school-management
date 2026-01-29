@@ -79,8 +79,7 @@ class School_Management {
         $db_version = get_option('sm_plugin_version', '1.0.0');
         if (version_compare($db_version, SM_VERSION, '<')) {
             require_once SM_PLUGIN_DIR . 'includes/class-sm-activator.php';
-            SM_Activator::add_custom_roles();
-            SM_Activator::migrate_old_roles();
+            SM_Activator::activate(); // Run full activation logic including dbDelta
             update_option('sm_plugin_version', SM_VERSION);
         }
     }
