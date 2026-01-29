@@ -162,6 +162,67 @@
             if (menu) menu.style.display = 'none';
         }
     });
+
+    window.smBulkDelete = function(type) {
+        if (!confirm('هل أنت متأكد من مسح كافة البيانات المحددة؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+
+        const formData = new FormData();
+        formData.append('action', 'sm_bulk_delete_ajax');
+        formData.append('delete_type', type);
+        formData.append('nonce', '<?php echo wp_create_nonce("sm_admin_action"); ?>');
+
+        fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                smShowNotification('تم مسح البيانات بنجاح');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                smShowNotification('خطأ: ' + res.data, true);
+            }
+        });
+    };
+
+    window.smRollbackLog = function(logId) {
+        if (!confirm('هل أنت متأكد من استعادة هذه البيانات المحذوفة؟')) return;
+
+        const formData = new FormData();
+        formData.append('action', 'sm_rollback_log_ajax');
+        formData.append('log_id', logId);
+        formData.append('nonce', '<?php echo wp_create_nonce("sm_admin_action"); ?>');
+
+        fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                smShowNotification('تمت الاستعادة بنجاح');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                smShowNotification('خطأ: ' + res.data, true);
+            }
+        });
+    };
+
+    window.smInitializeSystem = function() {
+        const code = prompt('لتأكيد تهيأة النظام بالكامل، يرجى إدخال كود التأكيد (1011996):');
+        if (!code) return;
+
+        const formData = new FormData();
+        formData.append('action', 'sm_initialize_system_ajax');
+        formData.append('confirm_code', code);
+        formData.append('nonce', '<?php echo wp_create_nonce("sm_admin_action"); ?>');
+
+        fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                smShowNotification('تمت تهيأة النظام بالكامل بنجاح');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                smShowNotification('خطأ: ' + res.data, true);
+            }
+        });
+    };
 })(window);
 </script>
 
@@ -500,20 +561,35 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                                         <div style="font-weight:700; color:var(--sm-secondary-color);"><?php echo $backup_info['import']; ?></div>
                                     </div>
                                 </div>
-                                <div style="display:flex; gap:20px; align-items: flex-start; flex-wrap:wrap;">
-                                    <div style="flex:1; min-width:300px; background:white; padding:20px; border-radius:8px; border:1px solid #eee;">
+                                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:20px;">
+                                    <div style="background:white; padding:20px; border-radius:8px; border:1px solid #eee;">
                                         <h5 style="margin-top:0;">تصدير البيانات</h5>
-                                        <p style="font-size:12px; color:#666;">قم بتحميل نسخة كاملة من بيانات الطلاب والمخالفات بصيغة JSON.</p>
+                                        <p style="font-size:12px; color:#666; margin-bottom:15px;">قم بتحميل نسخة كاملة من بيانات الطلاب والمخالفات بصيغة JSON.</p>
                                         <form method="post"><button type="submit" name="sm_download_backup" class="sm-btn" style="background:#27ae60; width:auto;">تصدير الآن</button></form>
                                     </div>
-                                    <div style="flex:1; min-width:300px; background:white; padding:20px; border-radius:8px; border:1px solid #eee;">
+                                    <div style="background:white; padding:20px; border-radius:8px; border:1px solid #eee;">
                                         <h5 style="margin-top:0;">استيراد البيانات</h5>
-                                        <p style="font-size:12px; color:#e53e3e;">تحذير: سيقوم الاستيراد بمسح البيانات الحالية واستبدالها بالنسخة المرفوعة.</p>
+                                        <p style="font-size:12px; color:#e53e3e; margin-bottom:15px;">تحذير: سيقوم الاستيراد بمسح البيانات الحالية واستبدالها بالنسخة المرفوعة.</p>
                                         <form method="post" enctype="multipart/form-data">
                                             <?php wp_nonce_field('sm_admin_action', 'sm_admin_nonce'); ?>
-                                            <input type="file" name="backup_file" required style="margin-bottom:10px;">
-                                            <button type="submit" name="sm_restore_backup" class="sm-btn" style="background:#2980b9; width:auto;" onsubmit="return confirm('هل أنت متأكد؟ سيتم استبدال كافة البيانات.')">بدء الاستيراد</button>
+                                            <input type="file" name="backup_file" required style="margin-bottom:10px; font-size:11px;">
+                                            <button type="submit" name="sm_restore_backup" class="sm-btn" style="background:#2980b9; width:auto;">بدء الاستيراد</button>
                                         </form>
+                                    </div>
+                                    <div style="background:white; padding:20px; border-radius:8px; border:1px solid #eee;">
+                                        <h5 style="margin-top:0;">مسح البيانات المخصص</h5>
+                                        <p style="font-size:12px; color:#666; margin-bottom:15px;">اختر القسم الذي تريد مسح كافة بياناته نهائياً:</p>
+                                        <div style="display:flex; flex-wrap:wrap; gap:10px;">
+                                            <button onclick="smBulkDelete('students')" class="sm-btn sm-btn-outline" style="font-size:11px; color:#e53e3e; border-color:#feb2b2;">مسح الطلاب</button>
+                                            <button onclick="smBulkDelete('teachers')" class="sm-btn sm-btn-outline" style="font-size:11px; color:#e53e3e; border-color:#feb2b2;">مسح المعلمين</button>
+                                            <button onclick="smBulkDelete('parents')" class="sm-btn sm-btn-outline" style="font-size:11px; color:#e53e3e; border-color:#feb2b2;">مسح أولياء الأمور</button>
+                                            <button onclick="smBulkDelete('records')" class="sm-btn sm-btn-outline" style="font-size:11px; color:#e53e3e; border-color:#feb2b2;">مسح المخالفات</button>
+                                        </div>
+                                    </div>
+                                    <div style="background:#fff5f5; padding:20px; border-radius:8px; border:2px dashed #feb2b2;">
+                                        <h5 style="margin-top:0; color:#c53030;">تهيأة النظام (إعادة ضبط المصنع)</h5>
+                                        <p style="font-size:12px; color:#666; margin-bottom:15px;">هذا الإجراء سيقوم بمسح **كافة** البيانات من جميع الأقسام بما في ذلك الإعدادات والمستخدمين والطلاب.</p>
+                                        <button onclick="smInitializeSystem()" class="sm-btn" style="background:#c53030; width:auto;">تهيأة النظام بالكامل</button>
                                     </div>
                                 </div>
                             </div>
@@ -534,11 +610,20 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                                         <tbody>
                                             <?php 
                                             $all_logs = SM_Logger::get_logs(100);
-                                            foreach ($all_logs as $log): ?>
+                                            foreach ($all_logs as $log):
+                                                $can_rollback = strpos($log->details, 'ROLLBACK_DATA:') === 0;
+                                            ?>
                                                 <tr>
                                                     <td style="font-size: 0.8em; color: #718096;"><?php echo esc_html($log->created_at); ?></td>
                                                     <td style="font-weight: 600;"><?php echo esc_html($log->display_name); ?></td>
-                                                    <td><?php echo esc_html($log->action); ?></td>
+                                                    <td>
+                                                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                                                            <div><?php echo esc_html($log->action); ?></div>
+                                                            <?php if ($can_rollback): ?>
+                                                                <button onclick="smRollbackLog(<?php echo $log->id; ?>)" class="sm-btn" style="width:auto; height:24px; padding:0 8px; font-size:10px; background:#4a5568;">استعادة</button>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                    </td>
                                                 </tr>
                                             <?php endforeach; ?>
                                         </tbody>
