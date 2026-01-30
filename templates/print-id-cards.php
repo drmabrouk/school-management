@@ -7,11 +7,18 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
     <style>
-        @page { size: portrait; margin: 10mm; }
+        @page { size: portrait; margin: 15mm; }
         body { font-family: 'Rubik', sans-serif; background: #f8fafc; margin: 0; padding: 20px; color: #2d3748; }
-        .cards-container { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; justify-items: center; }
+        .cards-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 40px;
+            justify-items: center;
+            align-content: start;
+        }
         .id-card { 
-            width: 85mm; height: 55mm; background: #fff; border: 1px solid #e2e8f0; 
+            width: 90mm; height: 60mm; background: #fff; border: 1px solid #e2e8f0;
             border-radius: 12px; padding: 0; position: relative; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
             overflow: hidden; display: flex; flex-direction: column;
         }
