@@ -143,6 +143,13 @@ class SM_Public {
                 if (isset($_GET['start_date'])) $filters['start_date'] = sanitize_text_field($_GET['start_date']);
                 if (isset($_GET['end_date'])) $filters['end_date'] = sanitize_text_field($_GET['end_date']);
                 if (isset($_GET['type_filter'])) $filters['type'] = sanitize_text_field($_GET['type_filter']);
+
+                // If no filters are applied, limit to latest 20 for quick access
+                $is_filtering = !empty($_GET['student_search']) || !empty($_GET['class_filter']) || !empty($_GET['section_filter']) || !empty($_GET['start_date']) || !empty($_GET['end_date']) || !empty($_GET['type_filter']);
+                if (!$is_filtering && !$is_parent) {
+                    $filters['limit'] = 20;
+                }
+
                 $records = SM_DB::get_records($filters);
                 break;
 
@@ -450,7 +457,7 @@ class SM_Public {
         $parent_user_id = !empty($_POST['parent_user_id']) ? intval($_POST['parent_user_id']) : null;
         $section = !empty($_POST['section']) ? sanitize_text_field($_POST['section']) : '';
         $email = !empty($_POST['email']) ? sanitize_email($_POST['email']) : '';
-        
+
         $extra = array(
             'guardian_phone' => sanitize_text_field($_POST['guardian_phone'] ?? ''),
             'nationality' => sanitize_text_field($_POST['nationality'] ?? ''),

@@ -258,7 +258,7 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                 <h1 style="margin:0; border: none; padding: 0; color: var(--sm-dark-color); font-weight: 800; font-size: 1.3em; text-decoration: none; line-height: 1;">
                     <?php echo esc_html($school['school_name']); ?>
                 </h1>
-                <div style="font-size: 0.75em; color: var(--sm-text-gray); font-weight: 600; margin-top: 4px;">
+                <div style="display: inline-block; padding: 3px 12px; background: #fff5f5; color: #F63049; border-radius: 50px; font-size: 11px; font-weight: 700; margin-top: 6px; border: 1px solid #fed7d7;">
                     <?php 
                     if ($is_admin) echo 'مدير النظام';
                     elseif (in_array('sm_school_admin', $roles)) echo 'مدير المدرسة';
@@ -272,6 +272,10 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
         </div>
 
         <div style="display: flex; align-items: center; gap: 20px;">
+            <div class="sm-header-info-box" style="text-align: right; border-left: 1px solid var(--sm-border-color); padding-left: 15px;">
+                <div style="font-size: 0.85em; font-weight: 700; color: var(--sm-dark-color);"><?php echo date_i18n('l j F Y'); ?></div>
+            </div>
+
             <?php if ($is_admin || current_user_can('تسجيل_مخالفة')): ?>
                 <button onclick="smOpenViolationModal()" class="sm-btn" style="background: var(--sm-primary-color); height: 38px; font-size: 12px; color: white !important;">+ تسجيل مخالفة</button>
             <?php endif; ?>
@@ -320,10 +324,6 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                     <hr style="margin: 5px 0; border: none; border-top: 1px solid #eee;">
                     <a href="<?php echo wp_logout_url(home_url('/sm-login')); ?>" class="sm-dropdown-item" style="color: #e53e3e;"><span class="dashicons dashicons-logout"></span> تسجيل الخروج</a>
                 </div>
-            </div>
-
-            <div class="sm-header-info-box" style="text-align: left; border-right: 1px solid var(--sm-border-color); padding-right: 15px;">
-                <div style="font-size: 0.85em; font-weight: 700; color: var(--sm-dark-color);"><?php echo date_i18n('l j F Y'); ?></div>
             </div>
         </div>
     </div>
@@ -474,7 +474,7 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                             <button class="sm-tab-btn" onclick="smOpenInternalTab('school-structure', this)">الهيكل المدرسي</button>
                             <button class="sm-tab-btn" onclick="smOpenInternalTab('backup-settings', this)">مركز النسخ الاحتياطي</button>
                             <?php if ($is_admin): ?>
-                                <button class="sm-tab-btn" onclick="smOpenInternalTab('activity-logs', this)">سجل النشاطات</button>
+                                <button class="sm-tab-btn" onclick="smOpenInternalTab('activity-logs', this)">النشاطات</button>
                             <?php endif; ?>
                         </div>
                         <div id="school-settings" class="sm-internal-tab">
@@ -710,8 +710,44 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                         </div>
                         <?php if ($is_admin): ?>
                         <div id="activity-logs" class="sm-internal-tab" style="display:none;">
+                            <!-- Latest Disciplinary Officer Updates -->
+                            <div style="background:#fff; border:1px solid #bee3f8; border-right: 5px solid #3182ce; border-radius:12px; padding:30px; margin-bottom: 30px;">
+                                <h4 style="margin-top:0; color: #2b6cb0; display: flex; align-items: center; gap: 10px;">
+                                    <span class="dashicons dashicons-id-alt"></span> آخر تحديثات مسؤولي الانضباط
+                                </h4>
+                                <div class="sm-table-container" style="border:none;">
+                                    <table class="sm-table" style="font-size: 0.9em;">
+                                        <thead>
+                                            <tr>
+                                                <th>المسؤول</th>
+                                                <th>النشاط</th>
+                                                <th>الوقت</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php
+                                            $officer_logs = array_filter(SM_Logger::get_logs(50), function($log) {
+                                                $user = get_userdata($log->user_id);
+                                                return $user && in_array('sm_discipline_officer', (array)$user->roles);
+                                            });
+                                            if (empty($officer_logs)): ?>
+                                                <tr><td colspan="3" style="text-align:center; padding:20px; color:#666;">لا توجد تحديثات أخيرة لمسؤولي الانضباط.</td></tr>
+                                            <?php else:
+                                                foreach (array_slice($officer_logs, 0, 10) as $log): ?>
+                                                    <tr>
+                                                        <td style="font-weight:600;"><?php echo esc_html($log->display_name); ?></td>
+                                                        <td><?php echo esc_html($log->action); ?></td>
+                                                        <td style="color:#718096;"><?php echo date('Y-m-d H:i', strtotime($log->created_at)); ?></td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            <?php endif; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
                             <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:30px;">
-                                <h4 style="margin-top:0;">سجل نشاطات النظام (للمدير فقط)</h4>
+                                <h4 style="margin-top:0;">سجل نشاطات النظام الشامل</h4>
                                 <div class="sm-table-container">
                                     <table class="sm-table">
                                         <thead>

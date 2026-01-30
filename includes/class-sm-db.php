@@ -186,6 +186,11 @@ class SM_DB {
         }
         
         $query .= " ORDER BY r.created_at DESC";
+
+        if (!empty($filters['limit'])) {
+            $query .= $wpdb->prepare(" LIMIT %d", $filters['limit']);
+        }
+
         return $wpdb->get_results($query);
     }
 
