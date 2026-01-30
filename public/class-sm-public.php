@@ -101,6 +101,7 @@ class SM_Public {
         if ($active_tab === 'confiscated' && !($is_admin || current_user_can('إدارة_المخالفات'))) $active_tab = 'summary';
         if ($active_tab === 'printing' && !($is_admin || current_user_can('طباعة_التقارير'))) $active_tab = 'summary';
         if ($active_tab === 'reports' && !($is_admin || current_user_can('طباعة_التقارير'))) $active_tab = 'summary';
+        if ($active_tab === 'attendance' && !($is_admin || current_user_can('إدارة_الطلاب'))) $active_tab = 'summary';
         if ($active_tab === 'global-settings' && !($is_admin || current_user_can('إدارة_النظام'))) $active_tab = 'summary';
         if ($active_tab === 'users' && !($is_admin || current_user_can('إدارة_المستخدمين'))) $active_tab = 'summary';
 
@@ -164,6 +165,10 @@ class SM_Public {
 
             case 'confiscated':
                 $records = SM_DB::get_confiscated_items();
+                break;
+
+            case 'attendance':
+                // Placeholder for future attendance data preparation
                 break;
         }
 

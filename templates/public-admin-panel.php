@@ -276,6 +276,10 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                 <div style="font-size: 0.85em; font-weight: 700; color: var(--sm-dark-color);"><?php echo date_i18n('l j F Y'); ?></div>
             </div>
 
+            <?php if ($is_admin || current_user_can('إدارة_الطلاب')): ?>
+                <a href="<?php echo add_query_arg('sm_tab', 'attendance'); ?>" class="sm-btn sm-btn-secondary" style="height: 38px; font-size: 12px; color: white !important; text-decoration: none;">سجل الحضور والغياب</a>
+            <?php endif; ?>
+
             <?php if ($is_admin || current_user_can('تسجيل_مخالفة')): ?>
                 <button onclick="smOpenViolationModal()" class="sm-btn" style="background: var(--sm-primary-color); height: 38px; font-size: 12px; color: white !important;">+ تسجيل مخالفة</button>
             <?php endif; ?>
@@ -345,6 +349,9 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                 <?php if ($is_admin || current_user_can('إدارة_الطلاب')): ?>
                     <li class="sm-sidebar-item <?php echo $active_tab == 'students' ? 'sm-active' : ''; ?>">
                         <a href="<?php echo add_query_arg('sm_tab', 'students'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-groups"></span> إدارة الطلاب</a>
+                    </li>
+                    <li class="sm-sidebar-item <?php echo $active_tab == 'attendance' ? 'sm-active' : ''; ?>">
+                        <a href="<?php echo add_query_arg('sm_tab', 'attendance'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-clock"></span> سجل الحضور والغياب</a>
                     </li>
                 <?php endif; ?>
 
@@ -461,6 +468,10 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
 
                 case 'confiscated':
                     include SM_PLUGIN_DIR . 'templates/admin-confiscated.php';
+                    break;
+
+                case 'attendance':
+                    include SM_PLUGIN_DIR . 'templates/admin-attendance.php';
                     break;
 
                 case 'global-settings':
