@@ -544,6 +544,101 @@ class SM_DB {
         return $count;
     }
 
+    // Attendance Management
+    public static function get_attendance_summary($date) {
+        global $wpdb;
+        $academic = SM_Settings::get_academic_structure();
+        $summary = array();
+
+        $active_grades = $academic['active_grades'] ?? array();
+
+        foreach ($active_grades as $grade_num) {
+            $class_name = 'الصف ' . $grade_num;
+            $gs = $academic['grade_sections'][$grade_num] ?? array('count' => $academic['sections_count'], 'letters' => $academic['section_letters']);
+            $letters = array_map('trim', explode(',', $gs['letters']));
+
+            for ($i = 0; $i < $gs['count']; $i++) {
+                $section = $letters[$i] ?? '';
+                if (empty($section)) continue;
+
+                // Count students
+                $student_count = $wpdb->get_var($wpdb->prepare(
+                    "SELECT COUNT(*) FROM {$wpdb->prefix}sm_students WHERE class_name = %s AND section = %s",
+                    $class_name, $section
+                ));
+
+                if ($student_count == 0) continue;
+
+                // Get attendance stats for this date
+                $attendance_stats = $wpdb->get_results($wpdb->prepare(
+                    "SELECT a.status, COUNT(*) as count
+                     FROM {$wpdb->prefix}sm_attendance a
+                     JOIN {$wpdb->prefix}sm_students s ON a.student_id = s.id
+                     WHERE s.class_name = %s AND s.section = %s AND a.date = %s
+                     GROUP BY a.status",
+                    $class_name, $section, $date
+                ));
+
+                $stats = array('present' => 0, 'absent' => 0, 'late' => 0, 'excused' => 0, 'total_marked' => 0);
+                foreach ($attendance_stats as $as) {
+                    $stats[$as->status] = (int)$as->count;
+                    $stats['total_marked'] += (int)$as->count;
+                }
+
+                $summary[] = array(
+                    'grade' => $grade_num,
+                    'class_name' => $class_name,
+                    'section' => $section,
+                    'student_count' => $student_count,
+                    'stats' => $stats,
+                    'is_complete' => ($stats['total_marked'] >= $student_count),
+                    'has_absences' => ($stats['absent'] > 0 || $stats['late'] > 0 || $stats['excused'] > 0)
+                );
+            }
+        }
+
+        return $summary;
+    }
+
+    public static function get_students_attendance($class_name, $section, $date) {
+        global $wpdb;
+        $query = $wpdb->prepare(
+            "SELECT s.id, s.name, s.student_code, s.photo_url, a.status, a.id as attendance_id
+             FROM {$wpdb->prefix}sm_students s
+             LEFT JOIN {$wpdb->prefix}sm_attendance a ON s.id = a.student_id AND a.date = %s
+             WHERE s.class_name = %s AND s.section = %s
+             ORDER BY s.name ASC",
+            $date, $class_name, $section
+        );
+        return $wpdb->get_results($query);
+    }
+
+    public static function save_attendance($student_id, $status, $date, $teacher_id) {
+        global $wpdb;
+        $exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}sm_attendance WHERE student_id = %d AND date = %s",
+            $student_id, $date
+        ));
+
+        if ($exists) {
+            return $wpdb->update(
+                "{$wpdb->prefix}sm_attendance",
+                array('status' => $status, 'teacher_id' => $teacher_id),
+                array('id' => $exists)
+            );
+        } else {
+            return $wpdb->insert(
+                "{$wpdb->prefix}sm_attendance",
+                array(
+                    'student_id' => $student_id,
+                    'status' => $status,
+                    'date' => $date,
+                    'teacher_id' => $teacher_id
+                )
+            );
+        }
+    }
+
     // Filtered Logs
     public static function get_filtered_logs($filters = array()) {
         global $wpdb;
