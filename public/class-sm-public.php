@@ -168,7 +168,8 @@ class SM_Public {
                 break;
 
             case 'attendance':
-                // Placeholder for future attendance data preparation
+                $attendance_date = isset($_GET['attendance_date']) ? sanitize_text_field($_GET['attendance_date']) : current_time('Y-m-d');
+                $attendance_summary = SM_DB::get_attendance_summary($attendance_date);
                 break;
         }
 
@@ -673,6 +674,33 @@ class SM_Public {
         }
 
         wp_send_json_success('تم مسح البيانات بنجاح');
+    }
+
+    public function ajax_get_students_attendance() {
+        if (!is_user_logged_in() || !current_user_can('إدارة_الطلاب')) wp_send_json_error('Unauthorized');
+
+        $class_name = sanitize_text_field($_POST['class_name']);
+        $section = sanitize_text_field($_POST['section']);
+        $date = sanitize_text_field($_POST['date']);
+
+        $students = SM_DB::get_students_attendance($class_name, $section, $date);
+        wp_send_json_success($students);
+    }
+
+    public function ajax_save_attendance() {
+        if (!is_user_logged_in() || !current_user_can('إدارة_الطلاب')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_attendance_action')) wp_send_json_error('Security check failed');
+
+        $student_id = intval($_POST['student_id']);
+        $status = sanitize_text_field($_POST['status']);
+        $date = sanitize_text_field($_POST['date']);
+        $teacher_id = get_current_user_id();
+
+        if (SM_DB::save_attendance($student_id, $status, $date, $teacher_id)) {
+            wp_send_json_success('Saved');
+        } else {
+            wp_send_json_error('Failed to save');
+        }
     }
 
     public function ajax_rollback_log() {

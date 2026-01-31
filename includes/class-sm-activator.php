@@ -79,6 +79,18 @@ class SM_Activator {
             created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
             PRIMARY KEY  (id),
             KEY student_id (student_id)
+        ) $charset_collate;
+
+        CREATE TABLE {$wpdb->prefix}sm_attendance (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            student_id bigint(20) NOT NULL,
+            status varchar(20) NOT NULL,
+            date date NOT NULL,
+            teacher_id bigint(20) NOT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            PRIMARY KEY  (id),
+            KEY student_id (student_id),
+            KEY date (date)
         ) $charset_collate;";
 
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
