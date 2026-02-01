@@ -212,7 +212,11 @@ if ($import_results) {
                                         <span class="dashicons dashicons-visibility"></span> عرض السجل
                                     </button>
 
-                                    <?php if ($is_admin): ?>
+                                    <?php if ($is_admin):
+                                        $temp_pass = get_user_meta($student->parent_user_id, 'sm_temp_pass', true);
+                                    ?>
+                                        <button onclick='showStudentCreds("<?php echo esc_js($student->student_code); ?>", "<?php echo esc_js($temp_pass ?: '********'); ?>", "<?php echo esc_js($student->name); ?>", "<?php echo $student->id; ?>")' class="sm-btn sm-btn-outline" style="padding: 5px; min-width: 32px;" title="بيانات الدخول"><span class="dashicons dashicons-lock"></span></button>
+
                                         <button onclick='editSmStudent(<?php echo json_encode(array(
                                             "id" => $student->id,
                                             "name" => $student->name,
@@ -458,8 +462,47 @@ if ($import_results) {
         </div>
     </div>
 
+    <!-- Student Credentials Modal -->
+    <div id="student-creds-modal" class="sm-modal-overlay">
+        <div class="sm-modal-content" style="max-width: 400px; text-align: center;">
+            <div class="sm-modal-header">
+                <h3>بيانات دخول الطالب</h3>
+                <button class="sm-modal-close" onclick="document.getElementById('student-creds-modal').style.display='none'">&times;</button>
+            </div>
+            <div style="padding: 20px; background: #f8fafc; border-radius: 12px; margin-top: 15px; border: 1px solid #edf2f7;">
+                <div style="font-weight: 800; color: var(--sm-dark-color); margin-bottom: 15px; font-size: 1.1em;" id="cred-stu-name"></div>
+
+                <div style="margin-bottom: 15px;">
+                    <div style="font-size: 11px; color: #718096; margin-bottom: 5px;">اسم المستخدم (كود الطالب):</div>
+                    <div style="font-family: monospace; font-size: 1.3em; font-weight: 900; color: var(--sm-primary-color); background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;" id="cred-username"></div>
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                    <div style="font-size: 11px; color: #718096; margin-bottom: 5px;">كلمة المرور المؤقتة:</div>
+                    <div style="font-family: monospace; font-size: 1.3em; font-weight: 900; color: var(--sm-dark-color); background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;" id="cred-password"></div>
+                </div>
+            </div>
+
+            <div style="margin-top: 25px; display: flex; gap: 10px;">
+                <a href="#" id="cred-download-link" target="_blank" class="sm-btn" style="background: #3182ce; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px; flex: 1;">
+                    <span class="dashicons dashicons-download"></span> تحميل البطاقة
+                </a>
+                <button onclick="document.getElementById('student-creds-modal').style.display='none'" class="sm-btn sm-btn-outline" style="flex: 1;">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
     <script>
     (function() {
+        // Show Credentials
+        window.showStudentCreds = function(user, pass, name, id) {
+            document.getElementById('cred-username').innerText = user;
+            document.getElementById('cred-password').innerText = pass;
+            document.getElementById('cred-stu-name').innerText = name;
+            document.getElementById('cred-download-link').href = '<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=student_credentials_card&student_id='); ?>' + id;
+            document.getElementById('student-creds-modal').style.display = 'flex';
+        };
+
         // Handle View Record
         window.viewSmStudent = function(student) {
             const modal = document.getElementById('view-student-modal');

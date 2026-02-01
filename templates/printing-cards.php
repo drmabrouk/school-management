@@ -127,6 +127,25 @@
             <button onclick="printAbsenceFromCenter('daily')" class="sm-btn" style="background: #e53e3e; font-size: 12px;">طباعة غيابات اليوم</button>
         </div>
 
+        <!-- Class Attendance Sheets -->
+        <div style="background: #fff; padding: 25px; border-radius: 15px; border: 1px solid var(--sm-border-color); display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--sm-shadow);">
+            <div>
+                <div style="width: 50px; height: 50px; background: #EBF4FF; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; color: #3182CE;">
+                    <span class="dashicons dashicons-clipboard" style="font-size: 28px; width: 28px; height: 28px;"></span>
+                </div>
+                <h4 style="margin: 0 0 10px 0; border: none; font-weight: 800; font-size: 15px;">كشوف الحضور والغياب</h4>
+                <p style="font-size: 11px; color: #718096; line-height: 1.6; margin-bottom: 20px;">طباعة كشوف الحضور لليوم الحالي لكافة الصفوف أو صف محدد.</p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px;">
+                    <select id="att_sheet_class" class="sm-select" style="font-size: 11px; padding: 5px;">
+                        <option value="">كافة الصفوف</option>
+                        <?php foreach($classes as $c) echo '<option value="'.$c.'">'.$c.'</option>'; ?>
+                    </select>
+                    <input type="date" id="att_sheet_date" class="sm-input" value="<?php echo date('Y-m-d'); ?>" style="font-size: 11px; padding: 5px;">
+                </div>
+            </div>
+            <button onclick="printAttendanceSheets()" class="sm-btn" style="background: #3182CE; font-size: 12px;">طباعة الكشوف</button>
+        </div>
+
         <!-- Most Absent Students (Term) -->
         <div style="background: #fff; padding: 25px; border-radius: 15px; border: 1px solid var(--sm-border-color); display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--sm-shadow);">
             <div>
@@ -213,5 +232,15 @@ function printAbsenceFromCenter(type) {
 function printCredentials() {
     const classFilter = document.getElementById('creds_class_filter').value;
     window.open('<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=student_credentials'); ?>&class_name=' + encodeURIComponent(classFilter), '_blank');
+}
+
+function printAttendanceSheets() {
+    const grade = document.getElementById('att_sheet_class').value;
+    const date = document.getElementById('att_sheet_date').value;
+    let url = '<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=attendance_sheet'); ?>';
+    url += '&date=' + date;
+    url += '&scope=' + (grade ? 'grade' : 'all');
+    if (grade) url += '&grade=' + encodeURIComponent(grade);
+    window.open(url, '_blank');
 }
 </script>

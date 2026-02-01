@@ -1,4 +1,14 @@
-<?php if (!defined('ABSPATH')) exit; ?>
+<?php
+if (!defined('ABSPATH')) exit;
+
+// Ensure variables are initialized to avoid critical error if not passed from controller
+if (!isset($attendance_date)) {
+    $attendance_date = isset($_GET['attendance_date']) ? sanitize_text_field($_GET['attendance_date']) : current_time('Y-m-d');
+}
+if (!isset($attendance_summary)) {
+    $attendance_summary = SM_DB::get_attendance_summary($attendance_date);
+}
+?>
 <div class="sm-attendance-page" dir="rtl">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
         <h3 style="margin: 0; font-weight: 800;">سجل الحضور والغياب</h3>
@@ -16,9 +26,6 @@
             <a href="<?php echo home_url('/attendance/'); ?>" class="sm-btn" style="background: var(--sm-accent-color); gap: 10px; text-decoration: none;">
                 <span class="dashicons dashicons-edit"></span> تسجيل الحضور
             </a>
-            <button onclick="printAttendance('all')" class="sm-btn sm-btn-outline" title="طباعة الكل">
-                <span class="dashicons dashicons-printer"></span> طباعة الكل
-            </button>
             <button onclick="printAbsenceReport('daily')" class="sm-btn sm-btn-secondary" style="gap: 5px;">
                 <span class="dashicons dashicons-printer"></span> غيابات اليوم
             </button>
@@ -39,11 +46,13 @@
         $total_present = 0;
         $total_absent = 0;
         $total_late = 0;
-        foreach ($attendance_summary as $card) {
-            $total_students += $card['student_count'];
-            $total_present += $card['stats']['present'];
-            $total_absent += $card['stats']['absent'];
-            $total_late += $card['stats']['late'];
+        if (is_array($attendance_summary)) {
+            foreach ($attendance_summary as $card) {
+                $total_students += $card['student_count'];
+                $total_present += $card['stats']['present'];
+                $total_absent += $card['stats']['absent'];
+                $total_late += $card['stats']['late'];
+            }
         }
         ?>
         <div class="sm-stat-card" style="padding: 15px; background: #f8fafc; border: 1px solid #e2e8f0;">
@@ -80,8 +89,10 @@
         <?php
         // Group by Grade
         $grouped_cards = array();
-        foreach ($attendance_summary as $card) {
-            $grouped_cards[$card['class_name']][] = $card;
+        if (is_array($attendance_summary)) {
+            foreach ($attendance_summary as $card) {
+                $grouped_cards[$card['class_name']][] = $card;
+            }
         }
 
         foreach ($grouped_cards as $grade_name => $cards): ?>
@@ -380,18 +391,8 @@ function toggleAttendanceStatus() {
 <style>
 #attendance-cards-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 25px;
-}
-
-@media (max-width: 1400px) {
-    #attendance-cards-grid { grid-template-columns: repeat(3, 1fr); }
-}
-@media (max-width: 1100px) {
-    #attendance-cards-grid { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 700px) {
-    #attendance-cards-grid { grid-template-columns: 1fr; }
+    grid-template-columns: 1fr;
+    gap: 15px;
 }
 
 .sm-attendance-card:hover {

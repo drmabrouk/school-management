@@ -189,11 +189,13 @@ function atLoadStudentsForVisitor(className, section) {
     listContainer.innerHTML = '<div style="text-align: center; padding: 60px;"><div class="at-spinner"></div><p style="margin-top: 20px; color: #718096; font-weight: 700;">جاري تحميل قائمة الطلاب...</p></div>';
 
     const date = new Date().toISOString().split('T')[0];
+    const code = document.getElementById('at-security-code').value;
     const formData = new FormData();
     formData.append('action', 'sm_get_students_attendance_ajax');
     formData.append('class_name', className);
     formData.append('section', section);
     formData.append('date', date);
+    formData.append('security_code', code);
 
     fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
     .then(r => r.json())
@@ -406,11 +408,13 @@ async function atSubmitAttendance() {
         status: s.status || 'present'
     }));
 
+    const code = document.getElementById('at-security-code').value;
     const formData = new FormData();
     formData.append('action', 'sm_save_attendance_batch_ajax');
     formData.append('batch', JSON.stringify(batch));
     formData.append('date', date);
     formData.append('nonce', nonce);
+    formData.append('security_code', code);
 
     fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
     .then(r => r.json())
@@ -446,11 +450,13 @@ async function atSubmitAttendance() {
 
 function saveAttendanceToDB(sid, status) {
     const date = new Date().toISOString().split('T')[0];
+    const code = document.getElementById('at-security-code').value;
     const formData = new FormData();
     formData.append('action', 'sm_save_attendance_ajax');
     formData.append('student_id', sid);
     formData.append('status', status);
     formData.append('date', date);
+    formData.append('security_code', code);
     formData.append('nonce', '<?php echo wp_create_nonce("sm_attendance_action"); ?>');
 
     fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
