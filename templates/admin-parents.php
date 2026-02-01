@@ -89,7 +89,8 @@
                     </div>
 
                     <div style="flex: 1; display: flex; gap: 12px; justify-content: flex-end;">
-                        <button onclick="requestCallIn(<?php echo $parent->ID; ?>, '<?php echo esc_js($parent->display_name); ?>')" class="sm-btn" style="background: #F8FAFC; color: #3182CE !important; border: 1px solid #BEE3F8; padding: 6px 15px; font-size: 11px; width: auto; font-weight: 800; box-shadow: none;">
+                        <?php $parent_phone = get_user_meta($parent->ID, 'sm_phone', true); ?>
+                        <button onclick="requestCallIn(<?php echo $parent->ID; ?>, '<?php echo esc_js($parent->display_name); ?>', '<?php echo esc_js($parent->user_email); ?>', '<?php echo esc_js($parent_phone); ?>')" class="sm-btn" style="background: #F8FAFC; color: #3182CE !important; border: 1px solid #BEE3F8; padding: 6px 15px; font-size: 11px; width: auto; font-weight: 800; box-shadow: none;">
                             <span class="dashicons dashicons-calendar-alt" style="font-size:14px; margin-left:5px;"></span> طلب استدعاء
                         </button>
                         <form method="post" style="display:inline;" onsubmit="return confirm('هل أنت متأكد من حذف حساب ولي الأمر بالكامل؟')">
@@ -165,24 +166,54 @@
                 <h3>إرسال طلب استدعاء ولي أمر</h3>
                 <button class="sm-modal-close" onclick="document.getElementById('call-in-modal').style.display='none'">&times;</button>
             </div>
-            <form method="post">
-                <?php wp_nonce_field('sm_message_action', 'sm_nonce'); ?>
-                <input type="hidden" name="receiver_id" id="call_in_parent_id">
-                <p>إرسال طلب حضور للمدرسة لولي الأمر: <strong id="call_in_parent_name"></strong></p>
-                <div class="sm-form-group">
-                    <label class="sm-label">رسالة إضافية أو سبب الاستدعاء:</label>
-                    <textarea name="message" class="sm-textarea" rows="4" required>نرجو منكم التكرم بزيارة مكتب الإرشاد الطلابي بالمدرسة في أقرب وقت ممكن لمناقشة أمور هامة تخص ابنكم.</textarea>
+            <div style="text-align: center; padding: 20px 0;">
+                <p style="font-size: 1.1em; margin-bottom: 25px;">إرسال طلب حضور للمدرسة لولي الأمر:<br><strong id="call_in_parent_name" style="color: var(--sm-primary-color); font-size: 1.2em;"></strong></p>
+
+                <div class="sm-form-group" style="text-align: right;">
+                    <label class="sm-label">نص الرسالة المقترح:</label>
+                    <textarea id="call_in_msg_text" class="sm-textarea" rows="4">تحية طيبة، نرجو منكم التكرم بزيارة مكتب الإرشاد الطلابي بالمدرسة في أقرب وقت ممكن لمناقشة أمور هامة تخص ابنكم/ابنتكم. شكراً لتعاونكم.</textarea>
                 </div>
-                <button type="submit" name="sm_send_call_in" class="sm-btn" style="width: 100%;">إرسال الطلب الآن</button>
-            </form>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 30px;">
+                    <button onclick="sendCallViaWhatsApp()" class="sm-btn" style="background: #25D366; gap: 10px;">
+                        <span class="dashicons dashicons-whatsapp"></span> واتساب
+                    </button>
+                    <button onclick="sendCallViaEmail()" class="sm-btn" style="background: #111F35; gap: 10px;">
+                        <span class="dashicons dashicons-email"></span> بريد إلكتروني
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-    function requestCallIn(id, name) {
-        document.getElementById('call_in_parent_id').value = id;
+    let currentParentData = {};
+
+    function requestCallIn(id, name, email, phone) {
+        currentParentData = { id, name, email, phone };
         document.getElementById('call_in_parent_name').innerText = name;
         document.getElementById('call-in-modal').style.display = 'flex';
+    }
+
+    function sendCallViaWhatsApp() {
+        const msg = encodeURIComponent(document.getElementById('call_in_msg_text').value);
+        const phone = currentParentData.phone || '';
+        if (!phone) {
+            alert('رقم الهاتف غير مسجل لهذا الوالد.');
+            return;
+        }
+        window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+    }
+
+    function sendCallViaEmail() {
+        const msg = encodeURIComponent(document.getElementById('call_in_msg_text').value);
+        const subject = encodeURIComponent('طلب استدعاء رسمي من المدرسة');
+        const email = currentParentData.email || '';
+        if (!email) {
+            alert('البريد الإلكتروني غير مسجل لهذا الوالد.');
+            return;
+        }
+        window.location.href = `mailto:${email}?subject=${subject}&body=${msg}`;
     }
     </script>
 </div>

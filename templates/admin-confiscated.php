@@ -51,11 +51,14 @@
                                 </span>
                             </td>
                             <td>
-                                <?php if ($row->status == 'held'): ?>
-                                    <button onclick="markReturned(<?php echo $row->id; ?>)" class="sm-btn" style="background:#38a169; padding:5px 10px; font-size:11px; width:auto;">إعادة للطالب</button>
-                                <?php else: ?>
-                                    ---
-                                <?php endif; ?>
+                                <div style="display: flex; gap: 8px;">
+                                    <?php if ($row->status == 'held'): ?>
+                                        <button onclick="markReturned(<?php echo $row->id; ?>)" class="sm-btn" style="background:#38a169; padding:5px 10px; font-size:11px; width:auto;">إعادة للطالب</button>
+                                    <?php endif; ?>
+                                    <button onclick="deleteConfiscated(<?php echo $row->id; ?>)" class="sm-btn sm-btn-outline" style="padding: 5px; min-width: 32px; color: #e53e3e;" title="حذف السجل">
+                                        <span class="dashicons dashicons-trash"></span>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -161,6 +164,26 @@
                 if (res.success) {
                     smShowNotification('تم تحديث الحالة: تمت الإعادة بنجاح');
                     setTimeout(() => location.reload(), 500);
+                }
+            });
+        };
+
+        window.deleteConfiscated = function(id) {
+            if (!confirm('هل أنت متأكد من حذف سجل هذه المادة المصادرة؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+
+            const formData = new FormData();
+            formData.append('action', 'sm_delete_confiscated_ajax');
+            formData.append('item_id', id);
+            formData.append('nonce', '<?php echo wp_create_nonce("sm_confiscated_action"); ?>');
+
+            fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    smShowNotification('تم حذف السجل بنجاح');
+                    setTimeout(() => location.reload(), 500);
+                } else {
+                    smShowNotification('خطأ في عملية الحذف', true);
                 }
             });
         };

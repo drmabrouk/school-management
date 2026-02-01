@@ -7,7 +7,7 @@
         </div>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;">
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
         <!-- Student ID Cards (All) -->
         <div style="background: #fff; padding: 25px; border-radius: 15px; border: 1px solid var(--sm-border-color); display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--sm-shadow);">
             <div>
@@ -81,6 +81,35 @@
                 </div>
             </div>
             <button onclick="printGeneralLog()" class="sm-btn" style="background: #111F35; font-size: 12px;">تحميل السجل</button>
+        </div>
+
+        <!-- Full Student List -->
+        <div style="background: #fff; padding: 25px; border-radius: 15px; border: 1px solid var(--sm-border-color); display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--sm-shadow);">
+            <div>
+                <div style="width: 50px; height: 50px; background: #EBF8FF; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; color: #2B6CB0;">
+                    <span class="dashicons dashicons-editor-ul" style="font-size: 28px; width: 28px; height: 28px;"></span>
+                </div>
+                <h4 style="margin: 0 0 10px 0; border: none; font-weight: 800; font-size: 15px;">قائمة الطلاب الكاملة</h4>
+                <p style="font-size: 11px; color: #718096; line-height: 1.6; margin-bottom: 20px;">طباعة كشف بجميع طلاب المدرسة مصنفين حسب الصف والشعبة.</p>
+            </div>
+            <button onclick="alert('قريباً: طباعة القائمة الكاملة')" class="sm-btn" style="background: #2B6CB0; font-size: 12px;">طباعة القائمة</button>
+        </div>
+
+        <!-- Reports by Grade/Section -->
+        <div style="background: #fff; padding: 25px; border-radius: 15px; border: 1px solid var(--sm-border-color); display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--sm-shadow);">
+            <div>
+                <div style="width: 50px; height: 50px; background: #FAF5FF; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; color: #805AD5;">
+                    <span class="dashicons dashicons-category" style="font-size: 28px; width: 28px; height: 28px;"></span>
+                </div>
+                <h4 style="margin: 0 0 10px 0; border: none; font-weight: 800; font-size: 15px;">التقارير حسب الصف</h4>
+                <p style="font-size: 11px; color: #718096; line-height: 1.6; margin-bottom: 20px;">استخراج إحصائيات وتقارير مجمعة لمستوى انضباط صف أو شعبة محددة.</p>
+                <div class="sm-form-group">
+                    <select id="grade_report_class" class="sm-select" style="font-size: 12px; padding: 8px;">
+                        <?php foreach($classes as $c) echo '<option value="'.$c.'">'.$c.'</option>'; ?>
+                    </select>
+                </div>
+            </div>
+            <button onclick="alert('قريباً: تقارير الصفوف')" class="sm-btn" style="background: #805AD5; font-size: 12px;">توليد التقرير</button>
         </div>
 
         <!-- Excel Templates Section -->

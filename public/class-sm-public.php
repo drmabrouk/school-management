@@ -718,6 +718,26 @@ class SM_Public {
         }
     }
 
+    public function ajax_save_attendance_batch() {
+        if (!is_user_logged_in() || !current_user_can('إدارة_الطلاب')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_attendance_action')) wp_send_json_error('Security check failed');
+
+        $batch = json_decode(stripslashes($_POST['batch']), true);
+        $date = sanitize_text_field($_POST['date']);
+        $teacher_id = get_current_user_id();
+
+        if (!is_array($batch)) wp_send_json_error('Invalid batch data');
+
+        $success_count = 0;
+        foreach ($batch as $item) {
+            if (SM_DB::save_attendance(intval($item['student_id']), sanitize_text_field($item['status']), $date, $teacher_id)) {
+                $success_count++;
+            }
+        }
+
+        wp_send_json_success($success_count);
+    }
+
     public function ajax_rollback_log() {
         if (!current_user_can('إدارة_النظام')) wp_send_json_error('Unauthorized');
         if (!wp_verify_nonce($_POST['nonce'], 'sm_admin_action')) wp_send_json_error('Security check failed');
