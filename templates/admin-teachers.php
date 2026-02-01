@@ -1,11 +1,12 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <div class="sm-content-wrapper" dir="rtl">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-        <h3 style="margin:0; border:none; padding:0;">إدارة شؤون المعلمين</h3>
-        <?php if (current_user_can('إدارة_المعلمين')): ?>
+        <h3 style="margin:0; border:none; padding:0;">إدارة مستخدمي النظام</h3>
+        <?php if (current_user_can('إدارة_المستخدمين')): ?>
             <div style="display:flex; gap:10px;">
+                <button onclick="executeBulkDeleteUsers()" class="sm-btn" style="width:auto; background:#e53e3e;">حذف المستخدمين المحددين</button>
                 <button onclick="document.getElementById('teacher-csv-import-form').style.display='block'" class="sm-btn" style="width:auto; background:var(--sm-secondary-color);">استيراد جماعي (CSV)</button>
-                <button onclick="document.getElementById('add-teacher-modal').style.display='flex'" class="sm-btn" style="width:auto;">+ إضافة معلم جديد</button>
+                <button onclick="document.getElementById('add-teacher-modal').style.display='flex'" class="sm-btn" style="width:auto;">+ إضافة مستخدم جديد</button>
             </div>
         <?php endif; ?>
     </div>
@@ -54,15 +55,40 @@
         </form>
     </div>
 
+    <div class="sm-tabs-wrapper" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #eee;">
+        <a href="<?php echo remove_query_arg('role_filter'); ?>" class="sm-tab-btn <?php echo empty($_GET['role_filter']) ? 'sm-active' : ''; ?>" style="text-decoration:none;">الكل</a>
+        <a href="<?php echo add_query_arg('role_filter', 'sm_teacher'); ?>" class="sm-tab-btn <?php echo ($_GET['role_filter'] ?? '') == 'sm_teacher' ? 'sm-active' : ''; ?>" style="text-decoration:none;">المعلمون</a>
+        <a href="<?php echo add_query_arg('role_filter', 'sm_coordinator'); ?>" class="sm-tab-btn <?php echo ($_GET['role_filter'] ?? '') == 'sm_coordinator' ? 'sm-active' : ''; ?>" style="text-decoration:none;">المنسقون</a>
+        <a href="<?php echo add_query_arg('role_filter', 'sm_supervisor'); ?>" class="sm-tab-btn <?php echo ($_GET['role_filter'] ?? '') == 'sm_supervisor' ? 'sm-active' : ''; ?>" style="text-decoration:none;">المشرفون</a>
+        <a href="<?php echo add_query_arg('role_filter', 'sm_principal'); ?>" class="sm-tab-btn <?php echo ($_GET['role_filter'] ?? '') == 'sm_principal' ? 'sm-active' : ''; ?>" style="text-decoration:none;">مديرو المدرسة</a>
+        <a href="<?php echo add_query_arg('role_filter', 'sm_system_admin'); ?>" class="sm-tab-btn <?php echo ($_GET['role_filter'] ?? '') == 'sm_system_admin' ? 'sm-active' : ''; ?>" style="text-decoration:none;">مديرو النظام التقني</a>
+    </div>
+
     <div style="background: white; padding: 30px; border: 1px solid var(--sm-border-color); border-radius: var(--sm-radius); margin-bottom: 30px; box-shadow: var(--sm-shadow);">
-        <form method="get" style="display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: end;">
+        <form method="get" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 20px; align-items: end;">
+            <input type="hidden" name="page" value="sm-dashboard">
+            <input type="hidden" name="sm_tab" value="teachers">
+
             <div class="sm-form-group" style="margin-bottom:0;">
-                <label class="sm-label">بحث عن معلم بالاسم أو البريد أو الكود:</label>
-                <input type="text" name="teacher_search" class="sm-input" value="<?php echo esc_attr(isset($_GET['teacher_search']) ? $_GET['teacher_search'] : ''); ?>" placeholder="أدخل بيانات المعلم...">
+                <label class="sm-label">بحث عن مستخدم (اسم/بريد/كود):</label>
+                <input type="text" name="teacher_search" class="sm-input" value="<?php echo esc_attr(isset($_GET['teacher_search']) ? $_GET['teacher_search'] : ''); ?>" placeholder="أدخل بيانات البحث...">
             </div>
+
+            <div class="sm-form-group" style="margin-bottom:0;">
+                <label class="sm-label">تصفية حسب الدور:</label>
+                <select name="role_filter" class="sm-select">
+                    <option value="">كل الأدوار</option>
+                    <option value="sm_system_admin" <?php selected($_GET['role_filter'] ?? '', 'sm_system_admin'); ?>>مدير النظام</option>
+                    <option value="sm_principal" <?php selected($_GET['role_filter'] ?? '', 'sm_principal'); ?>>مدير المدرسة</option>
+                    <option value="sm_supervisor" <?php selected($_GET['role_filter'] ?? '', 'sm_supervisor'); ?>>مشرف</option>
+                    <option value="sm_coordinator" <?php selected($_GET['role_filter'] ?? '', 'sm_coordinator'); ?>>منسق مادة</option>
+                    <option value="sm_teacher" <?php selected($_GET['role_filter'] ?? '', 'sm_teacher'); ?>>معلم</option>
+                </select>
+            </div>
+
             <div style="display: flex; gap: 10px;">
-                <button type="submit" class="sm-btn">بدء البحث</button>
-                <a href="<?php echo remove_query_arg('teacher_search'); ?>" class="sm-btn sm-btn-outline" style="text-decoration:none;">عرض الكل</a>
+                <button type="submit" class="sm-btn">تطبيق البحث</button>
+                <a href="<?php echo add_query_arg(array('sm_tab'=>'teachers'), remove_query_arg(array('teacher_search', 'role_filter'))); ?>" class="sm-btn sm-btn-outline" style="text-decoration:none;">إعادة ضبط</a>
             </div>
         </form>
     </div>
@@ -71,9 +97,10 @@
         <table class="sm-table">
             <thead>
                 <tr>
-                    <th>كود المعلم</th>
+                    <th style="width: 40px;"><input type="checkbox" onclick="toggleAllUsers(this)"></th>
+                    <th>كود المستخدم</th>
                     <th>الاسم الكامل</th>
-                    <th>المسمى الوظيفي</th>
+                    <th>الدور / الرتبة</th>
                     <th>رقم التواصل</th>
                     <th>البريد الإلكتروني</th>
                     <th>الإجراءات</th>
@@ -81,37 +108,58 @@
             </thead>
             <tbody>
                 <?php 
-                $args = array('role' => 'sm_teacher');
+                $role_labels = array(
+                    'sm_system_admin' => 'مدير النظام',
+                    'sm_principal' => 'مدير المدرسة',
+                    'sm_supervisor' => 'مشرف',
+                    'sm_coordinator' => 'منسق مادة',
+                    'sm_teacher' => 'معلم'
+                );
+
+                $args = array('role__in' => array_keys($role_labels));
+                if (!empty($_GET['role_filter'])) {
+                    $args['role'] = sanitize_text_field($_GET['role_filter']);
+                }
                 if (!empty($_GET['teacher_search'])) {
                     $args['search'] = '*' . esc_attr($_GET['teacher_search']) . '*';
                     $args['search_columns'] = array('user_login', 'display_name', 'user_email');
                 }
-                $teachers = get_users($args);
-                if (empty($teachers)): ?>
-                    <tr><td colspan="6" style="padding: 40px; text-align: center;">لا يوجد معلمون مسجلون حالياً.</td></tr>
+
+                $users = get_users($args);
+                if (empty($users)): ?>
+                    <tr><td colspan="6" style="padding: 40px; text-align: center;">لا يوجد مستخدمون يطابقون البحث.</td></tr>
                 <?php else: ?>
-                    <?php foreach ($teachers as $teacher): ?>
-                        <tr>
-                            <td style="font-family: 'Rubik', sans-serif; font-weight: 700; color: var(--sm-primary-color);"><?php echo esc_html(get_user_meta($teacher->ID, 'sm_teacher_id', true)); ?></td>
-                            <td style="font-weight: 800; color: var(--sm-dark-color);"><?php echo esc_html($teacher->display_name); ?></td>
-                            <td><span class="sm-badge sm-badge-low"><?php echo esc_html(get_user_meta($teacher->ID, 'sm_job_title', true)); ?></span></td>
-                            <td dir="ltr" style="text-align: right;"><?php echo esc_html(get_user_meta($teacher->ID, 'sm_phone', true)); ?></td>
-                            <td><?php echo esc_html($teacher->user_email); ?></td>
+                    <?php foreach ($users as $u):
+                        $role = (array)$u->roles;
+                        $role_slug = reset($role);
+                        if ($u->ID === get_current_user_id()) continue; // Skip current user
+                    ?>
+                        <tr class="user-row" data-user-id="<?php echo $u->ID; ?>">
+                            <td><input type="checkbox" class="user-cb" value="<?php echo $u->ID; ?>"></td>
+                            <td style="font-family: 'Rubik', sans-serif; font-weight: 700; color: var(--sm-primary-color);"><?php echo esc_html(get_user_meta($u->ID, 'sm_teacher_id', true) ?: $u->user_login); ?></td>
+                            <td style="font-weight: 800; color: var(--sm-dark-color);"><?php echo esc_html($u->display_name); ?></td>
+                            <td><span class="sm-badge sm-badge-low"><?php echo $role_labels[$role_slug] ?? $role_slug; ?></span></td>
+                            <td dir="ltr" style="text-align: right;"><?php echo esc_html(get_user_meta($u->ID, 'sm_phone', true)); ?></td>
+                            <td><?php echo esc_html($u->user_email); ?></td>
                             <td>
                                 <div style="display:flex; gap:8px; justify-content: flex-end;">
-                                    <button onclick='editSmTeacher(<?php echo json_encode(array(
-                                        "id" => $teacher->ID,
-                                        "name" => $teacher->display_name,
-                                        "email" => $teacher->user_email,
-                                        "login" => $teacher->user_login,
-                                        "teacher_id" => get_user_meta($teacher->ID, "sm_teacher_id", true),
-                                        "job_title" => get_user_meta($teacher->ID, "sm_job_title", true),
-                                        "phone" => get_user_meta($teacher->ID, "sm_phone", true)
+                                    <?php
+                                    $assigned = get_user_meta($u->ID, 'sm_assigned_sections', true) ?: (get_user_meta($u->ID, 'sm_supervised_classes', true) ?: array());
+                                    ?>
+                                    <button onclick='editSmUser(<?php echo json_encode(array(
+                                        "id" => $u->ID,
+                                        "name" => $u->display_name,
+                                        "email" => $u->user_email,
+                                        "login" => $u->user_login,
+                                        "role" => $role_slug,
+                                        "assigned" => $assigned,
+                                        "teacher_id" => get_user_meta($u->ID, "sm_teacher_id", true),
+                                        "phone" => get_user_meta($u->ID, "sm_phone", true)
                                     )); ?>)' class="sm-btn sm-btn-outline" style="padding: 5px 12px; font-size: 12px;">تعديل</button>
                                     
-                                    <form method="post" style="display:inline;" onsubmit="return confirm('هل أنت متأكد من حذف هذا المعلم؟ لا يمكن التراجع.')">
+                                    <form method="post" style="display:inline;" onsubmit="return confirm('هل أنت متأكد من حذف هذا الحساب؟')">
                                         <?php wp_nonce_field('sm_teacher_action', 'sm_nonce'); ?>
-                                        <input type="hidden" name="delete_teacher_id" value="<?php echo $teacher->ID; ?>">
+                                        <input type="hidden" name="delete_teacher_id" value="<?php echo $u->ID; ?>">
                                         <button type="submit" name="sm_delete_teacher" class="sm-btn sm-btn-outline" style="padding: 5px 12px; font-size: 12px; color:#e53e3e;">حذف</button>
                                     </form>
                                 </div>
@@ -127,7 +175,7 @@
     <div id="edit-teacher-modal" class="sm-modal-overlay">
         <div class="sm-modal-content">
             <div class="sm-modal-header">
-                <h3>تعديل بيانات المعلم</h3>
+                <h3>تعديل بيانات الحساب</h3>
                 <button class="sm-modal-close" onclick="document.getElementById('edit-teacher-modal').style.display='none'">&times;</button>
             </div>
             <form id="edit-teacher-form">
@@ -139,12 +187,8 @@
                         <input type="text" name="display_name" id="edit_t_name" class="sm-input" required>
                     </div>
                     <div class="sm-form-group">
-                        <label class="sm-label">كود الموظف (ID):</label>
+                        <label class="sm-label">كود المستخدم (ID):</label>
                         <input type="text" name="teacher_id" id="edit_t_code" class="sm-input" required>
-                    </div>
-                    <div class="sm-form-group">
-                        <label class="sm-label">المسمى الوظيفي:</label>
-                        <input type="text" name="job_title" id="edit_t_job" class="sm-input">
                     </div>
                     <div class="sm-form-group">
                         <label class="sm-label">رقم الهاتف:</label>
@@ -153,6 +197,36 @@
                     <div class="sm-form-group">
                         <label class="sm-label">البريد الإلكتروني:</label>
                         <input type="email" name="user_email" id="edit_t_email" class="sm-input" required>
+                    </div>
+                    <div class="sm-form-group">
+                        <label class="sm-label">تغيير الدور:</label>
+                        <select name="role" id="edit_t_role" class="sm-select" onchange="toggleAssignFields(this, 'edit')">
+                            <option value="sm_system_admin">مدير النظام</option>
+                            <option value="sm_principal">مدير المدرسة</option>
+                            <option value="sm_supervisor">مشرف</option>
+                            <option value="sm_coordinator">منسق مادة</option>
+                            <option value="sm_teacher">معلم</option>
+                        </select>
+                    </div>
+                    <div class="sm-form-group" id="edit_assign_fields" style="grid-column: span 2; display: none;">
+                        <label class="sm-label">الصفحات/الشعب المسندة للمستخدم:</label>
+                        <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; max-height: 150px; overflow-y: auto; background:#fff; padding:10px; border:1px solid #ddd; border-radius:8px;">
+                            <?php
+                            $struct = SM_Settings::get_sections_from_db();
+                            foreach($struct as $g => $secs) {
+                                foreach($secs as $s) {
+                                    echo "<label style='font-size:11px; display:flex; align-items:center; gap:5px;'><input type='checkbox' name='assigned[]' value='$g|$s'> $g - $s</label>";
+                                }
+                            }
+                            ?>
+                        </div>
+                    </div>
+                    <div class="sm-form-group">
+                        <label class="sm-label">حالة الحساب:</label>
+                        <select name="account_status" id="edit_t_status" class="sm-select">
+                            <option value="active">نشط</option>
+                            <option value="restricted">مقيد (لا يمكنه الدخول)</option>
+                        </select>
                     </div>
                     <div class="sm-form-group">
                         <label class="sm-label">كلمة مرور جديدة (اختياري):</label>
@@ -167,7 +241,7 @@
     <div id="add-teacher-modal" class="sm-modal-overlay">
         <div class="sm-modal-content">
             <div class="sm-modal-header">
-                <h3>إضافة معلم جديد للنظام</h3>
+                <h3>إضافة حساب مستخدم جديد</h3>
                 <button class="sm-modal-close" onclick="document.getElementById('add-teacher-modal').style.display='none'">&times;</button>
             </div>
             <form id="add-teacher-form">
@@ -178,12 +252,30 @@
                         <input type="text" name="display_name" class="sm-input" required>
                     </div>
                     <div class="sm-form-group">
-                        <label class="sm-label">كود الموظف (ID):</label>
+                        <label class="sm-label">كود المستخدم (ID):</label>
                         <input type="text" name="teacher_id" class="sm-input" required>
                     </div>
                     <div class="sm-form-group">
-                        <label class="sm-label">المسمى الوظيفي:</label>
-                        <input type="text" name="job_title" class="sm-input" placeholder="مثال: معلم لغة عربية">
+                        <label class="sm-label">اختيار الدور:</label>
+                        <select name="role" class="sm-select" onchange="toggleAssignFields(this, 'add')">
+                            <option value="sm_system_admin">مدير النظام</option>
+                            <option value="sm_principal">مدير المدرسة</option>
+                            <option value="sm_supervisor">مشرف</option>
+                            <option value="sm_coordinator">منسق مادة</option>
+                            <option value="sm_teacher">معلم</option>
+                        </select>
+                    </div>
+                    <div class="sm-form-group" id="add_assign_fields" style="grid-column: span 2; display: none;">
+                        <label class="sm-label">الصفحات/الشعب المسندة (للمعلمين والمشرفين):</label>
+                        <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; max-height: 150px; overflow-y: auto; background:#fff; padding:10px; border:1px solid #ddd; border-radius:8px;">
+                            <?php
+                            foreach($struct as $g => $secs) {
+                                foreach($secs as $s) {
+                                    echo "<label style='font-size:11px; display:flex; align-items:center; gap:5px;'><input type='checkbox' name='assigned[]' value='$g|$s'> $g - $s</label>";
+                                }
+                            }
+                            ?>
+                        </div>
                     </div>
                     <div class="sm-form-group">
                         <label class="sm-label">رقم الهاتف:</label>
@@ -198,17 +290,74 @@
                         <input type="email" name="user_email" class="sm-input" required>
                     </div>
                     <div class="sm-form-group" style="grid-column: span 2;">
-                        <label class="sm-label">كلمة المرور المؤقتة:</label>
-                        <input type="password" name="user_pass" class="sm-input" required>
+                        <label class="sm-label">كلمة المرور (اترك فارغاً للتوليد التلقائي 10 أرقام):</label>
+                        <input type="password" name="user_pass" class="sm-input" placeholder="********">
                     </div>
                 </div>
-                <button type="submit" class="sm-btn" style="margin-top:20px;">إنشاء حساب المعلم</button>
+                <button type="submit" class="sm-btn" style="margin-top:20px;">إنشاء الحساب الآن</button>
             </form>
         </div>
     </div>
 
     <script>
+    function toggleAllUsers(master) {
+        document.querySelectorAll('.user-cb').forEach(cb => cb.checked = master.checked);
+    }
+
+    function executeBulkDeleteUsers() {
+        const ids = Array.from(document.querySelectorAll('.user-cb:checked')).map(cb => cb.value);
+        if (ids.length === 0) {
+            alert('يرجى تحديد مستخدمين أولاً');
+            return;
+        }
+        if (!confirm('هل أنت متأكد من حذف ' + ids.length + ' مستخدم؟')) return;
+
+        const formData = new FormData();
+        formData.append('action', 'sm_bulk_delete_users_ajax');
+        formData.append('user_ids', ids.join(','));
+        formData.append('nonce', '<?php echo wp_create_nonce("sm_teacher_action"); ?>');
+
+        fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                smShowNotification('تم حذف المستخدمين بنجاح');
+                setTimeout(() => location.reload(), 500);
+            }
+        });
+    }
+
+    function toggleAssignFields(select, mode) {
+        const fields = document.getElementById(mode + '_assign_fields');
+        if (select.value === 'sm_teacher' || select.value === 'sm_supervisor') {
+            fields.style.display = 'block';
+        } else {
+            fields.style.display = 'none';
+        }
+    }
+
     (function() {
+        window.editSmUser = function(u) {
+            document.getElementById('edit_t_id').value = u.id;
+            document.getElementById('edit_t_name').value = u.name;
+            document.getElementById('edit_t_code').value = u.teacher_id;
+            document.getElementById('edit_t_phone').value = u.phone;
+            document.getElementById('edit_t_email').value = u.email;
+            document.getElementById('edit_t_status').value = u.status || 'active';
+            const roleSel = document.getElementById('edit_t_role');
+            roleSel.value = u.role;
+            toggleAssignFields(roleSel, 'edit');
+
+            document.querySelectorAll('#edit_assign_fields input').forEach(cb => cb.checked = false);
+            if (u.assigned) {
+                u.assigned.forEach(val => {
+                    const cb = document.querySelector(`#edit_assign_fields input[value="${val}"]`);
+                    if (cb) cb.checked = true;
+                });
+            }
+            document.getElementById('edit-teacher-modal').style.display = 'flex';
+        };
+
         const addForm = document.getElementById('add-teacher-form');
         if (addForm) {
             addForm.addEventListener('submit', function(e) {

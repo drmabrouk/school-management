@@ -101,6 +101,21 @@ class SM_Activator {
             PRIMARY KEY  (id),
             KEY student_id (student_id),
             KEY date (date)
+        ) $charset_collate;
+
+        CREATE TABLE {$wpdb->prefix}sm_assignments (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            sender_id bigint(20) NOT NULL,
+            receiver_id bigint(20) NOT NULL,
+            student_id bigint(20) DEFAULT NULL,
+            title varchar(255) NOT NULL,
+            description text,
+            file_url varchar(255) DEFAULT '',
+            type varchar(50) DEFAULT 'assignment',
+            created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            PRIMARY KEY  (id),
+            KEY sender_id (sender_id),
+            KEY receiver_id (receiver_id)
         ) $charset_collate;";
 
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
@@ -151,28 +166,31 @@ class SM_Activator {
     }
 
     public static function add_custom_roles() {
-        // Remove old roles to clean up duplicates and English names
-        remove_role('school_admin');
-        remove_role('discipline_officer');
-        remove_role('sm_school_admin');
-        remove_role('sm_discipline_officer');
-        remove_role('sm_teacher');
-        remove_role('sm_parent');
+        // Remove old roles
+        $old_roles = array(
+            'school_admin', 'discipline_officer', 'sm_school_admin',
+            'sm_discipline_officer', 'sm_teacher', 'sm_parent'
+        );
+        foreach ($old_roles as $role) {
+            remove_role($role);
+        }
 
-        // Unified Arabic Capabilities
+        // Capabilities
         $caps = array(
-            'system_admin' => 'إدارة_النظام',
-            'user_mgmt'    => 'إدارة_المستخدمين',
-            'student_mgmt' => 'إدارة_الطلاب',
-            'teacher_mgmt' => 'إدارة_المعلمين',
-            'parent_mgmt'  => 'إدارة_أولياء_الأمور',
-            'record_mgmt'  => 'إدارة_المخالفات',
-            'record_add'   => 'تسجيل_مخالفة',
-            'printing'     => 'طباعة_التقارير',
-            'view_own'     => 'عرض_تقارير_الأبناء'
+            'manage_system' => 'إدارة_النظام',
+            'manage_users' => 'إدارة_المستخدمين',
+            'manage_students' => 'إدارة_الطلاب',
+            'manage_teachers' => 'إدارة_المعلمين',
+            'manage_violations' => 'إدارة_المخالفات',
+            'add_violation' => 'تسجيل_مخالفة',
+            'print_reports' => 'طباعة_التقارير',
+            'review_plans' => 'مراجعة_التحضير',
+            'manage_assignments' => 'إدارة_الواجبات',
+            'view_own_data' => 'عرض_بياناتي',
+            'submit_complaint' => 'تقديم_شكوى'
         );
 
-        // 1. مدير النظام (System Administrator) - Can be mapped to Administrator
+        // Add Caps to Administrator
         $admin = get_role('administrator');
         if ($admin) {
             foreach ($caps as $cap) {
@@ -180,43 +198,55 @@ class SM_Activator {
             }
         }
 
-        // 2. مدير المدرسة (School Administrator)
-        add_role('sm_school_admin', 'مدير المدرسة', array('read' => true));
-        $school_admin = get_role('sm_school_admin');
-        if ($school_admin) {
-            $school_admin->add_cap($caps['student_mgmt']);
-            $school_admin->add_cap($caps['teacher_mgmt']);
-            $school_admin->add_cap($caps['parent_mgmt']);
-            $school_admin->add_cap($caps['record_mgmt']);
-            $school_admin->add_cap($caps['record_add']);
-            $school_admin->add_cap($caps['printing']);
+        // 1. مدير النظام (System Administrator) - Access to all, including settings
+        add_role('sm_system_admin', 'مدير النظام', array('read' => true));
+        $sys_admin = get_role('sm_system_admin');
+        if ($sys_admin) {
+            foreach ($caps as $cap) $sys_admin->add_cap($cap);
         }
 
-        // 3. مسؤول الانضباط (Discipline Officer)
-        add_role('sm_discipline_officer', 'مسؤول الانضباط', array('read' => true));
-        $officer = get_role('sm_discipline_officer');
-        if ($officer) {
-            $officer->add_cap($caps['student_mgmt']);
-            $officer->add_cap($caps['teacher_mgmt']);
-            $officer->add_cap($caps['parent_mgmt']);
-            $officer->add_cap($caps['record_mgmt']);
-            $officer->add_cap($caps['record_add']);
-            $officer->add_cap($caps['printing']);
+        // 2. مدير المدرسة (School Principal) - All except settings
+        add_role('sm_principal', 'مدير المدرسة', array('read' => true));
+        $principal = get_role('sm_principal');
+        if ($principal) {
+            foreach ($caps as $key => $cap) {
+                if ($key !== 'manage_system') $principal->add_cap($cap);
+            }
         }
 
-        // 4. معلم (Teacher)
+        // 3. مشرف (Supervisor) - Same as Principal (filtered by classes in logic)
+        add_role('sm_supervisor', 'مشرف', array('read' => true));
+        $supervisor = get_role('sm_supervisor');
+        if ($supervisor) {
+            foreach ($caps as $key => $cap) {
+                if ($key !== 'manage_system') $supervisor->add_cap($cap);
+            }
+        }
+
+        // 4. منسق (Coordinator) - Review lesson plans
+        add_role('sm_coordinator', 'منسق المادة', array('read' => true));
+        $coordinator = get_role('sm_coordinator');
+        if ($coordinator) {
+            $coordinator->add_cap($caps['review_plans']);
+            $coordinator->add_cap('read');
+        }
+
+        // 5. معلم (Teacher) - Complaints, search all students, assignments, assigned sections
         add_role('sm_teacher', 'معلم', array('read' => true));
         $teacher = get_role('sm_teacher');
         if ($teacher) {
-            $teacher->add_cap($caps['record_add']);
-            $teacher->add_cap($caps['student_mgmt']); // Access restricted via logic
+            $teacher->add_cap($caps['add_violation']);
+            $teacher->add_cap($caps['submit_complaint']);
+            $teacher->add_cap($caps['manage_assignments']);
+            $teacher->add_cap($caps['manage_students']);
         }
 
-        // 5. ولي أمر (Parent)
-        add_role('sm_parent', 'ولي أمر', array('read' => true));
-        $parent = get_role('sm_parent');
-        if ($parent) {
-            $parent->add_cap($caps['view_own']);
+        // 6. طالب (Student) - View own results/attendance, assignments, personal photo
+        add_role('sm_student', 'طالب', array('read' => true));
+        $student = get_role('sm_student');
+        if ($student) {
+            $student->add_cap($caps['view_own_data']);
+            $student->add_cap($caps['manage_assignments']);
         }
     }
 

@@ -339,10 +339,10 @@ if ($import_results) {
                         <input name="registration_date" type="date" class="sm-input" value="<?php echo date('Y-m-d'); ?>">
                     </div>
                     <div class="sm-form-group">
-                        <label class="sm-label">ربط بحساب ولي أمر (اختياري):</label>
+                        <label class="sm-label">ربط بحساب الطالب (اختياري):</label>
                         <select name="parent_user_id" class="sm-select">
                             <option value="">-- بلا ربط --</option>
-                            <?php foreach (get_users(array('role' => 'sm_parent')) as $p): ?>
+                            <?php foreach (get_users(array('role' => 'sm_student')) as $p): ?>
                                 <option value="<?php echo $p->ID; ?>"><?php echo esc_html($p->display_name); ?></option>
                             <?php endforeach; ?>
                         </select>
@@ -410,10 +410,10 @@ if ($import_results) {
                     <div style="grid-column: span 2; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-top: 15px; margin-bottom: 5px; color: var(--sm-primary-color); font-weight: 700;">الربط والمتابعة</div>
 
                     <div class="sm-form-group">
-                        <label class="sm-label">ربط بحساب ولي أمر مسجل:</label>
+                        <label class="sm-label">ربط بحساب الطالب المسجل:</label>
                         <select name="parent_user_id" id="edit_stu_parent_user" class="sm-select">
                             <option value="">-- اختر من مستخدمي النظام --</option>
-                            <?php foreach (get_users(array('role' => 'sm_parent')) as $p): ?>
+                            <?php foreach (get_users(array('role' => 'sm_student')) as $p): ?>
                                 <option value="<?php echo $p->ID; ?>"><?php echo esc_html($p->display_name); ?></option>
                             <?php endforeach; ?>
                         </select>

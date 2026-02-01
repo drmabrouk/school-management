@@ -235,8 +235,13 @@
 $user = wp_get_current_user();
 $roles = (array)$user->roles;
 $is_admin = in_array('administrator', $roles) || current_user_can('manage_options');
-$is_parent = in_array('sm_parent', $roles);
+$is_sys_admin = in_array('sm_system_admin', $roles);
+$is_principal = in_array('sm_principal', $roles);
+$is_supervisor = in_array('sm_supervisor', $roles);
+$is_coordinator = in_array('sm_coordinator', $roles);
 $is_teacher = in_array('sm_teacher', $roles);
+$is_student = in_array('sm_student', $roles);
+
 $active_tab = isset($_GET['sm_tab']) ? sanitize_text_field($_GET['sm_tab']) : 'summary';
 $school = SM_Settings::get_school_info();
 $stats = array();
@@ -274,10 +279,12 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                 <div style="display: inline-block; padding: 3px 12px; background: #fff5f5; color: #F63049; border-radius: 50px; font-size: 11px; font-weight: 700; margin-top: 6px; border: 1px solid #fed7d7;">
                     <?php 
                     if ($is_admin) echo 'مدير النظام';
-                    elseif (in_array('sm_school_admin', $roles)) echo 'مدير المدرسة';
-                    elseif (in_array('sm_discipline_officer', $roles)) echo 'وكيل شؤون الطلاب';
-                    elseif (in_array('sm_teacher', $roles)) echo 'معلم';
-                    elseif (in_array('sm_parent', $roles)) echo 'ولي أمر';
+                    elseif ($is_sys_admin) echo 'مدير النظام التقني';
+                    elseif ($is_principal) echo 'مدير المدرسة';
+                    elseif ($is_supervisor) echo 'مشرف تربوي';
+                    elseif ($is_coordinator) echo 'منسق مادة';
+                    elseif ($is_teacher) echo 'معلم';
+                    elseif ($is_student) echo 'طالب';
                     else echo 'مستخدم النظام';
                     ?>
                 </div>
@@ -354,26 +361,26 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                     <a href="<?php echo add_query_arg('sm_tab', 'summary'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-dashboard"></span> لوحة المعلومات</a>
                 </li>
 
-                <?php if ($is_admin || current_user_can('إدارة_المخالفات') || $is_parent): ?>
+                <?php if ($is_admin || $is_sys_admin || $is_principal || $is_supervisor || $is_teacher || $is_student): ?>
                     <li class="sm-sidebar-item <?php echo $active_tab == 'stats' ? 'sm-active' : ''; ?>">
                         <a href="<?php echo add_query_arg('sm_tab', 'stats'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-list-view"></span> سجل المخالفات</a>
                     </li>
                 <?php endif; ?>
 
-                <?php if ($is_admin || current_user_can('إدارة_الطلاب')): ?>
+                <?php if ($is_admin || $is_sys_admin || $is_principal || $is_supervisor || $is_teacher): ?>
                     <li class="sm-sidebar-item <?php echo $active_tab == 'students' ? 'sm-active' : ''; ?>">
                         <a href="<?php echo add_query_arg('sm_tab', 'students'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-groups"></span> إدارة الطلاب</a>
                     </li>
                 <?php endif; ?>
 
-                <?php if ($is_admin || current_user_can('إدارة_المعلمين')): ?>
+                <?php if ($is_admin || $is_sys_admin || $is_principal): ?>
                     <li class="sm-sidebar-item <?php echo $active_tab == 'teachers' ? 'sm-active' : ''; ?>">
-                        <a href="<?php echo add_query_arg('sm_tab', 'teachers'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-welcome-learn-more"></span> إدارة المعلمين</a>
+                        <a href="<?php echo add_query_arg('sm_tab', 'teachers'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-admin-users"></span> إدارة مستخدمي النظام</a>
                     </li>
                 <?php endif; ?>
 
 
-                <?php if ($is_admin || current_user_can('إدارة_المخالفات')): ?>
+                <?php if ($is_admin || $is_sys_admin || $is_principal || $is_supervisor): ?>
                     <li class="sm-sidebar-item <?php echo $active_tab == 'teacher-reports' ? 'sm-active' : ''; ?>" style="position:relative;">
                         <a href="<?php echo add_query_arg('sm_tab', 'teacher-reports'); ?>" class="sm-sidebar-link">
                             <span class="dashicons dashicons-warning"></span> بلاغات المعلمين
@@ -382,7 +389,7 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                     </li>
                 <?php endif; ?>
 
-                <?php if ($is_admin || current_user_can('إدارة_المخالفات')): ?>
+                <?php if ($is_admin || $is_sys_admin || $is_principal || $is_supervisor): ?>
                     <li class="sm-sidebar-item <?php echo $active_tab == 'confiscated' ? 'sm-active' : ''; ?>" style="position:relative;">
                         <a href="<?php echo add_query_arg('sm_tab', 'confiscated'); ?>" class="sm-sidebar-link">
                             <span class="dashicons dashicons-lock"></span> المواد المصادرة
@@ -391,13 +398,25 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                     </li>
                 <?php endif; ?>
 
-                <?php if ($is_admin || current_user_can('طباعة_التقارير')): ?>
+                <?php if ($is_coordinator || $is_teacher): ?>
+                    <li class="sm-sidebar-item <?php echo $active_tab == 'lesson-plans' ? 'sm-active' : ''; ?>">
+                        <a href="<?php echo add_query_arg('sm_tab', 'lesson-plans'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-welcome-write-blog"></span> تحضير الدروس</a>
+                    </li>
+                <?php endif; ?>
+
+                <?php if ($is_teacher || $is_student): ?>
+                    <li class="sm-sidebar-item <?php echo $active_tab == 'assignments' ? 'sm-active' : ''; ?>">
+                        <a href="<?php echo add_query_arg('sm_tab', 'assignments'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-portfolio"></span> الواجبات المدرسية</a>
+                    </li>
+                <?php endif; ?>
+
+                <?php if ($is_admin || $is_sys_admin || $is_principal || $is_supervisor): ?>
                     <li class="sm-sidebar-item <?php echo $active_tab == 'printing' ? 'sm-active' : ''; ?>">
                         <a href="<?php echo add_query_arg('sm_tab', 'printing'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-printer"></span> مركز الطباعة</a>
                     </li>
                 <?php endif; ?>
 
-                <?php if ($is_admin || current_user_can('إدارة_النظام')): ?>
+                <?php if ($is_admin || $is_sys_admin): ?>
                     <li class="sm-sidebar-item <?php echo $active_tab == 'global-settings' ? 'sm-active' : ''; ?>">
                         <a href="<?php echo add_query_arg('sm_tab', 'global-settings'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-admin-generic"></span> إعدادات النظام</a>
                     </li>
@@ -465,6 +484,14 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
 
                 case 'attendance':
                     include SM_PLUGIN_DIR . 'templates/admin-attendance.php';
+                    break;
+
+                case 'lesson-plans':
+                    include SM_PLUGIN_DIR . 'templates/admin-lesson-plans.php';
+                    break;
+
+                case 'assignments':
+                    include SM_PLUGIN_DIR . 'templates/admin-assignments.php';
                     break;
 
                 case 'global-settings':
