@@ -157,4 +157,27 @@ class SM_Settings {
     public static function save_suggested_actions($actions) {
         update_option('sm_suggested_actions', $actions);
     }
+
+    public static function get_sections_from_db() {
+        global $wpdb;
+        $results = $wpdb->get_results("SELECT DISTINCT class_name, section FROM {$wpdb->prefix}sm_students WHERE section != '' ORDER BY class_name ASC, section ASC");
+
+        $structure = array();
+        foreach ($results as $row) {
+            $grade_num = (int)str_replace('الصف ', '', $row->class_name);
+            if (!isset($structure[$grade_num])) {
+                $structure[$grade_num] = array();
+            }
+            if (!in_array($row->section, $structure[$grade_num])) {
+                $structure[$grade_num][] = $row->section;
+            }
+        }
+
+        // Sort sections alphabetically for each grade
+        foreach ($structure as $grade => $sections) {
+            sort($structure[$grade]);
+        }
+
+        return $structure;
+    }
 }

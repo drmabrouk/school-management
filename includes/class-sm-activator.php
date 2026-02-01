@@ -24,9 +24,11 @@ class SM_Activator {
             parent_user_id bigint(20) DEFAULT NULL,
             teacher_id bigint(20) DEFAULT NULL,
             photo_url varchar(255) DEFAULT '',
+            sort_order int(11) DEFAULT 0,
             PRIMARY KEY  (id),
             KEY student_code (student_code),
-            KEY teacher_id (teacher_id)
+            KEY teacher_id (teacher_id),
+            KEY sort_order (sort_order)
         ) $charset_collate;
 
         CREATE TABLE $table_records (

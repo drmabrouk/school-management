@@ -21,7 +21,7 @@
                         <option value="">كافة الصفوف</option>
                         <?php
                         global $wpdb;
-                        $classes = $wpdb->get_col("SELECT DISTINCT class_name FROM {$wpdb->prefix}sm_students");
+                        $classes = $wpdb->get_col("SELECT DISTINCT class_name FROM {$wpdb->prefix}sm_students ORDER BY CAST(REPLACE(class_name, 'الصف ', '') AS UNSIGNED) ASC");
                         foreach($classes as $c) echo '<option value="'.$c.'">'.$c.'</option>';
                         ?>
                     </select>

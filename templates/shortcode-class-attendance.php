@@ -9,7 +9,10 @@
             <label class="sm-label">الصف الدراسي:</label>
             <select id="at-grade-select" class="sm-select" onchange="atUpdateSections()">
                 <option value="">اختر الصف...</option>
-                <?php foreach ($academic['active_grades'] as $grade_num): ?>
+                <?php
+                $active_grades = $academic['active_grades'];
+                sort($active_grades, SORT_NUMERIC);
+                foreach ($active_grades as $grade_num): ?>
                     <option value="الصف <?php echo $grade_num; ?>" data-grade-num="<?php echo $grade_num; ?>">الصف <?php echo $grade_num; ?></option>
                 <?php endforeach; ?>
             </select>
@@ -47,6 +50,7 @@
 
 <script>
 const academicStructure = <?php echo json_encode($academic); ?>;
+const dbStructure = <?php echo json_encode(SM_Settings::get_sections_from_db()); ?>;
 
 function atUpdateSections() {
     const gradeSelect = document.getElementById('at-grade-select');
@@ -62,17 +66,14 @@ function atUpdateSections() {
         return;
     }
 
-    const gs = academicStructure.grade_sections[gradeNum] || { count: academicStructure.sections_count, letters: academicStructure.section_letters };
-    const letters = gs.letters.split(',').map(s => s.trim());
+    const sections = dbStructure[gradeNum] || [];
 
-    for (let i = 0; i < gs.count; i++) {
-        if (letters[i]) {
-            const opt = document.createElement('option');
-            opt.value = letters[i];
-            opt.innerText = 'شعبة ' + letters[i];
-            sectionSelect.appendChild(opt);
-        }
-    }
+    sections.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s;
+        opt.innerText = 'شعبة ' + s;
+        sectionSelect.appendChild(opt);
+    });
 
     sectionSelect.disabled = false;
     document.getElementById('at-students-container').style.display = 'none';

@@ -471,6 +471,11 @@ class SM_Public {
             'registration_date' => sanitize_text_field($_POST['registration_date'] ?? '')
         );
 
+        // Check if student exists
+        if (SM_DB::student_exists($name, $class, $section)) {
+            wp_send_json_error('هذا الطالب مسجل بالفعل في هذا الصف والشعبة.');
+        }
+
         $id = SM_DB::add_student($name, $class, $email, '', $parent_user_id, null, $section, $extra);
 
         if ($id) {
@@ -1185,22 +1190,7 @@ class SM_Public {
                 }
                 fclose($handle);
 
-                // Sort rows by Grade (Column B) then Name (Column A)
-                usort($rows, function($a, $b) {
-                    // Normalize Grade for sorting (e.g. "Grade 1" vs "Grade 12")
-                    $gradeA = $a['data'][1] ?? '';
-                    $gradeB = $b['data'][1] ?? '';
-                    if ($gradeA != $gradeB) {
-                        // Extract number
-                        preg_match('/\d+/', $gradeA, $matchA);
-                        preg_match('/\d+/', $gradeB, $matchB);
-                        $numA = isset($matchA[0]) ? (int)$matchA[0] : 0;
-                        $numB = isset($matchB[0]) ? (int)$matchB[0] : 0;
-                        if ($numA != $numB) return $numA - $numB;
-                        return strcmp($gradeA, $gradeB);
-                    }
-                    return strcmp($a['data'][0] ?? '', $b['data'][0] ?? '');
-                });
+                $next_sort_order = SM_DB::get_next_sort_order();
 
                 foreach ($rows as $row_obj) {
                     $data = $row_obj['data'];
@@ -1270,9 +1260,19 @@ class SM_Public {
                         $results['error']++;
                         foreach ($errors as $err) $results['details'][] = array('type' => 'error', 'msg' => $err);
                     } else {
+                        // Match against existing students (Name, Grade, Section)
+                        $existing_id = SM_DB::student_exists($full_display_name, $class_name, $section);
+
+                        if ($existing_id) {
+                            $results['success']++;
+                            // We don't increment sort_order here as we are skipping
+                            continue;
+                        }
+
                         $extra = array(
                             'guardian_phone' => $guardian_phone,
-                            'nationality' => $nationality
+                            'nationality' => $nationality,
+                            'sort_order' => $next_sort_order++
                         );
                         $imported_id = SM_DB::add_student($full_display_name, $class_name, $guardian_email, '', null, null, $section, $extra);
                         if ($imported_id) {
