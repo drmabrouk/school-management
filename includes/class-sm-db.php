@@ -3,8 +3,39 @@
 class SM_DB {
     public static function get_students($filters = array()) {
         global $wpdb;
+
+        $user = wp_get_current_user();
+        $is_teacher = in_array('sm_teacher', (array)$user->roles);
+        $is_supervisor = in_array('sm_supervisor', (array)$user->roles);
+
         // Optimized: Reduced wildcard usage for student_code if it looks like a code
         $query = "SELECT * FROM {$wpdb->prefix}sm_students WHERE 1=1";
+
+        $is_searching = !empty($filters['search']);
+
+        if ($is_teacher && !current_user_can('manage_options') && !$is_searching) {
+            $assigned = get_user_meta($user->ID, 'sm_assigned_sections', true);
+            if (is_array($assigned) && !empty($assigned)) {
+                $clauses = array();
+                foreach($assigned as $pair) {
+                    list($g, $s) = explode('|', $pair);
+                    $clauses[] = $wpdb->prepare("(class_name = %s AND section = %s)", 'الصف '.$g, $s);
+                }
+                $query .= " AND (" . implode(" OR ", $clauses) . ")";
+            }
+        }
+
+        if ($is_supervisor && !current_user_can('manage_options') && !$is_searching) {
+            $supervised = get_user_meta($user->ID, 'sm_supervised_classes', true);
+            if (is_array($supervised) && !empty($supervised)) {
+                $clauses = array();
+                foreach($supervised as $pair) {
+                    list($g, $s) = explode('|', $pair);
+                    $clauses[] = $wpdb->prepare("(class_name = %s AND section = %s)", 'الصف '.$g, $s);
+                }
+                $query .= " AND (" . implode(" OR ", $clauses) . ")";
+            }
+        }
         
         if (!empty($filters['search'])) {
             $search_str = trim($filters['search']);
@@ -74,21 +105,24 @@ class SM_DB {
             $code = self::generate_student_code();
         }
 
-        // AUTO-GENERATE UNIFIED WP USER (Parent/Student)
+        // AUTO-GENERATE UNIFIED WP USER (Student)
         if (!$parent_user_id) {
             $username = $code;
             if (!username_exists($username)) {
-                $password = wp_generate_password(8, false);
+                // 10-digit numeric password
+                $password = '';
+                for($i=0; $i<10; $i++) $password .= rand(0,9);
+
                 $email_addr = $email ? $email : $code . '@school.local';
 
                 $user_id = wp_create_user($username, $password, $email_addr);
                 if (!is_wp_error($user_id)) {
                     $wp_user = new WP_User($user_id);
-                    $wp_user->set_role('sm_parent');
+                    $wp_user->set_role('sm_student');
                     $parent_user_id = $user_id;
 
                     update_user_meta($user_id, 'sm_temp_pass', $password);
-                    wp_update_user(array('ID' => $user_id, 'display_name' => "ولي أمر $name"));
+                    wp_update_user(array('ID' => $user_id, 'display_name' => "Student $name"));
                 }
             } else {
                 $u = get_user_by('login', $username);
@@ -309,6 +343,13 @@ class SM_DB {
         $student = self::get_student_by_id($id);
         if ($student) {
             SM_Logger::log('حذف طالب', 'ROLLBACK_DATA:' . json_encode(array('table' => 'students', 'data' => $student)));
+
+            // Delete WP user
+            if ($student->parent_user_id) {
+                require_once(ABSPATH . 'wp-admin/includes/user.php');
+                wp_delete_user($student->parent_user_id);
+            }
+
             $wpdb->delete("{$wpdb->prefix}sm_records", array('student_id' => $id));
             return $wpdb->delete("{$wpdb->prefix}sm_students", array('id' => $id));
         }
@@ -429,6 +470,53 @@ class SM_DB {
     public static function update_student_photo($id, $url) {
         global $wpdb;
         return $wpdb->update("{$wpdb->prefix}sm_students", array('photo_url' => $url), array('id' => $id));
+    }
+
+    public static function add_assignment($data) {
+        global $wpdb;
+        return $wpdb->insert("{$wpdb->prefix}sm_assignments", array(
+            'sender_id' => $data['sender_id'],
+            'receiver_id' => $data['receiver_id'],
+            'student_id' => $data['student_id'] ?? null,
+            'title' => sanitize_text_field($data['title']),
+            'description' => sanitize_textarea_field($data['description']),
+            'file_url' => esc_url_raw($data['file_url'] ?? ''),
+            'type' => sanitize_text_field($data['type'] ?? 'assignment')
+        ));
+    }
+
+    public static function get_assignments($user_id, $type = 'all') {
+        global $wpdb;
+        $q = "SELECT a.*, u.display_name as sender_name FROM {$wpdb->prefix}sm_assignments a
+              JOIN {$wpdb->prefix}users u ON a.sender_id = u.ID
+              WHERE a.receiver_id = %d";
+        if ($type !== 'all') {
+            $q .= $wpdb->prepare(" AND a.type = %s", $type);
+        }
+        $q .= " ORDER BY a.created_at DESC";
+        return $wpdb->get_results($wpdb->prepare($q, $user_id));
+    }
+
+    public static function get_staff_by_section($grade, $section) {
+        $staff = get_users(array('role__in' => array('sm_teacher', 'sm_coordinator', 'sm_supervisor')));
+        $filtered = array();
+        foreach ($staff as $u) {
+            $assigned = get_user_meta($u->ID, 'sm_assigned_sections', true) ?: (get_user_meta($u->ID, 'sm_supervised_classes', true) ?: array());
+            if (is_array($assigned) && in_array("$grade|$section", $assigned)) {
+                $filtered[] = $u;
+            }
+        }
+        return $filtered;
+    }
+
+    public static function get_sent_assignments($user_id) {
+        global $wpdb;
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT a.*, u.display_name as receiver_name FROM {$wpdb->prefix}sm_assignments a
+             JOIN {$wpdb->prefix}users u ON a.receiver_id = u.ID
+             WHERE a.sender_id = %d ORDER BY a.created_at DESC",
+            $user_id
+        ));
     }
 
     public static function send_message($sender_id, $receiver_id, $message, $student_id = null) {
@@ -557,26 +645,41 @@ class SM_DB {
     }
 
     public static function update_teacher_data($user_id, $data) {
-        update_user_meta($user_id, 'sm_full_name', sanitize_text_field($data['full_name']));
-        update_user_meta($user_id, 'sm_phone', sanitize_text_field($data['phone']));
-        update_user_meta($user_id, 'sm_employee_id', sanitize_text_field($data['employee_id']));
-        update_user_meta($user_id, 'sm_job_title', sanitize_text_field($data['job_title']));
+        if (isset($data['full_name'])) update_user_meta($user_id, 'sm_full_name', sanitize_text_field($data['full_name']));
+        if (isset($data['phone'])) update_user_meta($user_id, 'sm_phone', sanitize_text_field($data['phone']));
+        if (isset($data['employee_id'])) update_user_meta($user_id, 'sm_employee_id', sanitize_text_field($data['employee_id']));
+        if (isset($data['teacher_id'])) update_user_meta($user_id, 'sm_teacher_id', sanitize_text_field($data['teacher_id']));
+        if (isset($data['job_title'])) update_user_meta($user_id, 'sm_job_title', sanitize_text_field($data['job_title']));
         
+        if (isset($data['supervised_classes'])) {
+            update_user_meta($user_id, 'sm_supervised_classes', $data['supervised_classes']);
+        }
+        if (isset($data['assigned_sections'])) {
+            update_user_meta($user_id, 'sm_assigned_sections', $data['assigned_sections']);
+        }
+
         if (!empty($data['display_name'])) {
             wp_update_user(array('ID' => $user_id, 'display_name' => $data['display_name']));
         }
     }
 
     public static function add_system_user($data) {
-        $user_id = wp_create_user($data['user_login'], $data['user_pass'], $data['user_email']);
+        $pass = $data['user_pass'];
+        if (empty($pass)) {
+            $pass = '';
+            for($i=0; $i<10; $i++) $pass .= rand(0,9);
+        }
+
+        $user_id = wp_create_user($data['user_login'], $pass, $data['user_email']);
         if (is_wp_error($user_id)) return $user_id;
+
+        update_user_meta($user_id, 'sm_temp_pass', $pass);
 
         $user = new WP_User($user_id);
         $user->set_role($data['role']);
 
-        if ($data['role'] === 'sm_teacher') {
-            self::update_teacher_data($user_id, $data);
-        }
+        // Update meta for any staff role
+        self::update_teacher_data($user_id, $data);
 
         return $user_id;
     }
@@ -658,12 +761,26 @@ class SM_DB {
             return $summary;
         }
 
+        $user = wp_get_current_user();
+        $is_teacher = in_array('sm_teacher', (array)$user->roles);
+        $is_supervisor = in_array('sm_supervisor', (array)$user->roles);
+        $assigned = ($is_teacher) ? get_user_meta($user->ID, 'sm_assigned_sections', true) : array();
+        $supervised = ($is_supervisor) ? get_user_meta($user->ID, 'sm_supervised_classes', true) : array();
+
         ksort($db_structure, SORT_NUMERIC);
 
         foreach ($db_structure as $grade_num => $sections) {
             $class_name = 'الصف ' . $grade_num;
 
             foreach ($sections as $section) {
+                // Filter for Teacher/Supervisor
+                if ($is_teacher && !current_user_can('manage_options')) {
+                    if (!is_array($assigned) || !in_array("$grade_num|$section", $assigned)) continue;
+                }
+                if ($is_supervisor && !current_user_can('manage_options')) {
+                    if (!is_array($supervised) || !in_array("$grade_num|$section", $supervised)) continue;
+                }
+
                 // Count students
                 $student_count = $wpdb->get_var($wpdb->prepare(
                     "SELECT COUNT(*) FROM {$wpdb->prefix}sm_students WHERE class_name = %s AND section = %s",

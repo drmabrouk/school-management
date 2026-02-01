@@ -173,7 +173,10 @@
                     </select>
                 </div>
             </div>
-            <button onclick="printCredentials()" class="sm-btn" style="background: #4A5568; font-size: 12px;">طباعة بيانات الدخول</button>
+            <div style="display: flex; gap: 8px;">
+                <button onclick="printCredentials()" class="sm-btn" style="background: #4A5568; font-size: 11px; flex: 1;">كشف البيانات</button>
+                <button onclick="printCredentialsCard()" class="sm-btn" style="background: #8A244B; font-size: 11px; flex: 1;">بطاقات الدخول</button>
+            </div>
         </div>
 
         <!-- Excel Templates Section -->
@@ -232,6 +235,11 @@ function printAbsenceFromCenter(type) {
 function printCredentials() {
     const classFilter = document.getElementById('creds_class_filter').value;
     window.open('<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=student_credentials'); ?>&class_name=' + encodeURIComponent(classFilter), '_blank');
+}
+
+function printCredentialsCard() {
+    const classFilter = document.getElementById('creds_class_filter').value;
+    window.open('<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=student_credentials_card'); ?>&class_name=' + encodeURIComponent(classFilter), '_blank');
 }
 
 function printAttendanceSheets() {

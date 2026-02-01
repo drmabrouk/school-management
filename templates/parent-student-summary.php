@@ -2,11 +2,17 @@
 <div style="background: #fff; border: 1px solid var(--sm-border-color); border-radius: 16px; overflow: hidden; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
     <div style="background: linear-gradient(135deg, var(--sm-primary-color) 0%, #2c3e50 100%); padding: 40px; display: flex; gap: 30px; align-items: center; color: white;">
         <div style="flex-shrink: 0;">
-            <?php if ($student->photo_url): ?>
-                <img src="<?php echo esc_url($student->photo_url); ?>" style="width: 130px; height: 130px; border-radius: 50%; object-fit: cover; border: 4px solid rgba(255,255,255,0.3); box-shadow: 0 8px 16px rgba(0,0,0,0.2);">
-            <?php else: ?>
-                <div style="width: 130px; height: 130px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 50px; border: 4px solid rgba(255,255,255,0.3);">👤</div>
-            <?php endif; ?>
+            <div style="position: relative; cursor: pointer;" onclick="document.getElementById('student_photo_input').click()">
+                <?php if ($student->photo_url): ?>
+                    <img id="stu_main_photo" src="<?php echo esc_url($student->photo_url); ?>" style="width: 130px; height: 130px; border-radius: 50%; object-fit: cover; border: 4px solid rgba(255,255,255,0.3); box-shadow: 0 8px 16px rgba(0,0,0,0.2);">
+                <?php else: ?>
+                    <div id="stu_main_photo_placeholder" style="width: 130px; height: 130px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 50px; border: 4px solid rgba(255,255,255,0.3);">👤</div>
+                <?php endif; ?>
+                <div style="position: absolute; bottom: 0; right: 0; background: var(--sm-primary-color); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white;">
+                    <span class="dashicons dashicons-camera" style="font-size: 16px; color: white;"></span>
+                </div>
+                <input type="file" id="student_photo_input" style="display: none;" accept="image/*" onchange="uploadStudentPhoto(this, <?php echo $student->id; ?>)">
+            </div>
         </div>
         <div style="flex: 1;">
             <h2 style="margin: 0 0 12px 0; border: none; padding: 0; color: white; font-size: 2em; font-weight: 800;"><?php echo esc_html($student->name); ?></h2>
@@ -99,4 +105,29 @@
     if (document.readyState === 'complete') initParentChart();
     else window.addEventListener('load', initParentChart);
 })();
+
+function uploadStudentPhoto(input, studentId) {
+    if (!input.files || !input.files[0]) return;
+
+    const formData = new FormData();
+    formData.append('action', 'sm_update_student_photo');
+    formData.append('student_id', studentId);
+    formData.append('student_photo', input.files[0]);
+    formData.append('sm_photo_nonce', '<?php echo wp_create_nonce("sm_photo_action"); ?>');
+
+    smShowNotification('جاري رفع الصورة...');
+
+    fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            smShowNotification('تم تحديث الصورة الشخصية');
+            const img = document.getElementById('stu_main_photo');
+            if (img) img.src = res.data.photo_url;
+            else location.reload();
+        } else {
+            smShowNotification('خطأ: ' + res.data, true);
+        }
+    });
+}
 </script>

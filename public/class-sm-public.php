@@ -10,13 +10,27 @@ class SM_Public {
     }
 
     public function hide_admin_bar_for_non_admins($show) {
-        if (!current_user_can('manage_options')) {
-            return false;
+        if (!current_user_can('manage_options') || current_user_can('إدارة_النظام')) {
+            // System Admins (sm_system_admin) have manage_system/إدارة_النظام
+            // User wants admin bar hidden for System Administrator too.
+            // Central Control is the only one with 'administrator' role.
+            if (!current_user_can('administrator')) {
+                return false;
+            }
         }
         return $show;
     }
 
     public function restrict_admin_access() {
+        if (is_user_logged_in()) {
+            $status = get_user_meta(get_current_user_id(), 'sm_account_status', true);
+            if ($status === 'restricted') {
+                wp_logout();
+                wp_redirect(home_url('/sm-login?login=failed'));
+                exit;
+            }
+        }
+
         if (is_admin() && !defined('DOING_AJAX') && !current_user_can('manage_options')) {
             wp_redirect(home_url('/sm-admin'));
             exit;
@@ -90,29 +104,31 @@ class SM_Public {
         
         // Data Preparation based on tab
         $is_admin = in_array('administrator', $roles) || current_user_can('manage_options');
+        $is_sys_admin = in_array('sm_system_admin', $roles);
+        $is_principal = in_array('sm_principal', $roles);
+        $is_supervisor = in_array('sm_supervisor', $roles);
+        $is_coordinator = in_array('sm_coordinator', $roles);
         $is_teacher = in_array('sm_teacher', $roles);
-        $is_parent = in_array('sm_parent', $roles);
+        $is_student = in_array('sm_student', $roles);
 
         // Security / Capability check for tabs
-        if ($active_tab === 'record' && !($is_admin || current_user_can('تسجيل_مخالفة'))) $active_tab = 'summary';
-        if ($active_tab === 'students' && !($is_admin || current_user_can('إدارة_الطلاب'))) $active_tab = 'summary';
-        if ($active_tab === 'teachers' && !($is_admin || current_user_can('إدارة_المعلمين'))) $active_tab = 'summary';
-        if ($active_tab === 'parents' && !($is_admin || current_user_can('إدارة_أولياء_الأمور'))) $active_tab = 'summary';
-        if ($active_tab === 'teacher-reports' && !($is_admin || current_user_can('إدارة_المخالفات'))) $active_tab = 'summary';
-        if ($active_tab === 'confiscated' && !($is_admin || current_user_can('إدارة_المخالفات'))) $active_tab = 'summary';
-        if ($active_tab === 'printing' && !($is_admin || current_user_can('طباعة_التقارير'))) $active_tab = 'summary';
-        if ($active_tab === 'reports' && !($is_admin || current_user_can('طباعة_التقارير'))) $active_tab = 'summary';
-        if ($active_tab === 'attendance' && !($is_admin || current_user_can('إدارة_الطلاب'))) $active_tab = 'summary';
-        if ($active_tab === 'global-settings' && !($is_admin || current_user_can('إدارة_النظام'))) $active_tab = 'summary';
-        if ($active_tab === 'users' && !($is_admin || current_user_can('إدارة_المستخدمين'))) $active_tab = 'summary';
+        if ($active_tab === 'record' && !current_user_can('تسجيل_مخالفة')) $active_tab = 'summary';
+        if ($active_tab === 'students' && !current_user_can('إدارة_الطلاب')) $active_tab = 'summary';
+        if ($active_tab === 'teachers' && !current_user_can('إدارة_المستخدمين')) $active_tab = 'summary';
+        if ($active_tab === 'teacher-reports' && !current_user_can('إدارة_المخالفات')) $active_tab = 'summary';
+        if ($active_tab === 'confiscated' && !current_user_can('إدارة_المخالفات')) $active_tab = 'summary';
+        if ($active_tab === 'printing' && !current_user_can('طباعة_التقارير')) $active_tab = 'summary';
+        if ($active_tab === 'attendance' && !current_user_can('إدارة_الطلاب')) $active_tab = 'summary';
+        if ($active_tab === 'global-settings' && !current_user_can('إدارة_النظام')) $active_tab = 'summary';
+        if ($active_tab === 'lesson-plans' && !($is_coordinator || $is_teacher)) $active_tab = 'summary';
+        if ($active_tab === 'assignments' && !($is_teacher || $is_student)) $active_tab = 'summary';
 
         // Fetch data based on tab
         switch ($active_tab) {
             case 'summary':
-                if ($is_parent) {
-                    $my_stu = SM_DB::get_students_by_parent($user->ID);
-                    $student_id = isset($_GET['student_id']) ? intval($_GET['student_id']) : ($my_stu[0]->id ?? 0);
-                    $student = SM_DB::get_student_by_id($student_id);
+                if ($is_student) {
+                    $student = SM_DB::get_student_by_parent($user->ID);
+                    $student_id = $student ? $student->id : 0;
                     $stats = SM_DB::get_student_stats($student_id);
                 } else {
                     $stats = SM_DB::get_statistics($is_teacher && !$is_admin ? ['teacher_id' => $user->ID] : []);
@@ -357,12 +373,7 @@ class SM_Public {
         if (strlen($query) < 2) wp_send_json_success(array());
 
         $args = array('search' => $query);
-        // If teacher, only search their own students or all? 
-        // User said "Teacher isolation: Teachers only see their own students".
-        if (in_array('sm_teacher', (array) wp_get_current_user()->roles) && !current_user_can('إدارة_المستخدمين')) {
-            $args['teacher_id'] = get_current_user_id();
-        }
-
+        // Teachers can search all students as per new requirements
         $students = SM_DB::get_students($args);
         wp_send_json_success($students);
     }
@@ -697,22 +708,37 @@ class SM_Public {
     }
 
     public function ajax_add_teacher() {
-        if (!current_user_can('إدارة_المعلمين')) wp_send_json_error('Unauthorized');
+        if (!current_user_can('إدارة_المستخدمين')) wp_send_json_error('Unauthorized');
         if (!wp_verify_nonce($_POST['sm_nonce'], 'sm_teacher_action')) wp_send_json_error('Security check failed');
+
+        $pass = $_POST['user_pass'];
+        if (empty($pass)) {
+            $pass = '';
+            for($i=0; $i<10; $i++) $pass .= rand(0,9);
+        }
 
         $user_data = array(
             'user_login' => sanitize_user($_POST['user_login']),
             'user_email' => sanitize_email($_POST['user_email']),
             'display_name' => sanitize_text_field($_POST['display_name']),
-            'user_pass' => $_POST['user_pass'],
-            'role' => 'sm_teacher'
+            'user_pass' => $pass,
+            'role' => sanitize_text_field($_POST['role'] ?: 'sm_teacher')
         );
         $user_id = wp_insert_user($user_data);
         if (is_wp_error($user_id)) wp_send_json_error($user_id->get_error_message());
 
+        update_user_meta($user_id, 'sm_temp_pass', $pass);
         update_user_meta($user_id, 'sm_teacher_id', sanitize_text_field($_POST['teacher_id']));
-        update_user_meta($user_id, 'sm_job_title', sanitize_text_field($_POST['job_title']));
         update_user_meta($user_id, 'sm_phone', sanitize_text_field($_POST['phone']));
+
+        if (isset($_POST['assigned'])) {
+            $assigned = array_map('sanitize_text_field', $_POST['assigned']);
+            if ($_POST['role'] === 'sm_teacher') {
+                update_user_meta($user_id, 'sm_assigned_sections', $assigned);
+            } elseif ($_POST['role'] === 'sm_supervisor') {
+                update_user_meta($user_id, 'sm_supervised_classes', $assigned);
+            }
+        }
 
         wp_send_json_success($user_id);
     }
@@ -953,7 +979,7 @@ class SM_Public {
     }
 
     public function ajax_update_teacher() {
-        if (!current_user_can('إدارة_المعلمين')) wp_send_json_error('Unauthorized');
+        if (!current_user_can('إدارة_المستخدمين')) wp_send_json_error('Unauthorized');
         if (!wp_verify_nonce($_POST['sm_nonce'], 'sm_teacher_action')) wp_send_json_error('Security check failed');
 
         $user_id = intval($_POST['edit_teacher_id']);
@@ -964,32 +990,83 @@ class SM_Public {
         );
         if (!empty($_POST['user_pass'])) {
             $user_data['user_pass'] = $_POST['user_pass'];
+            update_user_meta($user_id, 'sm_temp_pass', $_POST['user_pass']);
         }
         $result = wp_update_user($user_data);
         if (is_wp_error($result)) wp_send_json_error($result->get_error_message());
 
+        $u = new WP_User($user_id);
+        $role = sanitize_text_field($_POST['role']);
+        $u->set_role($role);
+
         update_user_meta($user_id, 'sm_teacher_id', sanitize_text_field($_POST['teacher_id']));
-        update_user_meta($user_id, 'sm_job_title', sanitize_text_field($_POST['job_title']));
         update_user_meta($user_id, 'sm_phone', sanitize_text_field($_POST['phone']));
+        update_user_meta($user_id, 'sm_account_status', sanitize_text_field($_POST['account_status']));
+
+        // Clean old assignments
+        delete_user_meta($user_id, 'sm_assigned_sections');
+        delete_user_meta($user_id, 'sm_supervised_classes');
+
+        if (isset($_POST['assigned'])) {
+            $assigned = array_map('sanitize_text_field', $_POST['assigned']);
+            if ($role === 'sm_teacher') {
+                update_user_meta($user_id, 'sm_assigned_sections', $assigned);
+            } elseif ($role === 'sm_supervisor') {
+                update_user_meta($user_id, 'sm_supervised_classes', $assigned);
+            }
+        }
 
         wp_send_json_success('Updated');
     }
 
-    public function ajax_add_parent() {
-        if (!current_user_can('إدارة_أولياء_الأمور')) wp_send_json_error('Unauthorized');
-        if (!wp_verify_nonce($_POST['sm_nonce'], 'sm_user_action')) wp_send_json_error('Security check failed');
+    public function ajax_add_assignment() {
+        if (!is_user_logged_in()) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['sm_nonce'], 'sm_assignment_action')) wp_send_json_error('Security check');
 
-        $user_data = array(
-            'user_login' => sanitize_user($_POST['user_login']),
-            'user_email' => sanitize_email($_POST['user_email']),
-            'display_name' => sanitize_text_field($_POST['display_name']),
-            'user_pass' => $_POST['user_pass'],
-            'role' => 'sm_parent'
+        $data = array(
+            'sender_id' => get_current_user_id(),
+            'receiver_id' => intval($_POST['receiver_id']),
+            'title' => sanitize_text_field($_POST['title']),
+            'description' => sanitize_textarea_field($_POST['description']),
+            'file_url' => esc_url_raw($_POST['file_url']),
+            'type' => sanitize_text_field($_POST['type'] ?? 'assignment')
         );
-        $user_id = wp_insert_user($user_data);
-        if (is_wp_error($user_id)) wp_send_json_error($user_id->get_error_message());
 
-        wp_send_json_success($user_id);
+        if (SM_DB::add_assignment($data)) {
+            wp_send_json_success();
+        } else {
+            wp_send_json_error('Failed');
+        }
+    }
+
+    public function ajax_approve_plan() {
+        if (!current_user_can('مراجعة_التحضير')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_assignment_action')) wp_send_json_error('Security check');
+
+        global $wpdb;
+        $plan_id = intval($_POST['plan_id']);
+        $result = $wpdb->update("{$wpdb->prefix}sm_assignments",
+            array('receiver_id' => get_current_user_id()), // Mark as approved by current coordinator
+            array('id' => $plan_id, 'type' => 'lesson_plan')
+        );
+
+        if ($result) wp_send_json_success();
+        else wp_send_json_error();
+    }
+
+    public function ajax_bulk_delete_users() {
+        if (!current_user_can('إدارة_المستخدمين')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_teacher_action')) wp_send_json_error('Security check');
+
+        $ids = array_map('intval', explode(',', $_POST['user_ids']));
+        require_once(ABSPATH . 'wp-admin/includes/user.php');
+
+        foreach ($ids as $id) {
+            if ($id != get_current_user_id()) {
+                wp_delete_user($id);
+            }
+        }
+        wp_send_json_success();
     }
 
     public function handle_form_submission() {
