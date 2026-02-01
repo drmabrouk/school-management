@@ -53,6 +53,7 @@ class SM_Public {
     public function register_shortcodes() {
         add_shortcode('sm_login', array($this, 'shortcode_login'));
         add_shortcode('sm_admin', array($this, 'shortcode_admin_dashboard'));
+        add_shortcode('sm_class_attendance', array($this, 'shortcode_class_attendance'));
     }
 
     public function shortcode_login() {
@@ -687,6 +688,15 @@ class SM_Public {
         wp_send_json_success($students);
     }
 
+    public function shortcode_class_attendance() {
+        if (!is_user_logged_in()) {
+            return $this->shortcode_login();
+        }
+        ob_start();
+        include SM_PLUGIN_DIR . 'templates/shortcode-class-attendance.php';
+        return ob_get_clean();
+    }
+
     public function ajax_save_attendance() {
         if (!is_user_logged_in() || !current_user_can('إدارة_الطلاب')) wp_send_json_error('Unauthorized');
         if (!wp_verify_nonce($_POST['nonce'], 'sm_attendance_action')) wp_send_json_error('Security check failed');
@@ -1217,11 +1227,28 @@ class SM_Public {
                     $class_name        = isset($data[1]) ? trim($data[1]) : '';
                     $section           = isset($data[2]) ? trim($data[2]) : '';
 
+                    $academic = SM_Settings::get_academic_structure();
+
                     // Normalize Grade format (e.g., "12" or "Grade 12" -> "الصف 12")
                     if (!empty($class_name)) {
                         $grade_number = preg_replace('/[^0-9]/', '', $class_name);
                         if (!empty($grade_number)) {
                             $class_name = 'الصف ' . $grade_number;
+                            $grade_val = (int)$grade_number;
+
+                            // Validate Grade against active grades
+                            if (!in_array($grade_val, $academic['active_grades'])) {
+                                $warnings[] = "الصف ($grade_number) غير مفعل في إعدادات الهيكل المدرسي.";
+                            }
+
+                            // Validate Section
+                            if (!empty($section)) {
+                                $gs = $academic['grade_sections'][$grade_val] ?? array('count' => $academic['sections_count'], 'letters' => $academic['section_letters']);
+                                $allowed_letters = array_map('trim', explode(',', $gs['letters']));
+                                if (!in_array($section, $allowed_letters)) {
+                                    $warnings[] = "الشعبة ($section) غير معرفة للصف ($grade_number).";
+                                }
+                            }
                         }
                     }
                     $nationality       = isset($data[3]) ? trim($data[3]) : '';
