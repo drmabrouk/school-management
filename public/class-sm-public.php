@@ -334,6 +334,8 @@ class SM_Public {
             }
             $students = SM_DB::get_students($filters);
             include SM_PLUGIN_DIR . 'templates/print-student-credentials.php';
+        } elseif ($type === 'student_credentials_card') {
+            include SM_PLUGIN_DIR . 'templates/print-student-credentials-card.php';
         }
         exit;
     }
@@ -775,11 +777,18 @@ class SM_Public {
     }
 
     public function ajax_get_students_attendance() {
-        if (!is_user_logged_in() || !current_user_can('إدارة_الطلاب')) wp_send_json_error('Unauthorized');
-
         $class_name = sanitize_text_field($_POST['class_name']);
         $section = sanitize_text_field($_POST['section']);
         $date = sanitize_text_field($_POST['date']);
+        $code = sanitize_text_field($_POST['security_code'] ?? '');
+
+        // Security Check: Either Staff or Valid Class Code
+        $is_staff = is_user_logged_in() && current_user_can('إدارة_الطلاب');
+        $valid_code = (SM_Settings::get_class_security_code($class_name, $section) === $code);
+
+        if (!$is_staff && !$valid_code) {
+            wp_send_json_error('Unauthorized: Invalid security code');
+        }
 
         $students = SM_DB::get_students_attendance($class_name, $section, $date);
         wp_send_json_success($students);
@@ -792,13 +801,25 @@ class SM_Public {
     }
 
     public function ajax_save_attendance() {
-        if (!is_user_logged_in() || !current_user_can('إدارة_الطلاب')) wp_send_json_error('Unauthorized');
         if (!wp_verify_nonce($_POST['nonce'], 'sm_attendance_action')) wp_send_json_error('Security check failed');
 
         $student_id = intval($_POST['student_id']);
         $status = sanitize_text_field($_POST['status']);
         $date = sanitize_text_field($_POST['date']);
-        $teacher_id = get_current_user_id();
+        $code = sanitize_text_field($_POST['security_code'] ?? '');
+
+        // Get student info to check class
+        $student = SM_DB::get_student_by_id($student_id);
+        if (!$student) wp_send_json_error('Student not found');
+
+        $is_staff = is_user_logged_in() && current_user_can('إدارة_الطلاب');
+        $valid_code = (SM_Settings::get_class_security_code($student->class_name, $student->section) === $code);
+
+        if (!$is_staff && !$valid_code) {
+            wp_send_json_error('Unauthorized');
+        }
+
+        $teacher_id = get_current_user_id(); // 0 for public
 
         if (SM_DB::save_attendance($student_id, $status, $date, $teacher_id)) {
             wp_send_json_success('Saved');
@@ -808,10 +829,23 @@ class SM_Public {
     }
 
     public function ajax_save_attendance_batch() {
-        if (!is_user_logged_in() || !current_user_can('إدارة_الطلاب')) wp_send_json_error('Unauthorized');
         if (!wp_verify_nonce($_POST['nonce'], 'sm_attendance_action')) wp_send_json_error('Security check failed');
 
-        $batch = json_decode(stripslashes($_POST['batch']), true);
+        $batch = json_decode(stripslashes($_POST['batch'] ?? '[]'), true);
+        if (empty($batch)) wp_send_json_error('Empty batch');
+
+        $first_sid = intval($batch[0]['student_id']);
+        $student = SM_DB::get_student_by_id($first_sid);
+        if (!$student) wp_send_json_error('Student not found');
+
+        $code = sanitize_text_field($_POST['security_code'] ?? '');
+        $is_staff = is_user_logged_in() && current_user_can('إدارة_الطلاب');
+        $valid_code = (SM_Settings::get_class_security_code($student->class_name, $student->section) === $code);
+
+        if (!$is_staff && !$valid_code) {
+            wp_send_json_error('Unauthorized');
+        }
+
         $date = sanitize_text_field($_POST['date']);
         $teacher_id = get_current_user_id();
 

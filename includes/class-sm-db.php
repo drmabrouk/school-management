@@ -3,11 +3,18 @@
 class SM_DB {
     public static function get_students($filters = array()) {
         global $wpdb;
+        // Optimized: Reduced wildcard usage for student_code if it looks like a code
         $query = "SELECT * FROM {$wpdb->prefix}sm_students WHERE 1=1";
         
         if (!empty($filters['search'])) {
-            $search = '%' . $wpdb->esc_like($filters['search']) . '%';
-            $query .= $wpdb->prepare(" AND (name LIKE %s OR student_code LIKE %s OR class_name LIKE %s OR section LIKE %s)", $search, $search, $search, $search);
+            $search_str = trim($filters['search']);
+            $search_like = '%' . $wpdb->esc_like($search_str) . '%';
+
+            if (preg_match('/^ST[0-9]+$/i', $search_str)) {
+                $query .= $wpdb->prepare(" AND (student_code = %s OR name LIKE %s)", $search_str, $search_like);
+            } else {
+                $query .= $wpdb->prepare(" AND (name LIKE %s OR student_code LIKE %s OR class_name LIKE %s OR section LIKE %s)", $search_like, $search_like, $search_like, $search_like);
+            }
         }
         
         if (!empty($filters['class_name'])) {
@@ -367,11 +374,21 @@ class SM_DB {
         }
 
         $stats['total_teachers'] = count(get_users(array('role' => 'sm_teacher')));
-        $stats['violations_today'] = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}sm_records $where AND DATE(created_at) = CURDATE()");
-        $stats['violations_week'] = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}sm_records $where AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
-        $stats['violations_month'] = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}sm_records $where AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
         
-        $stats['total_actions'] = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}sm_records $where AND (action_taken != '' OR reward_penalty != '')");
+        // Optimized: Combined counts in a single query
+        $summary_counts = $wpdb->get_row("
+            SELECT
+                COUNT(CASE WHEN DATE(created_at) = CURDATE() THEN 1 END) as violations_today,
+                COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 END) as violations_week,
+                COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as violations_month,
+                COUNT(CASE WHEN action_taken != '' OR reward_penalty != '' THEN 1 END) as total_actions
+            FROM {$wpdb->prefix}sm_records $where
+        ");
+
+        $stats['violations_today'] = $summary_counts->violations_today;
+        $stats['violations_week'] = $summary_counts->violations_week;
+        $stats['violations_month'] = $summary_counts->violations_month;
+        $stats['total_actions'] = $summary_counts->total_actions;
 
         $stats['top_students'] = $wpdb->get_results("
             SELECT s.name, COUNT(r.id) as count 
@@ -636,6 +653,10 @@ class SM_DB {
         global $wpdb;
         $db_structure = SM_Settings::get_sections_from_db();
         $summary = array();
+
+        if (!is_array($db_structure) || empty($db_structure)) {
+            return $summary;
+        }
 
         ksort($db_structure, SORT_NUMERIC);
 
