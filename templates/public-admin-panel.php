@@ -479,6 +479,7 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                             <button class="sm-tab-btn sm-active" onclick="smOpenInternalTab('school-settings', this)">بيانات المدرسة</button>
                             <button class="sm-tab-btn" onclick="smOpenInternalTab('design-settings', this)">تصميم النظام</button>
                             <button class="sm-tab-btn" onclick="smOpenInternalTab('app-settings', this)">إعدادات المخالفات</button>
+                            <button class="sm-tab-btn" onclick="smOpenInternalTab('violation-hierarchy', this)">تخصيص اللائحة</button>
                             <button class="sm-tab-btn" onclick="smOpenInternalTab('user-settings', this)">إدارة المستخدمين</button>
                             <button class="sm-tab-btn" onclick="smOpenInternalTab('school-structure', this)">الهيكل المدرسي</button>
                             <button class="sm-tab-btn" onclick="smOpenInternalTab('backup-settings', this)">مركز النسخ الاحتياطي</button>
@@ -542,7 +543,7 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                                 <?php wp_nonce_field('sm_admin_action', 'sm_admin_nonce'); ?>
                                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
                                     <div class="sm-form-group">
-                                        <label class="sm-label">أنواع المخالفات (مفتاح|اسم):</label>
+                                        <label class="sm-label">أنواع المخالفات العامة (مفتاح|اسم):</label>
                                         <textarea name="violation_types" class="sm-textarea" rows="5"><?php foreach(SM_Settings::get_violation_types() as $k=>$v) echo "$k|$v\n"; ?></textarea>
                                     </div>
                                     <div class="sm-form-group">
@@ -558,6 +559,60 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                                 </div>
                                 <button type="submit" name="sm_save_violation_settings" class="sm-btn" style="width:auto;">حفظ إعدادات المخالفات</button>
                             </form>
+                        </div>
+
+                        <div id="violation-hierarchy" class="sm-internal-tab" style="display:none;">
+                            <form method="post">
+                                <?php wp_nonce_field('sm_admin_action', 'sm_admin_nonce');
+                                $h_violations = SM_Settings::get_hierarchical_violations();
+                                ?>
+                                <h4 style="margin-top:0;">إدارة اللائحة التنظيمية والمخالفات الهرمية</h4>
+                                <p style="font-size:12px; color:#666; margin-bottom:20px;">يمكنك هنا تعديل تفاصيل المخالفات، النقاط المستحقة، والإجراءات الافتراضية لكل مستوى.</p>
+
+                                <?php for($i=1; $i<=4; $i++): ?>
+                                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:20px; margin-bottom:20px;">
+                                        <div style="font-weight:800; color:var(--sm-primary-color); margin-bottom:15px; display:flex; justify-content:space-between; align-items:center;">
+                                            <span>المستوى <?php echo $i; ?> (الدرجة <?php echo $i; ?>)</span>
+                                            <span style="font-size:11px; background:#fff; padding:2px 10px; border-radius:4px; color:#666; border:1px solid #ddd;">المخالفات: <?php echo count($h_violations[$i]); ?></span>
+                                        </div>
+                                        <div style="display:grid; grid-template-columns: 80px 1fr 60px 1fr auto; gap:10px; font-weight:700; font-size:11px; margin-bottom:10px; border-bottom:1px solid #eee; padding-bottom:5px;">
+                                            <div>الكود</div>
+                                            <div>الوصف / المسمى</div>
+                                            <div>النقاط</div>
+                                            <div>الإجراء المقترح</div>
+                                            <div>-</div>
+                                        </div>
+                                        <?php foreach($h_violations[$i] as $code => $v): ?>
+                                            <div style="display:grid; grid-template-columns: 80px 1fr 60px 1fr auto; gap:10px; margin-bottom:8px;">
+                                                <input type="text" name="h_viol[<?php echo $i; ?>][<?php echo $code; ?>][code]" value="<?php echo esc_attr($code); ?>" class="sm-input" style="padding:5px; font-size:12px;">
+                                                <input type="text" name="h_viol[<?php echo $i; ?>][<?php echo $code; ?>][name]" value="<?php echo esc_attr($v['name']); ?>" class="sm-input" style="padding:5px; font-size:12px;">
+                                                <input type="number" name="h_viol[<?php echo $i; ?>][<?php echo $code; ?>][points]" value="<?php echo esc_attr($v['points']); ?>" class="sm-input" style="padding:5px; font-size:12px;">
+                                                <input type="text" name="h_viol[<?php echo $i; ?>][<?php echo $code; ?>][action]" value="<?php echo esc_attr($v['action']); ?>" class="sm-input" style="padding:5px; font-size:12px;">
+                                                <button type="button" onclick="this.parentElement.remove()" class="sm-btn sm-btn-outline" style="padding:0; width:28px; height:28px; color:red;">×</button>
+                                            </div>
+                                        <?php endforeach; ?>
+                                        <button type="button" class="sm-btn sm-btn-outline" style="font-size:11px; margin-top:10px;" onclick="addViolationRow(<?php echo $i; ?>, this)">+ إضافة بند جديد للمستوى <?php echo $i; ?></button>
+                                    </div>
+                                <?php endfor; ?>
+
+                                <button type="submit" name="sm_save_hierarchical_violations" class="sm-btn" style="width:auto; margin-top:10px;">حفظ اللائحة بالكامل</button>
+                            </form>
+                            <script>
+                            function addViolationRow(level, btn) {
+                                const container = btn.parentElement;
+                                const div = document.createElement('div');
+                                div.style = "display:grid; grid-template-columns: 80px 1fr 60px 1fr auto; gap:10px; margin-bottom:8px;";
+                                const id = 'new_' + Math.random().toString(36).substr(2, 5);
+                                div.innerHTML = `
+                                    <input type="text" name="h_viol[${level}][${id}][code]" placeholder="كود" class="sm-input" style="padding:5px; font-size:12px;">
+                                    <input type="text" name="h_viol[${level}][${id}][name]" placeholder="الوصف" class="sm-input" style="padding:5px; font-size:12px;">
+                                    <input type="number" name="h_viol[${level}][${id}][points]" value="0" class="sm-input" style="padding:5px; font-size:12px;">
+                                    <input type="text" name="h_viol[${level}][${id}][action]" placeholder="الإجراء" class="sm-input" style="padding:5px; font-size:12px;">
+                                    <button type="button" onclick="this.parentElement.remove()" class="sm-btn sm-btn-outline" style="padding:0; width:28px; height:28px; color:red;">×</button>
+                                `;
+                                btn.before(div);
+                            }
+                            </script>
                         </div>
                         <div id="user-settings" class="sm-internal-tab" style="display:none;">
                             <?php include SM_PLUGIN_DIR . 'templates/admin-users-view.php'; ?>

@@ -25,6 +25,8 @@ class SM_Activator {
             teacher_id bigint(20) DEFAULT NULL,
             photo_url varchar(255) DEFAULT '',
             sort_order int(11) DEFAULT 0,
+            behavior_points int(11) DEFAULT 0,
+            case_file_active tinyint(1) DEFAULT 0,
             PRIMARY KEY  (id),
             KEY student_code (student_code),
             KEY teacher_id (teacher_id),
@@ -38,6 +40,10 @@ class SM_Activator {
             type varchar(100) NOT NULL,
             classification varchar(100) DEFAULT 'general',
             severity varchar(50) NOT NULL,
+            degree int(11) DEFAULT 1,
+            violation_code varchar(50) DEFAULT '',
+            points int(11) DEFAULT 0,
+            recurrence_count int(11) DEFAULT 1,
             details text NOT NULL,
             action_taken text,
             reward_penalty text,
@@ -46,7 +52,9 @@ class SM_Activator {
             PRIMARY KEY  (id),
             KEY student_id (student_id),
             KEY teacher_id (teacher_id),
-            KEY status (status)
+            KEY status (status),
+            KEY degree (degree),
+            KEY violation_code (violation_code)
         ) $charset_collate;
 
         CREATE TABLE $table_logs (

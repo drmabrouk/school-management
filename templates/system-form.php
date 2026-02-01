@@ -38,16 +38,27 @@
             <input type="hidden" name="student_ids" id="selected_student_ids" required>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
-            <div class="sm-form-group">
-                <label class="sm-label">نوع المخالفة:</label>
-                <select name="type" id="violation_type" class="sm-select">
-                    <?php foreach (SM_Settings::get_violation_types() as $key => $label): ?>
-                        <option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></option>
-                    <?php endforeach; ?>
+        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 25px;">
+            <div class="sm-form-group" style="margin-bottom:0;">
+                <label class="sm-label">درجة المخالفة (المستوى):</label>
+                <select name="degree" id="violation_degree" class="sm-select" onchange="updateHierarchicalViolations()" required>
+                    <option value="">-- اختر الدرجة --</option>
+                    <option value="1">المستوى الأول (بسيطة)</option>
+                    <option value="2">المستوى الثاني (متوسطة)</option>
+                    <option value="3">المستوى الثالث (جسيمة)</option>
+                    <option value="4">المستوى الرابع (شديدة الخطورة)</option>
                 </select>
             </div>
 
+            <div class="sm-form-group" style="margin-bottom:0;">
+                <label class="sm-label">البند القانوني / نوع المخالفة:</label>
+                <select name="violation_code" id="violation_code_select" class="sm-select" onchange="onViolationSelected()" required disabled>
+                    <option value="">-- اختر البند --</option>
+                </select>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
             <div class="sm-form-group">
                 <label class="sm-label">تصنيف الموقف:</label>
                 <select name="classification" class="sm-select">
@@ -60,13 +71,19 @@
             </div>
 
             <div class="sm-form-group">
-                <label class="sm-label">درجة الحدة:</label>
+                <label class="sm-label">النقاط المستحقة:</label>
+                <input type="number" name="points" id="violation_points" class="sm-input" value="0">
+            </div>
+
+            <div class="sm-form-group">
+                <label class="sm-label">درجة الحدة (تلقائي):</label>
                 <select name="severity" id="violation_severity" class="sm-select">
                     <option value="low">منخفضة (تنبيه)</option>
                     <option value="medium">متوسطة (إنذار)</option>
                     <option value="high">خطيرة (إجراء تأديبي)</option>
                 </select>
             </div>
+            <input type="hidden" name="type" id="hidden_violation_type">
         </div>
 
         <div class="sm-form-group">
@@ -92,6 +109,46 @@
 </div>
 
 <script>
+const hViolations = <?php echo json_encode(SM_Settings::get_hierarchical_violations()); ?>;
+
+function updateHierarchicalViolations() {
+    const degree = document.getElementById('violation_degree').value;
+    const select = document.getElementById('violation_code_select');
+
+    select.innerHTML = '<option value="">-- اختر البند --</option>';
+    if (!degree || !hViolations[degree]) {
+        select.disabled = true;
+        return;
+    }
+
+    Object.keys(hViolations[degree]).forEach(code => {
+        const v = hViolations[degree][code];
+        const opt = document.createElement('option');
+        opt.value = code;
+        opt.innerText = code + ' - ' + v.name;
+        select.appendChild(opt);
+    });
+    select.disabled = false;
+}
+
+function onViolationSelected() {
+    const degree = document.getElementById('violation_degree').value;
+    const code = document.getElementById('violation_code_select').value;
+
+    if (!degree || !code || !hViolations[degree][code]) return;
+
+    const v = hViolations[degree][code];
+    document.getElementById('violation_points').value = v.points;
+    document.getElementById('action_taken').value = v.action;
+    document.getElementById('hidden_violation_type').value = v.name;
+
+    // Auto severity
+    const sev = document.getElementById('violation_severity');
+    if (degree == 1) sev.value = 'low';
+    else if (degree == 2) sev.value = 'medium';
+    else sev.value = 'high';
+}
+
 (function() {
 <?php $suggested = SM_Settings::get_suggested_actions(); ?>
 const severityActions = {

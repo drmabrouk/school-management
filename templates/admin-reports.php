@@ -19,6 +19,10 @@
             <h4 style="margin-top:0; border-bottom: 1px solid #eee; padding-bottom: 10px;">أكثر الطلاب مخالفة (تكرار)</h4>
             <canvas id="topStudentsChart" style="max-height: 250px;"></canvas>
         </div>
+        <div style="background: #fff; padding: 25px; border: 1px solid var(--sm-border-color); border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <h4 style="margin-top:0; border-bottom: 1px solid #eee; padding-bottom: 10px;">توزيع المخالفات حسب الدرجة</h4>
+            <canvas id="degreeChart" style="max-height: 250px;"></canvas>
+        </div>
     </div>
 
     <script>
@@ -75,6 +79,23 @@
                             label: 'عدد المخالفات',
                         data: [<?php if(!empty($stats['top_students'] ?? [])) foreach($stats['top_students'] as $s) echo ($s->count ?? 0).','; ?>],
                             backgroundColor: '#F63049'
+                        }]
+                    },
+                    options: { ...chartOptions, scales: { y: { beginAtZero: true } } }
+                });
+            }
+
+            // Degree Chart
+            const degreeEl = document.getElementById('degreeChart');
+            if (degreeEl) {
+                new Chart(degreeEl, {
+                    type: 'bar',
+                    data: {
+                    labels: [<?php if(!empty($stats['by_degree'] ?? [])) foreach($stats['by_degree'] as $s) echo '"الدرجة '.esc_js($s->degree ?? '---').'",'; ?>],
+                        datasets: [{
+                            label: 'عدد الحالات',
+                        data: [<?php if(!empty($stats['by_degree'] ?? [])) foreach($stats['by_degree'] as $s) echo ($s->count ?? 0).','; ?>],
+                            backgroundColor: '#111F35'
                         }]
                     },
                     options: { ...chartOptions, scales: { y: { beginAtZero: true } } }

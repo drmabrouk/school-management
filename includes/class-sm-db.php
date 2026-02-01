@@ -134,23 +134,66 @@ class SM_DB {
             $status = 'pending';
         }
 
-        if (!$skip_log) {
-            SM_Logger::log('تسجيل مخالفة', "معرف الطالب: {$data['student_id']}، النوع: {$data['type']}، الحالة: $status");
+        $student_id = intval($data['student_id']);
+        $violation_code = sanitize_text_field($data['violation_code'] ?? '');
+        $degree = intval($data['degree'] ?? 1);
+        $points = intval($data['points'] ?? 0);
+
+        // Recurrence Tracking
+        $recurrence = 1;
+        if (!empty($violation_code)) {
+            $count = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}sm_records WHERE student_id = %d AND violation_code = %s",
+                $student_id, $violation_code
+            ));
+            $recurrence = intval($count) + 1;
         }
+
+        // Automatic Escalation (e.g. double points on 3rd recurrence)
+        if ($recurrence >= 3) {
+            $points = floor($points * 1.5);
+            $data['action_taken'] .= ' (تكرار للمرة الثالثة - تصعيد تلقائي)';
+        }
+
+        if (!$skip_log) {
+            SM_Logger::log('تسجيل مخالفة', "معرف الطالب: $student_id، النوع: {$data['type']}، الدرجة: $degree");
+        }
+
         $inserted = $wpdb->insert(
             "{$wpdb->prefix}sm_records",
             array(
-                'student_id' => sanitize_text_field($data['student_id']),
+                'student_id' => $student_id,
                 'teacher_id' => get_current_user_id(),
                 'type' => sanitize_text_field($data['type']),
                 'classification' => sanitize_text_field($data['classification'] ?? 'general'),
                 'severity' => sanitize_text_field($data['severity']),
+                'degree' => $degree,
+                'violation_code' => $violation_code,
+                'points' => $points,
+                'recurrence_count' => $recurrence,
                 'details' => sanitize_textarea_field($data['details']),
                 'action_taken' => sanitize_text_field($data['action_taken']),
                 'reward_penalty' => sanitize_text_field($data['reward_penalty']),
                 'status' => $status
             )
         );
+
+        if ($inserted && $status === 'accepted') {
+            // Update student points and case file
+            $wpdb->query($wpdb->prepare(
+                "UPDATE {$wpdb->prefix}sm_students SET behavior_points = behavior_points + %d WHERE id = %d",
+                $points, $student_id
+            ));
+
+            $total_points = $wpdb->get_var($wpdb->prepare("SELECT behavior_points FROM {$wpdb->prefix}sm_students WHERE id = %d", $student_id));
+
+            // Thresholds for Student Case File
+            if ($total_points >= 20 || ($degree >= 3 && $recurrence >= 1)) {
+                $wpdb->update("{$wpdb->prefix}sm_students", array('case_file_active' => 1), array('id' => $student_id));
+                SM_Logger::log('فتح ملف حالة طالب', "معرف الطالب: $student_id بسبب وصول النقاط إلى $total_points");
+            }
+        }
+
         return $inserted ? $wpdb->insert_id : false;
     }
 
@@ -449,8 +492,11 @@ class SM_DB {
         global $wpdb;
         $stats = array();
         $stats['total'] = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}sm_records WHERE student_id = %d", $student_id));
+        $stats['points'] = $wpdb->get_var($wpdb->prepare("SELECT behavior_points FROM {$wpdb->prefix}sm_students WHERE id = %d", $student_id));
+        $stats['case_file'] = $wpdb->get_var($wpdb->prepare("SELECT case_file_active FROM {$wpdb->prefix}sm_students WHERE id = %d", $student_id));
         $stats['by_type'] = $wpdb->get_results($wpdb->prepare("SELECT type, COUNT(*) as count FROM {$wpdb->prefix}sm_records WHERE student_id = %d GROUP BY type", $student_id));
         $stats['by_severity'] = $wpdb->get_results($wpdb->prepare("SELECT severity, COUNT(*) as count FROM {$wpdb->prefix}sm_records WHERE student_id = %d GROUP BY severity", $student_id));
+        $stats['by_degree'] = $wpdb->get_results($wpdb->prepare("SELECT degree, COUNT(*) as count FROM {$wpdb->prefix}sm_records WHERE student_id = %d GROUP BY degree", $student_id));
         
         // Intelligence: Last action and frequent type
         $stats['last_action'] = $wpdb->get_var($wpdb->prepare("SELECT action_taken FROM {$wpdb->prefix}sm_records WHERE student_id = %d AND action_taken != '' ORDER BY created_at DESC LIMIT 1", $student_id));

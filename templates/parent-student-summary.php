@@ -15,16 +15,33 @@
                 <span style="display: flex; align-items: center; gap: 8px;"><span class="dashicons dashicons-id"></span> كود: <?php echo esc_html($student->student_code); ?></span>
             </div>
         </div>
-        <div style="text-align: left;">
+        <div style="text-align: left; display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
+            <?php if ($stats['case_file']): ?>
+                <div style="background: #e53e3e; color: white; padding: 5px 15px; border-radius: 50px; font-size: 12px; font-weight: 800; border: 2px solid rgba(255,255,255,0.4); animation: pulse 2s infinite;">
+                    🔴 ملف متابعة سلوكية مفتوح
+                </div>
+            <?php endif; ?>
             <a href="<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=disciplinary_report&student_id=' . $student->id); ?>" target="_blank" class="sm-btn" style="background: white !important; color: var(--sm-primary-color) !important; width: auto; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">📂 تحميل الملف الشامل PDF</a>
         </div>
     </div>
 </div>
 
+<style>
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
+}
+</style>
+
 <div class="sm-card-grid" style="margin-bottom: 40px;">
-    <div class="sm-stat-card">
+    <div class="sm-stat-card" style="border-right: 5px solid #F63049;">
         <div style="font-size: 0.85em; color: var(--sm-text-gray); margin-bottom: 10px; font-weight: 700;">إجمالي المخالفات</div>
-        <div style="font-size: 2.5em; font-weight: 900; color: #e74c3c;"><?php echo $stats['total'] ?? 0; ?></div>
+        <div style="font-size: 2.5em; font-weight: 900; color: #F63049;"><?php echo $stats['total'] ?? 0; ?></div>
+    </div>
+    <div class="sm-stat-card" style="border-right: 5px solid #111F35;">
+        <div style="font-size: 0.85em; color: var(--sm-text-gray); margin-bottom: 10px; font-weight: 700;">النقاط السلوكية المستحقة</div>
+        <div style="font-size: 2.5em; font-weight: 900; color: #111F35;"><?php echo $stats['points'] ?? 0; ?></div>
     </div>
     <div class="sm-stat-card">
         <div style="font-size: 0.85em; color: var(--sm-text-gray); margin-bottom: 10px; font-weight: 700;">مخالفات خطيرة</div>

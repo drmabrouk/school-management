@@ -850,6 +850,31 @@ class SM_Public {
     }
 
     public function handle_form_submission() {
+        // Handle Hierarchical Violations Save
+        if (isset($_POST['sm_save_hierarchical_violations']) && wp_verify_nonce($_POST['sm_admin_nonce'], 'sm_admin_action')) {
+            if (current_user_can('إدارة_النظام')) {
+                $processed = array();
+                if (isset($_POST['h_viol']) && is_array($_POST['h_viol'])) {
+                    foreach ($_POST['h_viol'] as $level => $items) {
+                        $processed[$level] = array();
+                        foreach ($items as $item) {
+                            if (!empty($item['name'])) {
+                                $code = !empty($item['code']) ? $item['code'] : 'V'.rand(100,999);
+                                $processed[$level][$code] = array(
+                                    'name' => sanitize_text_field($item['name']),
+                                    'points' => intval($item['points']),
+                                    'action' => sanitize_text_field($item['action'])
+                                );
+                            }
+                        }
+                    }
+                }
+                SM_Settings::save_hierarchical_violations($processed);
+                wp_redirect(add_query_arg('sm_admin_msg', 'settings_saved', $_SERVER['REQUEST_URI']));
+                exit;
+            }
+        }
+
         // Handle Parent Call-in Request
         if (isset($_POST['sm_send_call_in']) && wp_verify_nonce($_POST['sm_nonce'], 'sm_message_action')) {
             if (current_user_can('إدارة_أولياء_الأمور')) {
