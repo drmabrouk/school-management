@@ -179,8 +179,10 @@
                 <tr>
                     <th>الطالب</th>
                     <th>التاريخ</th>
-                    <th>نوع المخالفة</th>
-                    <th>التفاصيل</th>
+                    <th>الدرجة</th>
+                    <th>البند</th>
+                    <th>النقاط</th>
+                    <th>تكرار</th>
                     <th>الحدة</th>
                     <th>الإجراءات</th>
                 </tr>
@@ -206,10 +208,13 @@
                                 <div style="font-size: 11px; color: var(--sm-text-gray);"><?php echo SM_Settings::format_grade_name($row->class_name, $row->section, 'short'); ?></div>
                             </td>
                             <td><?php echo date('Y-m-d', strtotime($row->created_at)); ?></td>
-                            <td><span class="sm-badge sm-badge-low" style="background: var(--sm-pastel-red); color: var(--sm-primary-color);"><?php echo $type_labels[$row->type] ?? $row->type; ?></span></td>
+                            <td style="text-align:center;"><span style="font-weight:900; color:var(--sm-primary-color);"><?php echo (int)$row->degree; ?></span></td>
                             <td>
-                                <div style="max-width: 300px; font-size: 13px; color: #4a5568;"><?php echo esc_html($row->details); ?></div>
+                                <div style="font-weight:600;"><?php echo esc_html($row->violation_code); ?></div>
+                                <div style="font-size:11px; color:#718096;"><?php echo $row->type; ?></div>
                             </td>
+                            <td style="text-align:center; font-weight:800; color:#111F35;"><?php echo (int)$row->points; ?></td>
+                            <td style="text-align:center;"><span class="sm-badge" style="background:#edf2f7; color:#4a5568;"><?php echo (int)$row->recurrence_count; ?></span></td>
                             <td>
                                 <span class="sm-badge sm-badge-<?php echo esc_attr($row->severity); ?>">
                                     <?php echo $severity_labels[$row->severity] ?? $row->severity; ?>

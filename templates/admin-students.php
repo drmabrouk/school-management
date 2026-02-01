@@ -166,6 +166,7 @@ if ($import_results) {
                     <th>اسم الطالب</th>
                     <th>الصف</th>
                     <th>الشعبة</th>
+                    <th>النقاط</th>
                     <th>الإجراءات</th>
                 </tr>
             </thead>
@@ -191,6 +192,14 @@ if ($import_results) {
                             <td style="font-weight: 800; color: var(--sm-dark-color);"><?php echo esc_html($student->name); ?></td>
                             <td><?php echo esc_html($student->class_name); ?></td>
                             <td><span class="sm-badge sm-badge-low"><?php echo esc_html($student->section); ?></span></td>
+                            <td style="text-align:center;">
+                                <div style="font-weight:900; color:<?php echo $student->behavior_points > 15 ? '#e53e3e' : '#111F35'; ?>;">
+                                    <?php echo (int)$student->behavior_points; ?>
+                                    <?php if ($student->case_file_active): ?>
+                                        <div style="font-size:9px; color:#e53e3e; font-weight:800;">[ملف مفتوح]</div>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
                             <td>
                                 <div style="display: flex; gap: 8px; justify-content: flex-end;">
                                     <button onclick='viewSmStudent(<?php echo json_encode(array(
