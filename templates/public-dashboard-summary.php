@@ -31,60 +31,6 @@
     </div>
 </div>
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 40px;">
-    <!-- Top Violating Students -->
-    <div style="background: #fff; padding: 25px; border-radius: 12px; border: 1px solid var(--sm-border-color);">
-        <h3 style="margin-top:0; border-bottom: 1px solid #eee; padding-bottom: 15px; font-size: 1.1em;">أكثر 5 طلاب تسجيلاً للمخالفات</h3>
-        <div class="sm-table-container" style="border:none;">
-            <table class="sm-table">
-                <thead>
-                    <tr>
-                        <th>الطالب</th>
-                        <th>عدد المخالفات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($stats['top_students'] ?? [])): ?>
-                        <tr><td colspan="2" style="text-align:center; padding:20px;">لا يوجد بيانات كافية.</td></tr>
-                    <?php else: ?>
-                        <?php foreach ($stats['top_students'] as $stu): ?>
-                            <tr>
-                                <td style="font-weight:700; color:var(--sm-primary-color);"><?php echo esc_html($stu->name ?? '---'); ?></td>
-                                <td><span class="sm-badge sm-badge-high"><?php echo esc_html($stu->count ?? 0); ?></span></td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Severity Breakdown -->
-    <div style="background: #fff; padding: 25px; border-radius: 12px; border: 1px solid var(--sm-border-color);">
-        <h3 style="margin-top:0; border-bottom: 1px solid #eee; padding-bottom: 15px; font-size: 1.1em;">المخالفات حسب الحدة</h3>
-        <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;">
-            <?php 
-            $severity_labels = SM_Settings::get_severities();
-            $total = 0;
-            $by_sev = $stats['by_severity'] ?? [];
-            foreach($by_sev as $s) $total += $s->count;
-            foreach ($by_sev as $s): 
-                $perc = $total > 0 ? round(($s->count / $total) * 100) : 0;
-                $color = ($s->severity ?? '') == 'high' ? '#111F35' : (($s->severity ?? '') == 'medium' ? '#D02752' : '#F63049');
-            ?>
-                <div>
-                    <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:0.9em;">
-                        <strong><?php echo esc_html($severity_labels[$s->severity] ?? ($s->severity ?? '---')); ?></strong>
-                        <span><?php echo esc_html($s->count ?? 0); ?> (<?php echo (int)$perc; ?>%)</span>
-                    </div>
-                    <div style="height:8px; background:#edf2f7; border-radius:4px; overflow:hidden;">
-                        <div style="height:100%; width:<?php echo (int)$perc; ?>%; background:<?php echo esc_attr($color); ?>;"></div>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-        </div>
-    </div>
-</div>
 
 
 

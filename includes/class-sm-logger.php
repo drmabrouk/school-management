@@ -13,11 +13,17 @@ class SM_Logger {
         );
     }
 
-    public static function get_logs($limit = 100) {
+    public static function get_logs($limit = 100, $offset = 0) {
         global $wpdb;
         return $wpdb->get_results($wpdb->prepare(
-            "SELECT l.*, u.display_name FROM {$wpdb->prefix}sm_logs l LEFT JOIN {$wpdb->base_prefix}users u ON l.user_id = u.ID ORDER BY l.created_at DESC LIMIT %d",
-            $limit
+            "SELECT l.*, u.display_name FROM {$wpdb->prefix}sm_logs l LEFT JOIN {$wpdb->base_prefix}users u ON l.user_id = u.ID ORDER BY l.created_at DESC LIMIT %d OFFSET %d",
+            $limit,
+            $offset
         ));
+    }
+
+    public static function get_total_logs() {
+        global $wpdb;
+        return (int)$wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}sm_logs");
     }
 }

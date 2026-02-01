@@ -24,21 +24,21 @@
             $total_late += $card['stats']['late'];
         }
         ?>
-        <div class="sm-stat-card" style="padding: 15px;">
+        <div class="sm-stat-card" style="padding: 15px; background: #f8fafc; border: 1px solid #e2e8f0;">
             <div style="font-size: 11px; color: var(--sm-text-gray); font-weight: 700;">إجمالي الطلاب</div>
-            <div style="font-size: 1.5em; font-weight: 900; color: var(--sm-dark-color);"><?php echo $total_students; ?></div>
+            <div style="font-size: 1.8em; font-weight: 900; color: var(--sm-dark-color);"><?php echo $total_students; ?></div>
         </div>
-        <div class="sm-stat-card" style="padding: 15px; border-bottom: 3px solid #38a169;">
-            <div style="font-size: 11px; color: var(--sm-text-gray); font-weight: 700;">حضور</div>
-            <div style="font-size: 1.5em; font-weight: 900; color: #38a169;"><?php echo $total_present; ?></div>
+        <div class="sm-stat-card" style="padding: 15px; border: 1px solid #c6f6d5; background: #f0fff4;">
+            <div style="font-size: 11px; color: #2f855a; font-weight: 700;">حضور</div>
+            <div style="font-size: 1.8em; font-weight: 900; color: #38a169;"><?php echo $total_present; ?></div>
         </div>
-        <div class="sm-stat-card" style="padding: 15px; border-bottom: 3px solid #e53e3e;">
-            <div style="font-size: 11px; color: var(--sm-text-gray); font-weight: 700;">غياب</div>
-            <div style="font-size: 1.5em; font-weight: 900; color: #e53e3e;"><?php echo $total_absent; ?></div>
+        <div class="sm-stat-card" style="padding: 15px; border: 1px solid #fed7d7; background: #fff5f5;">
+            <div style="font-size: 11px; color: #c53030; font-weight: 700;">غياب</div>
+            <div style="font-size: 1.8em; font-weight: 900; color: #e53e3e;"><?php echo $total_absent; ?></div>
         </div>
-        <div class="sm-stat-card" style="padding: 15px; border-bottom: 3px solid #ecc94b;">
-            <div style="font-size: 11px; color: var(--sm-text-gray); font-weight: 700;">تأخير</div>
-            <div style="font-size: 1.5em; font-weight: 900; color: #ecc94b;"><?php echo $total_late; ?></div>
+        <div class="sm-stat-card" style="padding: 15px; border: 1px solid #feebc8; background: #fffaf0;">
+            <div style="font-size: 11px; color: #c05621; font-weight: 700;">تأخير</div>
+            <div style="font-size: 1.8em; font-weight: 900; color: #ecc94b;"><?php echo $total_late; ?></div>
         </div>
     </div>
 

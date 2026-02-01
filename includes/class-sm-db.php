@@ -565,21 +565,15 @@ class SM_DB {
     // Attendance Management
     public static function get_attendance_summary($date) {
         global $wpdb;
-        $academic = SM_Settings::get_academic_structure();
+        $db_structure = SM_Settings::get_sections_from_db();
         $summary = array();
 
-        $active_grades = $academic['active_grades'] ?? array();
-        sort($active_grades, SORT_NUMERIC);
+        ksort($db_structure, SORT_NUMERIC);
 
-        foreach ($active_grades as $grade_num) {
+        foreach ($db_structure as $grade_num => $sections) {
             $class_name = 'الصف ' . $grade_num;
-            $gs = $academic['grade_sections'][$grade_num] ?? array('count' => $academic['sections_count'], 'letters' => $academic['section_letters']);
-            $letters = array_map('trim', explode(',', $gs['letters']));
 
-            for ($i = 0; $i < $gs['count']; $i++) {
-                $section = $letters[$i] ?? '';
-                if (empty($section)) continue;
-
+            foreach ($sections as $section) {
                 // Count students
                 $student_count = $wpdb->get_var($wpdb->prepare(
                     "SELECT COUNT(*) FROM {$wpdb->prefix}sm_students WHERE class_name = %s AND section = %s",

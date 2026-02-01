@@ -277,6 +277,7 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
             </div>
 
             <?php if ($is_admin || current_user_can('إدارة_الطلاب')): ?>
+                <a href="/Lesson" class="sm-btn" style="background: #8A244B; height: 38px; font-size: 12px; color: white !important; text-decoration: none;">تحضير الدروس</a>
                 <a href="<?php echo add_query_arg('sm_tab', 'attendance'); ?>" class="sm-btn sm-btn-secondary" style="height: 38px; font-size: 12px; color: white !important; text-decoration: none;">سجل الحضور والغياب</a>
             <?php endif; ?>
 
@@ -349,9 +350,6 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                 <?php if ($is_admin || current_user_can('إدارة_الطلاب')): ?>
                     <li class="sm-sidebar-item <?php echo $active_tab == 'students' ? 'sm-active' : ''; ?>">
                         <a href="<?php echo add_query_arg('sm_tab', 'students'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-groups"></span> إدارة الطلاب</a>
-                    </li>
-                    <li class="sm-sidebar-item <?php echo $active_tab == 'attendance' ? 'sm-active' : ''; ?>">
-                        <a href="<?php echo add_query_arg('sm_tab', 'attendance'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-clock"></span> سجل الحضور والغياب</a>
                     </li>
                 <?php endif; ?>
 
@@ -756,7 +754,13 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                                         </thead>
                                         <tbody>
                                             <?php 
-                                            $all_logs = SM_Logger::get_logs(100);
+                                            $limit = 20;
+                                            $page_num = isset($_GET['log_page']) ? max(1, intval($_GET['log_page'])) : 1;
+                                            $offset = ($page_num - 1) * $limit;
+                                            $all_logs = SM_Logger::get_logs($limit, $offset);
+                                            $total_logs = SM_Logger::get_total_logs();
+                                            $total_pages = ceil($total_logs / $limit);
+
                                             foreach ($all_logs as $log):
                                                 $can_rollback = strpos($log->details, 'ROLLBACK_DATA:') === 0;
                                             ?>
@@ -776,6 +780,17 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                                         </tbody>
                                     </table>
                                 </div>
+                                <?php if ($total_pages > 1): ?>
+                                    <div style="display:flex; justify-content:center; gap:10px; margin-top:20px;">
+                                        <?php if ($page_num > 1): ?>
+                                            <a href="<?php echo add_query_arg('log_page', $page_num - 1); ?>" class="sm-btn sm-btn-outline" style="width:auto; padding:5px 15px; text-decoration:none;">السابق</a>
+                                        <?php endif; ?>
+                                        <span style="align-self:center; font-size:13px;">صفحة <?php echo $page_num; ?> من <?php echo $total_pages; ?></span>
+                                        <?php if ($page_num < $total_pages): ?>
+                                            <a href="<?php echo add_query_arg('log_page', $page_num + 1); ?>" class="sm-btn sm-btn-outline" style="width:auto; padding:5px 15px; text-decoration:none;">التالي</a>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                         <?php endif; ?>

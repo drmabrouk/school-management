@@ -11,11 +11,13 @@
         body { font-family: 'Rubik', sans-serif; background: #f8fafc; margin: 0; padding: 20px; color: #2d3748; }
         .cards-container {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: auto auto;
-            gap: 40px;
-            justify-items: center;
+            grid-template-columns: repeat(2, 90mm);
+            grid-template-rows: repeat(3, 60mm);
+            grid-auto-flow: column;
+            gap: 15mm 20mm;
+            justify-content: center;
             align-content: start;
+            page-break-after: always;
         }
         .id-card { 
             width: 90mm; height: 60mm; background: #fff; border: 1px solid #e2e8f0;
@@ -42,10 +44,12 @@
     <div class="no-print" style="text-align:center; margin-bottom: 20px;">
         <button onclick="window.print()" style="padding: 10px 20px; background: #27ae60; color: white; border: none; cursor: pointer; border-radius: 5px;">بدء الطباعة</button>
     </div>
+    <?php
+    $school = SM_Settings::get_school_info();
+    $chunks = array_chunk($students, 6);
+    foreach ($chunks as $page_students): ?>
     <div class="cards-container">
-        <?php 
-        $school = SM_Settings::get_school_info();
-        foreach ($students as $s): ?>
+        <?php foreach ($page_students as $s): ?>
         <div class="id-card" style="--sm-primary-color: <?php echo SM_Settings::get_appearance()['primary_color']; ?>;">
             <div class="header">
                 <?php if ($school['school_logo']): ?>
@@ -76,5 +80,6 @@
         </div>
         <?php endforeach; ?>
     </div>
+    <?php endforeach; ?>
 </body>
 </html>
