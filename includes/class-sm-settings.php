@@ -215,6 +215,31 @@ class SM_Settings {
         update_option('sm_hierarchical_violations', $data);
     }
 
+    public static function get_class_security_codes() {
+        $codes = get_option('sm_class_security_codes', array());
+        return $codes;
+    }
+
+    public static function get_class_security_code($grade, $section) {
+        $codes = self::get_class_security_codes();
+        $key = $grade . '|' . $section;
+
+        if (!isset($codes[$key])) {
+            return self::reset_class_security_code($grade, $section);
+        }
+
+        return $codes[$key];
+    }
+
+    public static function reset_class_security_code($grade, $section) {
+        $codes = self::get_class_security_codes();
+        $key = $grade . '|' . $section;
+        $new_code = str_pad(rand(0, 9999), 4, '0', STR_PAD_LEFT);
+        $codes[$key] = $new_code;
+        update_option('sm_class_security_codes', $codes);
+        return $new_code;
+    }
+
     public static function get_sections_from_db() {
         global $wpdb;
         $results = $wpdb->get_results("SELECT DISTINCT class_name, section FROM {$wpdb->prefix}sm_students WHERE section != '' ORDER BY class_name ASC, section ASC");

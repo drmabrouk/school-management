@@ -130,6 +130,10 @@ class SM_Activator {
                 'title'   => 'لوحة التحكم المدرسية',
                 'content' => '[sm_admin]',
             ),
+            'attendance' => array(
+                'title'   => 'تسجيل حضور الفصول',
+                'content' => '[sm_class_attendance]',
+            ),
         );
 
         foreach ($pages as $slug => $page_data) {

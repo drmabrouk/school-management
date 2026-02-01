@@ -3,6 +3,12 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
         <h3 style="margin: 0; font-weight: 800;">سجل الحضور والغياب</h3>
         <div style="display: flex; gap: 15px; align-items: center;">
+            <a href="<?php echo home_url('/attendance/'); ?>" class="sm-btn" style="background: var(--sm-accent-color); gap: 10px; text-decoration: none;">
+                <span class="dashicons dashicons-edit"></span> تسجيل الحضور
+            </a>
+            <button onclick="printAttendance('all')" class="sm-btn sm-btn-outline" title="طباعة الكل">
+                <span class="dashicons dashicons-printer"></span> طباعة الكل
+            </button>
             <div class="sm-form-group" style="margin-bottom: 0;">
                 <input type="date" id="attendance-filter-date" class="sm-input" value="<?php echo esc_attr($attendance_date); ?>" onchange="window.location.href='<?php echo add_query_arg('attendance_date', '', $_SERVER['REQUEST_URI']); ?>' + this.value">
             </div>
@@ -54,9 +60,25 @@
     </div>
 
     <!-- Cards Grid -->
-    <div id="attendance-cards-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 25px;">
-        <?php foreach ($attendance_summary as $card):
-            $status_color = '#e53e3e'; // Red (Default Incomplete)
+    <div id="attendance-cards-grid">
+        <?php
+        // Group by Grade
+        $grouped_cards = array();
+        foreach ($attendance_summary as $card) {
+            $grouped_cards[$card['class_name']][] = $card;
+        }
+
+        foreach ($grouped_cards as $grade_name => $cards): ?>
+            <div class="attendance-grade-section" style="margin-bottom: 40px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid var(--sm-border-color); padding-bottom: 10px;">
+                    <h3 style="margin: 0; font-weight: 900; color: var(--sm-primary-color);"><?php echo esc_html($grade_name); ?></h3>
+                    <button onclick="printAttendance('grade', '<?php echo esc_js($grade_name); ?>')" class="sm-btn sm-btn-outline" style="font-size: 11px; padding: 4px 10px;">
+                        <span class="dashicons dashicons-printer" style="font-size: 14px;"></span> طباعة الصف
+                    </button>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 25px;">
+                    <?php foreach ($cards as $card):
+                        $status_color = '#e53e3e'; // Red (Default Incomplete)
             $status_text = 'غير مكتمل';
 
             if ($card['is_complete']) {
@@ -74,11 +96,10 @@
              data-section="<?php echo esc_attr($card['section']); ?>"
              data-complete="<?php echo $card['is_complete'] ? 'yes' : 'no'; ?>"
              data-absences="<?php echo $card['has_absences'] ? 'yes' : 'no'; ?>"
-             onclick="openAttendanceModal('<?php echo esc_js($card['class_name']); ?>', '<?php echo esc_js($card['section']); ?>')"
-             style="background: #fff; border: 1px solid var(--sm-border-color); border-radius: 12px; padding: 20px; cursor: pointer; transition: 0.2s; position: relative; border-top: 5px solid <?php echo $status_color; ?>; box-shadow: var(--sm-shadow);">
+             style="background: #fff; border: 1px solid var(--sm-border-color); border-radius: 12px; padding: 20px; transition: 0.2s; position: relative; border-top: 5px solid <?php echo $status_color; ?>; box-shadow: var(--sm-shadow);">
 
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
-                <div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;" onclick="openAttendanceModal('<?php echo esc_js($card['class_name']); ?>', '<?php echo esc_js($card['section']); ?>')">
+                <div style="cursor: pointer;">
                     <h4 style="margin: 0; font-weight: 800; color: var(--sm-dark-color);"><?php echo esc_html($card['class_name']); ?></h4>
                     <div style="font-size: 14px; color: var(--sm-text-gray); font-weight: 700;">شعبة <?php echo esc_html($card['section']); ?></div>
                 </div>
@@ -87,17 +108,37 @@
                 </div>
             </div>
 
-            <div style="font-size: 12px; color: <?php echo $status_color; ?>; font-weight: 700; display: flex; align-items: center; gap: 5px; margin-bottom: 15px;">
-                <span class="dashicons dashicons-marker" style="font-size: 14px; width: 14px; height: 14px;"></span>
-                <?php echo $status_text; ?>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div style="font-size: 12px; color: <?php echo $status_color; ?>; font-weight: 700; display: flex; align-items: center; gap: 5px;">
+                    <span class="dashicons dashicons-marker" style="font-size: 14px; width: 14px; height: 14px;"></span>
+                    <?php echo $status_text; ?>
+                </div>
+                <button onclick="printAttendance('section', '<?php echo esc_js($card['class_name']); ?>', '<?php echo esc_js($card['section']); ?>')" class="sm-btn sm-btn-outline" style="padding: 4px; border: none;" title="طباعة الكشف">
+                    <span class="dashicons dashicons-printer" style="font-size: 16px;"></span>
+                </button>
             </div>
 
-            <div style="display: flex; gap: 5px; font-size: 10px; font-weight: 700;">
+            <div style="display: flex; gap: 5px; font-size: 10px; font-weight: 700; margin-bottom: 20px;">
                 <span style="background: #f0fff4; color: #38a169; padding: 2px 6px; border-radius: 4px;">ح: <?php echo $card['stats']['present']; ?></span>
                 <span style="background: #fff5f5; color: #e53e3e; padding: 2px 6px; border-radius: 4px;">غ: <?php echo $card['stats']['absent']; ?></span>
                 <span style="background: #fffff0; color: #ecc94b; padding: 2px 6px; border-radius: 4px;">ت: <?php echo $card['stats']['late']; ?></span>
             </div>
+
+            <div style="border-top: 1px dashed var(--sm-border-color); padding-top: 15px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-size: 10px; color: var(--sm-text-gray); font-weight: 700; margin-bottom: 2px;">كود الأمان:</div>
+                    <div id="code-<?php echo sanitize_title($card['class_name'] . '-' . $card['section']); ?>" style="font-family: monospace; font-size: 16px; font-weight: 800; color: var(--sm-dark-color); letter-spacing: 2px;">
+                        <?php echo SM_Settings::get_class_security_code($card['class_name'], $card['section']); ?>
+                    </div>
+                </div>
+                <button onclick="resetClassCode('<?php echo esc_js($card['class_name']); ?>', '<?php echo esc_js($card['section']); ?>', this)" class="sm-btn sm-btn-outline" style="padding: 5px 10px; font-size: 10px; height: auto;" title="إعادة تعيين الكود">
+                    <span class="dashicons dashicons-randomize" style="font-size: 14px; width: 14px; height: 14px;"></span> تغيير
+                </button>
+            </div>
         </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
         <?php endforeach; ?>
     </div>
 </div>
@@ -252,6 +293,40 @@ function saveAttendance(studentId, status, btn) {
 function setAllAttendance(status) {
     const buttons = document.querySelectorAll(`.attendance-btn[data-status="${status}"]`);
     buttons.forEach(btn => btn.click());
+}
+
+function resetClassCode(grade, section, btn) {
+    if (!confirm('هل أنت متأكد من إعادة تعيين كود الأمان لهذا الفصل؟')) return;
+
+    btn.disabled = true;
+    const formData = new FormData();
+    formData.append('action', 'sm_reset_class_code_ajax');
+    formData.append('grade', grade);
+    formData.append('section', section);
+    formData.append('nonce', '<?php echo wp_create_nonce("sm_attendance_action"); ?>');
+
+    fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            const codeId = 'code-' + (grade + '-' + section).toLowerCase().replace(/ /g, '-');
+            const el = document.getElementById(codeId);
+            if (el) el.innerText = res.data;
+            smShowNotification('تم تغيير الكود بنجاح');
+        }
+        btn.disabled = false;
+    });
+}
+
+function printAttendance(type, grade = '', section = '') {
+    const date = document.getElementById('attendance-filter-date').value;
+    let url = '<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=attendance_sheet'); ?>';
+    url += '&date=' + date;
+    url += '&scope=' + type;
+    if (grade) url += '&grade=' + encodeURIComponent(grade);
+    if (section) url += '&section=' + encodeURIComponent(section);
+
+    window.open(url, '_blank');
 }
 </script>
 
