@@ -2,7 +2,7 @@
 /**
  * Plugin Name: School Management (إدارة المدرسة)
  * Description: نظام شامل لإدارة السلوك، المخالفات، والتقارير المدرسية.
- * Version: 95.0.0
+ * Version: 96.0.0
  * Author: AHMED MABROUK
  * Language: ar
  * Text Domain: school-management
@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('SM_VERSION', '95.0.0');
+define('SM_VERSION', '96.0.0');
 define('SM_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('SM_PLUGIN_URL', plugin_dir_url(__FILE__));
 

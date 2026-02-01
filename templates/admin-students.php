@@ -75,7 +75,7 @@ if ($import_results) {
                     <option value="">كل الصفوف</option>
                     <?php 
                     global $wpdb;
-                    $classes = $wpdb->get_col("SELECT DISTINCT class_name FROM {$wpdb->prefix}sm_students ORDER BY class_name ASC");
+                    $classes = $wpdb->get_col("SELECT DISTINCT class_name FROM {$wpdb->prefix}sm_students ORDER BY CAST(REPLACE(class_name, 'الصف ', '') AS UNSIGNED) ASC");
                     foreach ($classes as $c): ?>
                         <option value="<?php echo esc_attr($c); ?>" <?php selected(isset($_GET['class_filter']) && $_GET['class_filter'] == $c); ?>><?php echo esc_html($c); ?></option>
                     <?php endforeach; ?>
@@ -301,16 +301,13 @@ if ($import_results) {
                     </div>
                     <div class="sm-form-group">
                         <label class="sm-label">الشعبة:</label>
-                        <select name="section" class="sm-select" required>
-                            <option value="">-- اختر الشعبة --</option>
+                        <input name="section" type="text" class="sm-input" placeholder="مثال: أ، ب، 1، 2..." required list="existing-sections">
+                        <datalist id="existing-sections">
                             <?php
-                            $letters = explode(',', $academic['section_letters']);
-                            foreach ($letters as $letter) {
-                                $letter = trim($letter);
-                                echo "<option value='$letter'>$letter</option>";
-                            }
+                            $all_sections = $wpdb->get_col("SELECT DISTINCT section FROM {$wpdb->prefix}sm_students WHERE section != '' ORDER BY section ASC");
+                            foreach ($all_sections as $s) echo '<option value="'.$s.'">';
                             ?>
-                        </select>
+                        </datalist>
                     </div>
                     <div class="sm-form-group">
                         <label class="sm-label">بريد ولي الأمر (اختياري):</label>
@@ -374,14 +371,7 @@ if ($import_results) {
                     </div>
                     <div class="sm-form-group">
                         <label class="sm-label">الشعبة:</label>
-                        <select name="section" id="edit_stu_section" class="sm-select" required>
-                            <?php
-                            foreach ($letters as $letter) {
-                                $letter = trim($letter);
-                                echo "<option value='$letter'>$letter</option>";
-                            }
-                            ?>
-                        </select>
+                        <input type="text" name="section" id="edit_stu_section" class="sm-input" required list="existing-sections">
                     </div>
                     <div class="sm-form-group">
                         <label class="sm-label">الرقم الأكاديمي (الكود):</label>
@@ -461,49 +451,6 @@ if ($import_results) {
 
     <script>
     (function() {
-        const academicData = <?php echo json_encode(SM_Settings::get_academic_structure()); ?>;
-
-        function populateSections(gradeSelect, sectionSelect, currentSection = '') {
-            const gradeNum = gradeSelect.value.replace('الصف ', '');
-            let sections = [];
-
-            if (academicData.grade_sections && academicData.grade_sections[gradeNum]) {
-                sections = academicData.grade_sections[gradeNum].letters.split(',').map(s => s.trim());
-            } else {
-                sections = academicData.section_letters.split(',').map(s => s.trim());
-            }
-
-            sectionSelect.innerHTML = '<option value="">-- اختر الشعبة --</option>';
-            sections.forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s;
-                opt.textContent = s;
-                if (s === currentSection) opt.selected = true;
-                sectionSelect.appendChild(opt);
-            });
-        }
-
-        const addGradeSelect = document.querySelector('#add-student-form select[name="class"]');
-        const addSectionSelect = document.querySelector('#add-student-form select[name="section"]');
-        if (addGradeSelect && addSectionSelect) {
-            addGradeSelect.addEventListener('change', () => populateSections(addGradeSelect, addSectionSelect));
-        }
-
-        const editGradeSelect = document.getElementById('edit_stu_class');
-        const editSectionSelect = document.getElementById('edit_stu_section');
-        if (editGradeSelect && editSectionSelect) {
-            editGradeSelect.addEventListener('change', () => populateSections(editGradeSelect, editSectionSelect));
-        }
-
-        // Override editSmStudent to handle section population
-        const originalEditSmStudent = window.editSmStudent;
-        window.editSmStudent = function(s) {
-            originalEditSmStudent(s);
-            if (editGradeSelect && editSectionSelect) {
-                populateSections(editGradeSelect, editSectionSelect, s.section);
-            }
-        };
-
         // Handle View Record
         window.viewSmStudent = function(student) {
             const modal = document.getElementById('view-student-modal');

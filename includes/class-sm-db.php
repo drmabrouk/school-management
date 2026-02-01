@@ -28,8 +28,23 @@ class SM_DB {
             $query .= $wpdb->prepare(" AND id IN (SELECT DISTINCT student_id FROM {$wpdb->prefix}sm_records WHERE teacher_id = %d)", $teacher_id);
         }
 
-        $query .= " ORDER BY CAST(REPLACE(class_name, 'الصف ', '') AS UNSIGNED) ASC, name ASC";
+        $query .= " ORDER BY sort_order ASC, name ASC";
         return $wpdb->get_results($query);
+    }
+
+    public static function get_next_sort_order() {
+        global $wpdb;
+        $max = $wpdb->get_var("SELECT MAX(sort_order) FROM {$wpdb->prefix}sm_students");
+        return intval($max) + 1;
+    }
+
+    public static function student_exists($name, $class, $section) {
+        global $wpdb;
+        $id = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}sm_students WHERE name = %s AND class_name = %s AND section = %s",
+            $name, $class, $section
+        ));
+        return $id ? $id : false;
     }
 
     public static function generate_student_code() {
@@ -52,6 +67,8 @@ class SM_DB {
             $code = self::generate_student_code();
         }
 
+        $sort_order = isset($extra['sort_order']) ? intval($extra['sort_order']) : self::get_next_sort_order();
+
         SM_Logger::log('إضافة طالب', "الاسم: $name، الصف: $class، الشعبة: $section");
         $success = $wpdb->insert(
             "{$wpdb->prefix}sm_students",
@@ -65,7 +82,8 @@ class SM_DB {
                 'registration_date' => !empty($extra['registration_date']) ? sanitize_text_field($extra['registration_date']) : current_time('mysql', 1),
                 'student_code' => $code,
                 'parent_user_id' => $parent_user_id,
-                'teacher_id' => $teacher_id
+                'teacher_id' => $teacher_id,
+                'sort_order' => $sort_order
             )
         );
         return $success ? $wpdb->insert_id : false;
@@ -551,6 +569,7 @@ class SM_DB {
         $summary = array();
 
         $active_grades = $academic['active_grades'] ?? array();
+        sort($active_grades, SORT_NUMERIC);
 
         foreach ($active_grades as $grade_num) {
             $class_name = 'الصف ' . $grade_num;
