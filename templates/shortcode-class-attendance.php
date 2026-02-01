@@ -1,6 +1,21 @@
 <?php if (!defined('ABSPATH')) exit;
 $school = SM_Settings::get_school_info();
 $academic = SM_Settings::get_academic_structure();
+
+$att_status = get_option('sm_attendance_manual_status', 'auto');
+$is_open = false;
+
+if ($att_status === 'open') {
+    $is_open = true;
+} elseif ($att_status === 'closed') {
+    $is_open = false;
+} else {
+    // auto: 7:00 AM to 12:00 PM
+    $current_time = current_time('H:i');
+    if ($current_time >= '07:00' && $current_time <= '12:00') {
+        $is_open = true;
+    }
+}
 ?>
 <div class="sm-class-attendance-shortcode" dir="rtl" style="max-width: 900px; margin: 20px auto; padding: 40px; background: #fff; border-radius: 20px; border: 1px solid var(--sm-border-color); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
 
@@ -17,8 +32,21 @@ $academic = SM_Settings::get_academic_structure();
         </div>
     </div>
 
+    <!-- Open/Closed Logic -->
+    <?php if (!$is_open): ?>
+        <div style="text-align: center; padding: 60px 40px; background: #fff5f5; border-radius: 15px; border: 2px dashed #fed7d7;">
+            <span class="dashicons dashicons-lock" style="font-size: 64px; width: 64px; height: 64px; color: #e53e3e; margin-bottom: 25px;"></span>
+            <h2 style="color: #c53030; font-weight: 900; margin: 0 0 10px 0; border: none;">عذراً، باب التسجيل مغلق حالياً</h2>
+            <p style="font-size: 1.2em; color: #718096; font-weight: 700;">“Attendance collection for today has been completed.”</p>
+        </div>
+    <?php else: ?>
+
     <!-- Selection: Grade & Section -->
-    <div id="at-selection-area" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 40px; background: #f8fafc; padding: 25px; border-radius: 15px; border: 1px solid #edf2f7;">
+    <?php
+    $is_staff = is_user_logged_in() && (current_user_can('إدارة_الطلاب') || current_user_can('تسجيل_مخالفة'));
+    ?>
+    <div id="at-selection-area" style="display: grid; grid-template-columns: <?php echo $is_staff ? '1fr 1fr 1fr' : '1fr'; ?>; gap: 20px; margin-bottom: 40px; background: #f8fafc; padding: 25px; border-radius: 15px; border: 1px solid #edf2f7;">
+        <?php if ($is_staff): ?>
         <div class="sm-form-group" style="margin-bottom: 0;">
             <label class="sm-label" style="font-size: 1.1em;">الصف الدراسي:</label>
             <select id="at-grade-select" class="sm-select" style="height: 50px; font-size: 1.1em;" onchange="atUpdateSections()">
@@ -37,9 +65,12 @@ $academic = SM_Settings::get_academic_structure();
                 <option value="">-- اختر الشعبة --</option>
             </select>
         </div>
-        <div class="sm-form-group" style="margin-bottom: 0;">
-            <label class="sm-label" style="font-size: 1.1em;">كود الأمان:</label>
-            <input type="text" id="at-security-code" class="sm-input" maxlength="4" style="height: 50px; font-size: 1.5em; text-align: center; letter-spacing: 5px; font-family: monospace;" placeholder="0000" oninput="checkSecurityCode()">
+        <div class="sm-form-group" style="margin-bottom: 0; text-align: center;">
+            <label class="sm-label" style="font-size: 1.1em;">كود دخول الفصل:</label>
+            <input type="text" id="at-security-code" class="sm-input" maxlength="4" style="height: 50px; font-size: 1.5em; text-align: center; letter-spacing: 5px; font-family: monospace; max-width: 200px; margin: 0 auto;" placeholder="0000" oninput="checkSecurityCode()">
+            <?php if (!$is_staff): ?>
+                <div style="font-size: 11px; color: #718096; margin-top: 8px;">أدخل الكود المكون من 4 أرقام للوصول لقائمة الطلاب</div>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -68,8 +99,9 @@ $academic = SM_Settings::get_academic_structure();
     <div id="at-no-selection" style="text-align: center; padding: 80px 40px; color: var(--sm-text-gray); background: #fcfcfc; border-radius: 15px; border: 2px dashed #eee;">
         <span class="dashicons dashicons-id-alt" style="font-size: 64px; width: 64px; height: 64px; margin-bottom: 25px; opacity: 0.2;"></span>
         <h3 style="margin: 0; color: #a0aec0; border: none;">يرجى اختيار الصف والشعبة للمتابعة</h3>
-        <p style="margin-top: 10px;">سيتم عرض قائمة الطلاب فور اختيار بيانات الفصل الصحيحة.</p>
+        <p style="margin-top: 10px;">سيتم عرض قائمة الطلاب فور اختيار بيانات الفصل الصحيحة (أو إدخال كود الأمان للزوار).</p>
     </div>
+    <?php endif; // End is_open check ?>
 </div>
 
 <script>
@@ -79,24 +111,100 @@ let isSubmitted = false;
 let currentStudents = [];
 let isAuthorized = false;
 
-function checkSecurityCode() {
-    const grade = document.getElementById('at-grade-select').value;
-    const section = document.getElementById('at-section-select').value;
-    const inputCode = document.getElementById('at-security-code').value;
-    const key = grade + '|' + section;
-    const correctCode = securityCodes[key];
-
-    if (inputCode && inputCode === correctCode) {
-        isAuthorized = true;
-        document.getElementById('at-security-code').style.borderColor = '#38a169';
-        document.getElementById('at-security-code').style.background = '#f0fff4';
-        document.querySelectorAll('.at-violation-shortcut').forEach(el => el.style.display = 'flex');
-    } else {
-        isAuthorized = false;
-        document.getElementById('at-security-code').style.borderColor = '';
-        document.getElementById('at-security-code').style.background = '';
-        document.querySelectorAll('.at-violation-shortcut').forEach(el => el.style.display = 'none');
+function smShowNotification(msg, isError = false) {
+    if (typeof window.smShowNotification === 'function') {
+        window.smShowNotification(msg, isError);
+        return;
     }
+    const n = document.createElement('div');
+    n.style.cssText = `position:fixed; bottom:20px; left:20px; background:${isError?'#e53e3e':'#3182ce'}; color:#fff; padding:15px 25px; border-radius:10px; z-index:10000; font-weight:700; box-shadow:0 10px 15px rgba(0,0,0,0.1);`;
+    n.innerText = msg;
+    document.body.appendChild(n);
+    setTimeout(() => n.remove(), 4000);
+}
+
+function checkSecurityCode() {
+    const isStaff = <?php echo $is_staff ? 'true' : 'false'; ?>;
+    const inputCode = document.getElementById('at-security-code').value;
+
+    if (isStaff) {
+        const gradeSelect = document.getElementById('at-grade-select');
+        if (!gradeSelect) return;
+        const grade = gradeSelect.value;
+        const sectionSelect = document.getElementById('at-section-select');
+        if (!sectionSelect) return;
+        const section = sectionSelect.value;
+        if (!grade || !section) return;
+
+        const key = grade + '|' + section;
+        const correctCode = securityCodes[key];
+
+        if (inputCode && inputCode === correctCode) {
+            isAuthorized = true;
+            document.getElementById('at-security-code').style.borderColor = '#38a169';
+            document.getElementById('at-security-code').style.background = '#f0fff4';
+            document.querySelectorAll('.at-violation-shortcut').forEach(el => el.style.display = 'flex');
+        } else {
+            isAuthorized = false;
+            document.getElementById('at-security-code').style.borderColor = '';
+            document.getElementById('at-security-code').style.background = '';
+            document.querySelectorAll('.at-violation-shortcut').forEach(el => el.style.display = 'none');
+        }
+    } else {
+        // Visitor mode: Search for matching code
+        let found = false;
+        Object.keys(securityCodes).forEach(key => {
+            if (securityCodes[key] === inputCode && inputCode.length === 4) {
+                const parts = key.split('|');
+                const grade = parts[0];
+                const section = parts[1];
+
+                isAuthorized = true;
+                found = true;
+                document.getElementById('at-security-code').style.borderColor = '#38a169';
+                document.getElementById('at-security-code').style.background = '#f0fff4';
+
+                // Load this class
+                atLoadStudentsForVisitor(grade, section);
+            }
+        });
+
+        if (!found) {
+            isAuthorized = false;
+            document.getElementById('at-security-code').style.borderColor = '';
+            document.getElementById('at-security-code').style.background = '';
+            document.getElementById('at-students-container').style.display = 'none';
+            document.getElementById('at-no-selection').style.display = 'block';
+        }
+    }
+}
+
+function atLoadStudentsForVisitor(className, section) {
+    const listContainer = document.getElementById('at-students-list');
+    const container = document.getElementById('at-students-container');
+    const noSel = document.getElementById('at-no-selection');
+
+    noSel.style.display = 'none';
+    container.style.display = 'block';
+    listContainer.innerHTML = '<div style="text-align: center; padding: 60px;"><div class="at-spinner"></div><p style="margin-top: 20px; color: #718096; font-weight: 700;">جاري تحميل قائمة الطلاب...</p></div>';
+
+    const date = new Date().toISOString().split('T')[0];
+    const formData = new FormData();
+    formData.append('action', 'sm_get_students_attendance_ajax');
+    formData.append('class_name', className);
+    formData.append('section', section);
+    formData.append('date', date);
+
+    fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            currentStudents = res.data;
+            atRenderList();
+        } else {
+            listContainer.innerHTML = '<div style="color: #e53e3e; padding: 25px; background: #fff5f5; border-radius: 10px; text-align: center; font-weight: 700;">' + res.data + '</div>';
+        }
+    });
 }
 
 function openQuickViolation(studentId, studentName) {
@@ -148,10 +256,20 @@ function atUpdateSections() {
 }
 
 function atLoadStudents() {
-    const className = document.getElementById('at-grade-select').value;
-    const section = document.getElementById('at-section-select').value;
-    document.getElementById('at-security-code').value = '';
-    checkSecurityCode();
+    const gradeSelect = document.getElementById('at-grade-select');
+    const sectionSelect = document.getElementById('at-section-select');
+    if (!gradeSelect || !sectionSelect) return;
+
+    const className = gradeSelect.value;
+    const section = sectionSelect.value;
+
+    // Clear security code when changing class
+    const codeInput = document.getElementById('at-security-code');
+    if (codeInput) {
+        codeInput.value = '';
+        checkSecurityCode();
+    }
+
     const listContainer = document.getElementById('at-students-list');
     const container = document.getElementById('at-students-container');
     const noSel = document.getElementById('at-no-selection');

@@ -58,15 +58,6 @@ class SM_Admin {
 
         add_submenu_page(
             'sm-dashboard',
-            'التقارير والإحصائيات',
-            'التقارير والإحصائيات',
-            'طباعة_التقارير',
-            'sm-reports',
-            array($this, 'display_reports')
-        );
-
-        add_submenu_page(
-            'sm-dashboard',
             'إعدادات النظام',
             'إعدادات النظام',
             'إدارة_النظام',
@@ -196,8 +187,4 @@ class SM_Admin {
         $this->display_settings();
     }
 
-    public function display_reports() {
-        $_GET['sm_tab'] = 'reports';
-        $this->display_settings();
-    }
 }

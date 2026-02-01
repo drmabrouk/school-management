@@ -112,6 +112,51 @@
             <button onclick="alert('قريباً: تقارير الصفوف')" class="sm-btn" style="background: #805AD5; font-size: 12px;">توليد التقرير</button>
         </div>
 
+        <!-- Daily Absence Report -->
+        <div style="background: #fff; padding: 25px; border-radius: 15px; border: 1px solid var(--sm-border-color); display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--sm-shadow);">
+            <div>
+                <div style="width: 50px; height: 50px; background: #fff5f5; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; color: #e53e3e;">
+                    <span class="dashicons dashicons-calendar-alt" style="font-size: 28px; width: 28px; height: 28px;"></span>
+                </div>
+                <h4 style="margin: 0 0 10px 0; border: none; font-weight: 800; font-size: 15px;">تقرير الغياب اليومي</h4>
+                <p style="font-size: 11px; color: #718096; line-height: 1.6; margin-bottom: 20px;">كشف بجميع الطلاب الغائبين في تاريخ محدد مع بيان عدد غياباتهم السابقة.</p>
+                <div class="sm-form-group">
+                    <input type="date" id="abs_daily_date" class="sm-input" value="<?php echo date('Y-m-d'); ?>" style="font-size: 12px;">
+                </div>
+            </div>
+            <button onclick="printAbsenceFromCenter('daily')" class="sm-btn" style="background: #e53e3e; font-size: 12px;">طباعة غيابات اليوم</button>
+        </div>
+
+        <!-- Most Absent Students (Term) -->
+        <div style="background: #fff; padding: 25px; border-radius: 15px; border: 1px solid var(--sm-border-color); display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--sm-shadow);">
+            <div>
+                <div style="width: 50px; height: 50px; background: #111F35; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; color: #fff;">
+                    <span class="dashicons dashicons-chart-bar" style="font-size: 28px; width: 28px; height: 28px;"></span>
+                </div>
+                <h4 style="margin: 0 0 10px 0; border: none; font-weight: 800; font-size: 15px;">الطلاب الأكثر غياباً</h4>
+                <p style="font-size: 11px; color: #718096; line-height: 1.6; margin-bottom: 20px;">إحصائية بالطلاب الذين تجاوزوا نسب الغياب المسموح بها خلال الفصل الدراسي الحالي.</p>
+            </div>
+            <button onclick="printAbsenceFromCenter('term')" class="sm-btn" style="background: #111F35; font-size: 12px;">تحليل غياب الفصل</button>
+        </div>
+
+        <!-- Student Login Credentials -->
+        <div style="background: #fff; padding: 25px; border-radius: 15px; border: 1px solid var(--sm-border-color); display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--sm-shadow);">
+            <div>
+                <div style="width: 50px; height: 50px; background: #F7FAFC; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; color: #4A5568;">
+                    <span class="dashicons dashicons-lock" style="font-size: 28px; width: 28px; height: 28px;"></span>
+                </div>
+                <h4 style="margin: 0 0 10px 0; border: none; font-weight: 800; font-size: 15px;">بيانات دخول الطلاب</h4>
+                <p style="font-size: 11px; color: #718096; line-height: 1.6; margin-bottom: 20px;">توليد كشف بأسماء الطلاب مع اسم المستخدم (الكود) وكلمة المرور المؤقتة.</p>
+                <div class="sm-form-group">
+                    <select id="creds_class_filter" class="sm-select" style="font-size: 12px; padding: 8px;">
+                        <option value="">كافة الصفوف</option>
+                        <?php foreach($classes as $c) echo '<option value="'.$c.'">'.$c.'</option>'; ?>
+                    </select>
+                </div>
+            </div>
+            <button onclick="printCredentials()" class="sm-btn" style="background: #4A5568; font-size: 12px;">طباعة بيانات الدخول</button>
+        </div>
+
         <!-- Excel Templates Section -->
         <div style="grid-column: 1 / -1; background: #f8fafc; padding: 30px; border-radius: 12px; border: 2px dashed #cbd5e1; margin-top: 20px;">
             <h4 style="margin-top:0; color:var(--sm-secondary-color); display:flex; align-items:center; gap:10px;">
@@ -154,5 +199,19 @@ function printGeneralLog() {
     const start = document.getElementById('log_start_date').value;
     const end = document.getElementById('log_end_date').value;
     window.open('<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=general_log'); ?>&start_date=' + start + '&end_date=' + end, '_blank');
+}
+
+function printAbsenceFromCenter(type) {
+    let url = '<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=absence_report'); ?>';
+    url += '&type=' + type;
+    if (type === 'daily') {
+        url += '&date=' + document.getElementById('abs_daily_date').value;
+    }
+    window.open(url, '_blank');
+}
+
+function printCredentials() {
+    const classFilter = document.getElementById('creds_class_filter').value;
+    window.open('<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=student_credentials'); ?>&class_name=' + encodeURIComponent(classFilter), '_blank');
 }
 </script>

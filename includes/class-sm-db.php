@@ -67,6 +67,28 @@ class SM_DB {
             $code = self::generate_student_code();
         }
 
+        // AUTO-GENERATE UNIFIED WP USER (Parent/Student)
+        if (!$parent_user_id) {
+            $username = $code;
+            if (!username_exists($username)) {
+                $password = wp_generate_password(8, false);
+                $email_addr = $email ? $email : $code . '@school.local';
+
+                $user_id = wp_create_user($username, $password, $email_addr);
+                if (!is_wp_error($user_id)) {
+                    $wp_user = new WP_User($user_id);
+                    $wp_user->set_role('sm_parent');
+                    $parent_user_id = $user_id;
+
+                    update_user_meta($user_id, 'sm_temp_pass', $password);
+                    wp_update_user(array('ID' => $user_id, 'display_name' => "ولي أمر $name"));
+                }
+            } else {
+                $u = get_user_by('login', $username);
+                if ($u) $parent_user_id = $u->ID;
+            }
+        }
+
         $sort_order = isset($extra['sort_order']) ? intval($extra['sort_order']) : self::get_next_sort_order();
 
         SM_Logger::log('إضافة طالب', "الاسم: $name، الصف: $class، الشعبة: $section");
@@ -335,6 +357,7 @@ class SM_DB {
 
         $stats['by_type'] = $wpdb->get_results("SELECT type, COUNT(*) as count FROM {$wpdb->prefix}sm_records $where GROUP BY type");
         $stats['by_severity'] = $wpdb->get_results("SELECT severity, COUNT(*) as count FROM {$wpdb->prefix}sm_records $where GROUP BY severity");
+        $stats['by_degree'] = $wpdb->get_results("SELECT degree, COUNT(*) as count FROM {$wpdb->prefix}sm_records $where GROUP BY degree ORDER BY degree ASC");
         $stats['by_class'] = $wpdb->get_results("SELECT s.class_name, COUNT(r.id) as count FROM {$wpdb->prefix}sm_records r JOIN {$wpdb->prefix}sm_students s ON r.student_id = s.id $where GROUP BY s.class_name");
         
         if (!empty($filters['teacher_id'])) {

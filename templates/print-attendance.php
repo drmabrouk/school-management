@@ -107,6 +107,18 @@
                 <?php endforeach; ?>
             </tbody>
         </table>
+
+        <div style="margin-top: 40px; display: flex; justify-content: space-between; align-items: flex-start;">
+            <div style="text-align: center;">
+                <p style="font-weight: 800; margin-bottom: 30px;">توقيع رائد الفصل</p>
+                <p>............................</p>
+            </div>
+            <div style="text-align: center;">
+                <p style="font-weight: 800; margin-bottom: 10px;">يعتمد مدير المدرسة</p>
+                <p style="font-weight: 900; color: #111F35; margin-bottom: 20px;"><?php echo esc_html($school['school_principal_name'] ?? ''); ?></p>
+                <p>التوقيع: ............................</p>
+            </div>
+        </div>
     </div>
     <?php endforeach; ?>
 </body>

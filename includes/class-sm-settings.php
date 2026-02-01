@@ -58,10 +58,15 @@ class SM_Settings {
     public static function get_school_info() {
         $default = array(
             'school_name' => 'مدرستي النموذجية',
+            'school_principal_name' => 'أحمد علي',
             'school_logo' => '',
             'address' => 'الرياض، المملكة العربية السعودية',
             'email' => 'info@school.edu',
             'phone' => '0123456789',
+            'working_schedule' => array(
+                'staff' => array('mon', 'tue', 'wed', 'thu', 'fri'),
+                'students' => array('mon', 'tue', 'wed', 'thu')
+            ),
             'map_link' => '',
             'extra_details' => ''
         );
