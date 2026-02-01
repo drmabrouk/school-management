@@ -18,7 +18,7 @@ $academic = SM_Settings::get_academic_structure();
     </div>
 
     <!-- Selection: Grade & Section -->
-    <div id="at-selection-area" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 40px; background: #f8fafc; padding: 25px; border-radius: 15px; border: 1px solid #edf2f7;">
+    <div id="at-selection-area" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 40px; background: #f8fafc; padding: 25px; border-radius: 15px; border: 1px solid #edf2f7;">
         <div class="sm-form-group" style="margin-bottom: 0;">
             <label class="sm-label" style="font-size: 1.1em;">الصف الدراسي:</label>
             <select id="at-grade-select" class="sm-select" style="height: 50px; font-size: 1.1em;" onchange="atUpdateSections()">
@@ -36,6 +36,10 @@ $academic = SM_Settings::get_academic_structure();
             <select id="at-section-select" class="sm-select" style="height: 50px; font-size: 1.1em;" disabled onchange="atLoadStudents()">
                 <option value="">-- اختر الشعبة --</option>
             </select>
+        </div>
+        <div class="sm-form-group" style="margin-bottom: 0;">
+            <label class="sm-label" style="font-size: 1.1em;">كود الأمان:</label>
+            <input type="text" id="at-security-code" class="sm-input" maxlength="4" style="height: 50px; font-size: 1.5em; text-align: center; letter-spacing: 5px; font-family: monospace;" placeholder="0000" oninput="checkSecurityCode()">
         </div>
     </div>
 
@@ -70,8 +74,50 @@ $academic = SM_Settings::get_academic_structure();
 
 <script>
 const dbStructure = <?php echo json_encode(SM_Settings::get_sections_from_db()); ?>;
+const securityCodes = <?php echo json_encode(SM_Settings::get_class_security_codes()); ?>;
 let isSubmitted = false;
 let currentStudents = [];
+let isAuthorized = false;
+
+function checkSecurityCode() {
+    const grade = document.getElementById('at-grade-select').value;
+    const section = document.getElementById('at-section-select').value;
+    const inputCode = document.getElementById('at-security-code').value;
+    const key = grade + '|' + section;
+    const correctCode = securityCodes[key];
+
+    if (inputCode && inputCode === correctCode) {
+        isAuthorized = true;
+        document.getElementById('at-security-code').style.borderColor = '#38a169';
+        document.getElementById('at-security-code').style.background = '#f0fff4';
+        document.querySelectorAll('.at-violation-shortcut').forEach(el => el.style.display = 'flex');
+    } else {
+        isAuthorized = false;
+        document.getElementById('at-security-code').style.borderColor = '';
+        document.getElementById('at-security-code').style.background = '';
+        document.querySelectorAll('.at-violation-shortcut').forEach(el => el.style.display = 'none');
+    }
+}
+
+function openQuickViolation(studentId, studentName) {
+    if (!isAuthorized) {
+        alert('يرجى إدخال كود الأمان الصحيح أولاً.');
+        return;
+    }
+    // Access global violation modal
+    if (typeof smOpenViolationModal === 'function') {
+        smOpenViolationModal();
+        setTimeout(() => {
+            const searchInput = document.getElementById('student_unified_search');
+            if (searchInput) {
+                searchInput.value = studentName;
+                searchInput.dispatchEvent(new Event('input'));
+            }
+        }, 500);
+    } else {
+        alert('تسجيل مخالفة لـ ' + studentName);
+    }
+}
 
 function atUpdateSections() {
     const gradeSelect = document.getElementById('at-grade-select');
@@ -104,6 +150,8 @@ function atUpdateSections() {
 function atLoadStudents() {
     const className = document.getElementById('at-grade-select').value;
     const section = document.getElementById('at-section-select').value;
+    document.getElementById('at-security-code').value = '';
+    checkSecurityCode();
     const listContainer = document.getElementById('at-students-list');
     const container = document.getElementById('at-students-container');
     const noSel = document.getElementById('at-no-selection');
@@ -176,21 +224,27 @@ function atRenderList() {
                         <div style="font-size: 0.85em; color: var(--sm-text-gray); font-weight: 700; margin-top: 4px;">ID: ${s.student_code}</div>
                     </div>
                 </div>
-                <div style="display: flex; gap: 12px;">
-                    ${!isSubmitted ? `
-                        <button onclick="atSetStatus(this, 'present')" class="at-choice-btn ${status === 'present' ? 'active' : ''}" data-status="present" title="حاضر">
-                            <span class="dashicons dashicons-yes-alt"></span>
-                            <span class="btn-lbl">حاضر</span>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <button onclick="openQuickViolation(${s.id}, '${s.name}')" class="at-violation-shortcut" style="display: none; border: none; background: #FFF5F5; color: #F63049; width: 40px; height: 40px; border-radius: 10px; cursor: pointer; transition: 0.2s;" title="تسجيل مخالفة سريعة">
+                        <span class="dashicons dashicons-warning" style="font-size: 20px;"></span>
+                    </button>
+
+                    <div style="display: flex; gap: 12px;">
+                        ${!isSubmitted ? `
+                            <button onclick="atSetStatus(this, 'present')" class="at-choice-btn ${status === 'present' ? 'active' : ''}" data-status="present" title="حاضر">
+                                <span class="dashicons dashicons-yes-alt"></span>
+                                <span class="btn-lbl">حاضر</span>
+                            </button>
+                        ` : ''}
+                        <button onclick="atSetStatus(this, 'late')" class="at-choice-btn ${status === 'late' ? 'active' : ''}" data-status="late" title="متأخر">
+                            <span class="dashicons dashicons-clock"></span>
+                            <span class="btn-lbl">تأخير</span>
                         </button>
-                    ` : ''}
-                    <button onclick="atSetStatus(this, 'late')" class="at-choice-btn ${status === 'late' ? 'active' : ''}" data-status="late" title="متأخر">
-                        <span class="dashicons dashicons-clock"></span>
-                        <span class="btn-lbl">تأخير</span>
-                    </button>
-                    <button onclick="atSetStatus(this, 'absent')" class="at-choice-btn ${status === 'absent' ? 'active' : ''}" data-status="absent" title="غائب">
-                        <span class="dashicons dashicons-no"></span>
-                        <span class="btn-lbl">غياب</span>
-                    </button>
+                        <button onclick="atSetStatus(this, 'absent')" class="at-choice-btn ${status === 'absent' ? 'active' : ''}" data-status="absent" title="غائب">
+                            <span class="dashicons dashicons-no"></span>
+                            <span class="btn-lbl">غياب</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
@@ -245,6 +299,18 @@ async function atSubmitAttendance() {
     .then(res => {
         if (res.success) {
             smShowNotification('تم حفظ كشف الحضور بنجاح لعدد ' + res.data + ' طالب');
+
+        // Show submission confirmation notification
+        const confirmNotif = document.createElement('div');
+        confirmNotif.style.cssText = "position:fixed; top:80px; left:50%; transform:translateX(-50%); background:#38a169; color:white; padding:15px 30px; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.2); z-index:10002; font-weight:800; animation: smFadeIn 0.3s ease-out;";
+        confirmNotif.innerHTML = '✅ تم إرسال كشف الحضور بنجاح';
+        document.body.appendChild(confirmNotif);
+        setTimeout(() => {
+            confirmNotif.style.opacity = '0';
+            confirmNotif.style.transition = '0.5s';
+            setTimeout(() => confirmNotif.remove(), 500);
+        }, 3000);
+
             isSubmitted = true;
             atRenderList();
         } else {

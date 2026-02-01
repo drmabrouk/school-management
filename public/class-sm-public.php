@@ -242,6 +242,38 @@ class SM_Public {
             );
             $records = SM_DB::get_records($filters);
             include SM_PLUGIN_DIR . 'templates/print-general-log.php';
+        } elseif ($type === 'attendance_sheet') {
+            $date = sanitize_text_field($_GET['date']);
+            $scope = sanitize_text_field($_GET['scope']); // all, grade, section
+            $grade = sanitize_text_field($_GET['grade'] ?? '');
+            $section = sanitize_text_field($_GET['section'] ?? '');
+
+            global $wpdb;
+            $query = "SELECT s.id, s.name, s.student_code, s.class_name, s.section, a.status
+                      FROM {$wpdb->prefix}sm_students s
+                      LEFT JOIN {$wpdb->prefix}sm_attendance a ON s.id = a.student_id AND a.date = %s
+                      WHERE 1=1";
+            $params = array($date);
+
+            if ($scope === 'grade' && $grade) {
+                $query .= " AND s.class_name = %s";
+                $params[] = $grade;
+            } elseif ($scope === 'section' && $grade && $section) {
+                $query .= " AND s.class_name = %s AND s.section = %s";
+                $params[] = $grade;
+                $params[] = $section;
+            }
+
+            $query .= " ORDER BY s.class_name ASC, s.section ASC, s.name ASC";
+            $all_students = $wpdb->get_results($wpdb->prepare($query, $params));
+
+            $grouped_data = array();
+            foreach ($all_students as $s) {
+                $key = $s->class_name . '|' . $s->section;
+                $grouped_data[$key][] = $s;
+            }
+
+            include SM_PLUGIN_DIR . 'templates/print-attendance.php';
         }
         exit;
     }
@@ -736,6 +768,17 @@ class SM_Public {
         }
 
         wp_send_json_success($success_count);
+    }
+
+    public function ajax_reset_class_code() {
+        if (!is_user_logged_in() || !current_user_can('إدارة_الطلاب')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_attendance_action')) wp_send_json_error('Security check failed');
+
+        $grade = sanitize_text_field($_POST['grade']);
+        $section = sanitize_text_field($_POST['section']);
+
+        $new_code = SM_Settings::reset_class_security_code($grade, $section);
+        wp_send_json_success($new_code);
     }
 
     public function ajax_rollback_log() {
