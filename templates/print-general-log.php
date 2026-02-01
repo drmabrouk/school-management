@@ -64,9 +64,9 @@
     </table>
 
     <div style="margin-top: 50px; text-align: left; font-size: 0.9em;">
-        <p>توقيع مدير المدرسة / وكيل الشؤون الطلابية</p>
-        <br><br>
-        <p>................................................</p>
+        <p>يعتمد مدير المدرسة: <?php echo esc_html($school['school_principal_name'] ?? ''); ?></p>
+        <br>
+        <p>التوقيع: ................................................</p>
     </div>
 </body>
 </html>

@@ -151,6 +151,7 @@
         </div>
         <div>
             <p style="font-weight: 700; margin-bottom: 40px; color: #4A5568;">مصادقة مدير المدرسة</p>
+            <div style="font-weight: 900; margin-bottom: 5px; color: #111F35;"><?php echo esc_html($school['school_principal_name'] ?? ''); ?></div>
             <div style="border-bottom: 1px dashed #718096; width: 150px; margin: 0 auto;"></div>
         </div>
     </div>

@@ -239,6 +239,19 @@ $is_parent = in_array('sm_parent', $roles);
 $is_teacher = in_array('sm_teacher', $roles);
 $active_tab = isset($_GET['sm_tab']) ? sanitize_text_field($_GET['sm_tab']) : 'summary';
 $school = SM_Settings::get_school_info();
+$stats = array();
+
+if ($active_tab === 'summary') {
+    $stats = SM_DB::get_statistics();
+
+    // For parents, filter stats to their student
+    if ($is_parent) {
+        $student = SM_DB::get_student_by_parent(get_current_user_id());
+        if ($student) {
+            $stats = SM_DB::get_student_stats($student->id);
+        }
+    }
+}
 
 // Dynamic Greeting logic
 $hour = (int)current_time('G');
@@ -359,11 +372,6 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                     </li>
                 <?php endif; ?>
 
-                <?php if ($is_admin || current_user_can('إدارة_أولياء_الأمور')): ?>
-                    <li class="sm-sidebar-item <?php echo $active_tab == 'parents' ? 'sm-active' : ''; ?>">
-                        <a href="<?php echo add_query_arg('sm_tab', 'parents'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-admin-users"></span> إدارة أولياء الأمور</a>
-                    </li>
-                <?php endif; ?>
 
                 <?php if ($is_admin || current_user_can('إدارة_المخالفات')): ?>
                     <li class="sm-sidebar-item <?php echo $active_tab == 'teacher-reports' ? 'sm-active' : ''; ?>" style="position:relative;">
@@ -386,9 +394,6 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                 <?php if ($is_admin || current_user_can('طباعة_التقارير')): ?>
                     <li class="sm-sidebar-item <?php echo $active_tab == 'printing' ? 'sm-active' : ''; ?>">
                         <a href="<?php echo add_query_arg('sm_tab', 'printing'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-printer"></span> مركز الطباعة</a>
-                    </li>
-                    <li class="sm-sidebar-item <?php echo $active_tab == 'reports' ? 'sm-active' : ''; ?>">
-                        <a href="<?php echo add_query_arg('sm_tab', 'reports'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-chart-area"></span> التقارير التحليلية</a>
                     </li>
                 <?php endif; ?>
 
@@ -442,11 +447,6 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                     }
                     break;
 
-                case 'parents':
-                    if ($is_admin || current_user_can('إدارة_أولياء_الأمور')) {
-                        include SM_PLUGIN_DIR . 'templates/admin-parents.php';
-                    }
-                    break;
 
                 case 'printing':
                     if ($is_admin || current_user_can('طباعة_التقارير')) {
@@ -454,11 +454,6 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                     }
                     break;
 
-                case 'reports':
-                    if ($is_admin || current_user_can('طباعة_التقارير')) {
-                        include SM_PLUGIN_DIR . 'templates/admin-reports.php'; 
-                    }
-                    break;
 
                 case 'teacher-reports':
                     include SM_PLUGIN_DIR . 'templates/admin-teacher-reports.php';
@@ -492,6 +487,7 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                                 <?php wp_nonce_field('sm_admin_action', 'sm_admin_nonce'); ?>
                                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
                                     <div class="sm-form-group"><label class="sm-label">اسم المدرسة:</label><input type="text" name="school_name" value="<?php echo esc_attr($school['school_name']); ?>" class="sm-input"></div>
+                                    <div class="sm-form-group"><label class="sm-label">اسم مدير المدرسة:</label><input type="text" name="school_principal_name" value="<?php echo esc_attr($school['school_principal_name'] ?? ''); ?>" class="sm-input"></div>
                                     <div class="sm-form-group"><label class="sm-label">رقم الهاتف:</label><input type="text" name="school_phone" value="<?php echo esc_attr($school['phone']); ?>" class="sm-input"></div>
                                     <div class="sm-form-group"><label class="sm-label">البريد الإلكتروني:</label><input type="email" name="school_email" value="<?php echo esc_attr($school['email']); ?>" class="sm-input"></div>
                                     <div class="sm-form-group">
@@ -502,6 +498,33 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                                         </div>
                                     </div>
                                     <div class="sm-form-group" style="grid-column: span 2;"><label class="sm-label">العنوان:</label><input type="text" name="school_address" value="<?php echo esc_attr($school['address']); ?>" class="sm-input"></div>
+
+                                    <div class="sm-form-group" style="grid-column: span 2;">
+                                        <label class="sm-label">أيام العمل الأسبوعية (الجدول الرسمي):</label>
+                                        <div style="display: flex; gap: 40px; background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                                            <div>
+                                                <div style="font-weight: 800; margin-bottom: 10px; color: var(--sm-primary-color);">المعلمين والطلاب:</div>
+                                                <?php
+                                                $days = array('sun' => 'الأحد', 'mon' => 'الاثنين', 'tue' => 'الثلاثاء', 'wed' => 'الأربعاء', 'thu' => 'الخميس', 'fri' => 'الجمعة', 'sat' => 'السبت');
+                                                $work_students = $school['working_schedule']['students'] ?? array();
+                                                foreach ($days as $key => $label): ?>
+                                                    <label style="display: block; font-size: 13px; margin-bottom: 5px;">
+                                                        <input type="checkbox" name="work_students[]" value="<?php echo $key; ?>" <?php checked(in_array($key, $work_students)); ?>> <?php echo $label; ?>
+                                                    </label>
+                                                <?php endforeach; ?>
+                                            </div>
+                                            <div>
+                                                <div style="font-weight: 800; margin-bottom: 10px; color: var(--sm-secondary-color);">الكادر الإداري:</div>
+                                                <?php
+                                                $work_staff = $school['working_schedule']['staff'] ?? array();
+                                                foreach ($days as $key => $label): ?>
+                                                    <label style="display: block; font-size: 13px; margin-bottom: 5px;">
+                                                        <input type="checkbox" name="work_staff[]" value="<?php echo $key; ?>" <?php checked(in_array($key, $work_staff)); ?>> <?php echo $label; ?>
+                                                    </label>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <button type="submit" name="sm_save_settings_unified" class="sm-btn" style="width:auto;">حفظ بيانات المدرسة</button>
                             </form>

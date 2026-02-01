@@ -274,6 +274,66 @@ class SM_Public {
             }
 
             include SM_PLUGIN_DIR . 'templates/print-attendance.php';
+        } elseif ($type === 'absence_report') {
+            $report_type = sanitize_text_field($_GET['type']); // daily or term
+            $date = sanitize_text_field($_GET['date'] ?? current_time('Y-m-d'));
+
+            global $wpdb;
+            $data = array();
+            $title = '';
+            $subtitle = '';
+
+            if ($report_type === 'daily') {
+                $title = 'تقرير الغياب اليومي - ' . $date;
+                $data = $wpdb->get_results($wpdb->prepare(
+                    "SELECT s.id, s.name, s.student_code, s.class_name, s.section,
+                     (SELECT COUNT(*) FROM {$wpdb->prefix}sm_attendance WHERE student_id = s.id AND status = 'absent') as total_absences
+                     FROM {$wpdb->prefix}sm_students s
+                     JOIN {$wpdb->prefix}sm_attendance a ON s.id = a.student_id
+                     WHERE a.date = %s AND a.status = 'absent'
+                     ORDER BY s.class_name ASC, s.section ASC, s.name ASC",
+                    $date
+                ));
+            } else {
+                $academic = SM_Settings::get_academic_structure();
+                $current_term = null;
+                $today = current_time('Y-m-d');
+                foreach ($academic['term_dates'] as $t_key => $t_dates) {
+                    if (!empty($t_dates['start']) && !empty($t_dates['end'])) {
+                        if ($today >= $t_dates['start'] && $today <= $t_dates['end']) {
+                            $current_term = $t_dates;
+                            $subtitle = 'الفصل الدراسي: ' . $t_key . ' (من ' . $t_dates['start'] . ' إلى ' . $t_dates['end'] . ')';
+                            break;
+                        }
+                    }
+                }
+
+                if ($current_term) {
+                    $title = 'أكثر الطلاب غياباً خلال الفصل الدراسي';
+                    $data = $wpdb->get_results($wpdb->prepare(
+                        "SELECT s.id, s.name, s.student_code, s.class_name, s.section, COUNT(a.id) as absence_count
+                         FROM {$wpdb->prefix}sm_students s
+                         JOIN {$wpdb->prefix}sm_attendance a ON s.id = a.student_id
+                         WHERE a.status = 'absent' AND a.date >= %s AND a.date <= %s
+                         GROUP BY s.id
+                         HAVING absence_count > 0
+                         ORDER BY absence_count DESC, s.name ASC
+                         LIMIT 50",
+                        $current_term['start'], $current_term['end']
+                    ));
+                } else {
+                    $title = 'لا يوجد فصل دراسي حالي محدد في الإعدادات';
+                }
+            }
+
+            include SM_PLUGIN_DIR . 'templates/print-absence-report.php';
+        } elseif ($type === 'student_credentials') {
+            $filters = array();
+            if (!empty($_GET['class_name'])) {
+                $filters['class_name'] = sanitize_text_field($_GET['class_name']);
+            }
+            $students = SM_DB::get_students($filters);
+            include SM_PLUGIN_DIR . 'templates/print-student-credentials.php';
         }
         exit;
     }
@@ -726,9 +786,6 @@ class SM_Public {
     }
 
     public function shortcode_class_attendance() {
-        if (!is_user_logged_in()) {
-            return $this->shortcode_login();
-        }
         ob_start();
         include SM_PLUGIN_DIR . 'templates/shortcode-class-attendance.php';
         return ob_get_clean();
@@ -779,6 +836,15 @@ class SM_Public {
 
         $new_code = SM_Settings::reset_class_security_code($grade, $section);
         wp_send_json_success($new_code);
+    }
+
+    public function ajax_toggle_attendance_status() {
+        if (!is_user_logged_in() || !current_user_can('إدارة_الطلاب')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_attendance_action')) wp_send_json_error('Security check failed');
+
+        $status = sanitize_text_field($_POST['status']);
+        update_option('sm_attendance_manual_status', $status);
+        wp_send_json_success();
     }
 
     public function ajax_rollback_log() {
@@ -1125,10 +1191,15 @@ class SM_Public {
             if (current_user_can('إدارة_النظام')) {
                 SM_Settings::save_school_info(array(
                     'school_name' => sanitize_text_field($_POST['school_name']),
+                    'school_principal_name' => sanitize_text_field($_POST['school_principal_name']),
                     'school_logo' => esc_url_raw($_POST['school_logo']),
                     'address' => sanitize_text_field($_POST['school_address']),
                     'email' => sanitize_email($_POST['school_email']),
-                    'phone' => sanitize_text_field($_POST['school_phone'])
+                    'phone' => sanitize_text_field($_POST['school_phone']),
+                    'working_schedule' => array(
+                        'staff' => isset($_POST['work_staff']) ? array_map('sanitize_text_field', $_POST['work_staff']) : array(),
+                        'students' => isset($_POST['work_students']) ? array_map('sanitize_text_field', $_POST['work_students']) : array()
+                    )
                 ));
                 SM_Settings::save_academic_structure(array(
                     'terms_count' => intval($_POST['terms_count']),

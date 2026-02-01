@@ -75,7 +75,7 @@
                 </div>
             </div>
             <div class="footer">
-                <?php echo esc_html($school['phone']); ?> | <?php echo esc_html($school['address']); ?>
+                مدير المدرسة: <?php echo esc_html($school['school_principal_name'] ?? ''); ?> | <?php echo esc_html($school['phone']); ?>
             </div>
         </div>
         <?php endforeach; ?>
