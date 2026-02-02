@@ -14,7 +14,7 @@
             <h4 style="margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--sm-primary-color); display: flex; align-items: center; gap: 10px; color: var(--sm-dark-color);">
                 <span class="dashicons dashicons-id"></span> بطاقات الهوية التعريفية
             </h4>
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
                 <!-- Student ID Cards (All) -->
                 <div style="background: #fff; padding: 25px; border-radius: 15px; border: 1px solid var(--sm-border-color); display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--sm-shadow);">
                     <div>
@@ -64,7 +64,7 @@
             <h4 style="margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #3182CE; display: flex; align-items: center; gap: 10px; color: var(--sm-dark-color);">
                 <span class="dashicons dashicons-calendar-alt"></span> تقارير الحضور والغياب
             </h4>
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
                 <!-- Daily Absence Report -->
                 <div style="background: #fff; padding: 25px; border-radius: 15px; border: 1px solid var(--sm-border-color); display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--sm-shadow);">
                     <div>
@@ -118,7 +118,7 @@
             <h4 style="margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #38A169; display: flex; align-items: center; gap: 10px; color: var(--sm-dark-color);">
                 <span class="dashicons dashicons-warning"></span> تقارير السلوك والانضباط
             </h4>
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
                 <!-- Disciplinary Reports -->
                 <div style="background: #fff; padding: 25px; border-radius: 15px; border: 1px solid var(--sm-border-color); display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--sm-shadow);">
                     <div>
@@ -176,7 +176,7 @@
             <h4 style="margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #4A5568; display: flex; align-items: center; gap: 10px; color: var(--sm-dark-color);">
                 <span class="dashicons dashicons-admin-generic"></span> القوائم والبيانات الإدارية
             </h4>
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
                 <!-- Full Student List -->
                 <div style="background: #fff; padding: 25px; border-radius: 15px; border: 1px solid var(--sm-border-color); display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--sm-shadow);">
                     <div>
@@ -208,6 +208,23 @@
                         <button onclick="printCredentials()" class="sm-btn" style="background: #4A5568; font-size: 11px; flex: 1;">كشف البيانات</button>
                         <button onclick="printCredentialsCard()" class="sm-btn" style="background: #8A244B; font-size: 11px; flex: 1;">بطاقات الدخول</button>
                     </div>
+                </div>
+
+                <!-- Single Student Login Data -->
+                <div style="background: #fff; padding: 25px; border-radius: 15px; border: 1px solid var(--sm-border-color); display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--sm-shadow);">
+                    <div>
+                        <div style="width: 50px; height: 50px; background: #FFF5F7; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; color: #D53F8C;">
+                            <span class="dashicons dashicons-admin-users" style="font-size: 28px; width: 28px; height: 28px;"></span>
+                        </div>
+                        <h4 style="margin: 0 0 10px 0; border: none; font-weight: 800; font-size: 15px;">بيانات دخول طالب واحد</h4>
+                        <p style="font-size: 11px; color: #718096; line-height: 1.6; margin-bottom: 20px;">استخراج بيانات الدخول (الاسم، المستخدم، كلمة المرور) لطالب واحد فقط.</p>
+                        <div class="sm-form-group">
+                            <select id="single_creds_student_id" class="sm-select" style="font-size: 12px; padding: 8px;">
+                                <?php foreach($students as $s) echo '<option value="'.$s->id.'">'.$s->name.'</option>'; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <button onclick="printSingleStudentCreds()" class="sm-btn" style="background: #D53F8C; font-size: 12px;">توليد بطاقة الدخول</button>
                 </div>
             </div>
         </div>
@@ -273,6 +290,11 @@ function printCredentials() {
 function printCredentialsCard() {
     const classFilter = document.getElementById('creds_class_filter').value;
     window.open('<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=student_credentials_card'); ?>&class_name=' + encodeURIComponent(classFilter), '_blank');
+}
+
+function printSingleStudentCreds() {
+    const studentId = document.getElementById('single_creds_student_id').value;
+    window.open('<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=student_credentials_card'); ?>&student_id=' + studentId, '_blank');
 }
 
 function printAttendanceSheets() {

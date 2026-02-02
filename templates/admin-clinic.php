@@ -4,7 +4,7 @@ if (!defined('ABSPATH')) exit;
 $user = wp_get_current_user();
 $roles = (array) $user->roles;
 $is_staff_who_can_send = in_array('administrator', $roles) || current_user_can('manage_options') || in_array('sm_system_admin', $roles) || in_array('sm_principal', $roles) || in_array('sm_supervisor', $roles) || in_array('discipline_officer', $roles);
-$is_clinic_staff = in_array('sm_clinic', $roles) || in_array('administrator', $roles) || in_array('sm_system_admin', $roles);
+$is_clinic_staff = in_array('sm_clinic', $roles) || in_array('administrator', $roles) || in_array('sm_system_admin', $roles) || in_array('sm_principal', $roles) || in_array('sm_supervisor', $roles);
 
 global $wpdb;
 
@@ -42,11 +42,12 @@ $history = $wpdb->get_results("
                 <div class="sm-dropdown" style="position: relative;">
                     <button class="sm-btn sm-btn-secondary" onclick="toggleClinicReportDropdown()">تحميل التقارير <span class="dashicons dashicons-arrow-down-alt2"></span></button>
                     <div id="clinic-report-menu" style="display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100; min-width: 150px; margin-top: 5px;">
-                        <a href="<?php echo admin_url('admin-ajax.php?action=sm_get_clinic_reports&report_type=day'); ?>" class="sm-dropdown-item">تقرير اليوم</a>
-                        <a href="<?php echo admin_url('admin-ajax.php?action=sm_get_clinic_reports&report_type=week'); ?>" class="sm-dropdown-item">تقرير الأسبوع</a>
-                        <a href="<?php echo admin_url('admin-ajax.php?action=sm_get_clinic_reports&report_type=month'); ?>" class="sm-dropdown-item">تقرير الشهر</a>
-                        <a href="<?php echo admin_url('admin-ajax.php?action=sm_get_clinic_reports&report_type=term'); ?>" class="sm-dropdown-item">تقرير الفصل</a>
-                        <a href="<?php echo admin_url('admin-ajax.php?action=sm_get_clinic_reports&report_type=year'); ?>" class="sm-dropdown-item">تقرير السنة</a>
+                        <?php $c_nonce = wp_create_nonce('sm_clinic_action'); ?>
+                        <a href="<?php echo admin_url('admin-ajax.php?action=sm_get_clinic_reports&report_type=day&nonce='.$c_nonce); ?>" class="sm-dropdown-item">تقرير اليوم</a>
+                        <a href="<?php echo admin_url('admin-ajax.php?action=sm_get_clinic_reports&report_type=week&nonce='.$c_nonce); ?>" class="sm-dropdown-item">تقرير الأسبوع</a>
+                        <a href="<?php echo admin_url('admin-ajax.php?action=sm_get_clinic_reports&report_type=month&nonce='.$c_nonce); ?>" class="sm-dropdown-item">تقرير الشهر</a>
+                        <a href="<?php echo admin_url('admin-ajax.php?action=sm_get_clinic_reports&report_type=term&nonce='.$c_nonce); ?>" class="sm-dropdown-item">تقرير الفصل</a>
+                        <a href="<?php echo admin_url('admin-ajax.php?action=sm_get_clinic_reports&report_type=year&nonce='.$c_nonce); ?>" class="sm-dropdown-item">تقرير السنة</a>
                     </div>
                 </div>
             <?php endif; ?>

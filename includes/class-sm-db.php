@@ -39,12 +39,14 @@ class SM_DB {
         
         if (!empty($filters['search'])) {
             $search_str = trim($filters['search']);
-            $search_like = '%' . $wpdb->esc_like($search_str) . '%';
+            $normalized_search = self::normalize_arabic($search_str);
+            $search_like = '%' . $wpdb->esc_like($normalized_search) . '%';
+            $name_sql = self::get_arabic_normalized_column('name');
 
             if (preg_match('/^ST[0-9]+$/i', $search_str)) {
-                $query .= $wpdb->prepare(" AND (student_code = %s OR name LIKE %s)", $search_str, $search_like);
+                $query .= $wpdb->prepare(" AND (student_code = %s OR $name_sql LIKE %s)", $search_str, $search_like);
             } else {
-                $query .= $wpdb->prepare(" AND (name LIKE %s OR student_code LIKE %s OR class_name LIKE %s OR section LIKE %s)", $search_like, $search_like, $search_like, $search_like);
+                $query .= $wpdb->prepare(" AND ($name_sql LIKE %s OR student_code LIKE %s OR class_name LIKE %s OR section LIKE %s)", $search_like, $search_like, $search_like, $search_like);
             }
         }
         
@@ -277,8 +279,12 @@ class SM_DB {
         }
 
         if (!empty($filters['search'])) {
-            $search = '%' . $wpdb->esc_like($filters['search']) . '%';
-            $query .= $wpdb->prepare(" AND (s.name LIKE %s OR s.student_code LIKE %s)", $search, $search);
+            $search_str = trim($filters['search']);
+            $normalized_search = self::normalize_arabic($search_str);
+            $search_like = '%' . $wpdb->esc_like($normalized_search) . '%';
+            $name_sql = self::get_arabic_normalized_column('s.name');
+
+            $query .= $wpdb->prepare(" AND ($name_sql LIKE %s OR s.student_code LIKE %s)", $search_like, $search_like);
         }
 
         if (!empty($filters['class_name'])) {
@@ -384,29 +390,47 @@ class SM_DB {
         $data = json_decode($json, true);
         if (!$data) return false;
 
-        $wpdb->query("TRUNCATE TABLE {$wpdb->prefix}sm_students");
-        $wpdb->query("TRUNCATE TABLE {$wpdb->prefix}sm_records");
-        $wpdb->query("TRUNCATE TABLE {$wpdb->prefix}sm_attendance");
-        $wpdb->query("TRUNCATE TABLE {$wpdb->prefix}sm_confiscated_items");
-
+        // MERGE MODE (No Truncate)
         if (isset($data['students'])) {
             foreach ($data['students'] as $student) {
-                $wpdb->insert("{$wpdb->prefix}sm_students", $student);
+                $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}sm_students WHERE student_code = %s", $student['student_code']));
+                if ($exists) {
+                    unset($student['id']);
+                    $wpdb->update("{$wpdb->prefix}sm_students", $student, array('id' => $exists));
+                } else {
+                    $wpdb->insert("{$wpdb->prefix}sm_students", $student);
+                }
             }
         }
         if (isset($data['records'])) {
             foreach ($data['records'] as $record) {
-                $wpdb->insert("{$wpdb->prefix}sm_records", $record);
+                $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}sm_records WHERE id = %d", $record['id']));
+                if ($exists) {
+                    $wpdb->update("{$wpdb->prefix}sm_records", $record, array('id' => $exists));
+                } else {
+                    $wpdb->insert("{$wpdb->prefix}sm_records", $record);
+                }
             }
         }
         if (isset($data['attendance'])) {
             foreach ($data['attendance'] as $att) {
-                $wpdb->insert("{$wpdb->prefix}sm_attendance", $att);
+                $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}sm_attendance WHERE student_id = %d AND date = %s", $att['student_id'], $att['date']));
+                if ($exists) {
+                    unset($att['id']);
+                    $wpdb->update("{$wpdb->prefix}sm_attendance", $att, array('id' => $exists));
+                } else {
+                    $wpdb->insert("{$wpdb->prefix}sm_attendance", $att);
+                }
             }
         }
         if (isset($data['confiscated_items'])) {
             foreach ($data['confiscated_items'] as $item) {
-                $wpdb->insert("{$wpdb->prefix}sm_confiscated_items", $item);
+                $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}sm_confiscated_items WHERE id = %d", $item['id']));
+                if ($exists) {
+                    $wpdb->update("{$wpdb->prefix}sm_confiscated_items", $item, array('id' => $exists));
+                } else {
+                    $wpdb->insert("{$wpdb->prefix}sm_confiscated_items", $item);
+                }
             }
         }
         return true;
@@ -638,6 +662,22 @@ class SM_DB {
              WHERE sender_id = %d ORDER BY created_at DESC", 
             $user_id
         ));
+    }
+
+    public static function normalize_arabic($str) {
+        $search = array(
+            'أ', 'إ', 'آ', 'ة', 'ى',
+            'َ', 'ً', 'ُ', 'ٌ', 'ِ', 'ٍ', 'ْ', 'ّ'
+        );
+        $replace = array(
+            'ا', 'ا', 'ا', 'ه', 'ي',
+            '', '', '', '', '', '', '', ''
+        );
+        return str_replace($search, $replace, $str);
+    }
+
+    public static function get_arabic_normalized_column($column) {
+        return "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE($column, 'أ', 'ا'), 'إ', 'ا'), 'آ', 'ا'), 'ة', 'ه'), 'ى', 'ي'), 'َ', ''), 'ً', ''), 'ُ', ''), 'ٌ', ''), 'ِ', ''), 'ٍ', ''), 'ْ', ''), 'ّ', '')";
     }
 
     public static function get_student_stats($student_id) {

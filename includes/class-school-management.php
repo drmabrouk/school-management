@@ -39,6 +39,7 @@ class School_Management {
         $this->loader->add_action('init', $plugin_public, 'register_shortcodes');
         $this->loader->add_action('template_redirect', $plugin_public, 'handle_form_submission');
         $this->loader->add_action('wp_login_failed', $plugin_public, 'login_failed');
+        $this->loader->add_action('wp_login', $plugin_public, 'log_successful_login', 10, 2);
         $this->loader->add_action('wp_ajax_sm_get_student', $plugin_public, 'ajax_get_student');
         $this->loader->add_action('wp_ajax_sm_search_students', $plugin_public, 'ajax_search_students');
         $this->loader->add_action('wp_ajax_sm_get_student_intelligence', $plugin_public, 'ajax_get_student_intelligence');

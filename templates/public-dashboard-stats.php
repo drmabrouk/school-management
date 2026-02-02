@@ -61,9 +61,10 @@
                         <button type="button" class="sm-btn" style="background:#2d3748; padding: 10px 15px;" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'">تصدير تقارير <span class="dashicons dashicons-arrow-down-alt2"></span></button>
                         <div style="display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100; min-width: 180px; margin-top: 5px;">
                             <div style="padding: 8px 15px; font-size: 10px; color: #718096; border-bottom: 1px solid #eee; font-weight: 700;">تحميل Excel (CSV)</div>
-                            <a href="<?php echo admin_url('admin-ajax.php?action=sm_export_violations_csv&range=today'); ?>" class="sm-dropdown-item">مخالفات اليوم</a>
-                            <a href="<?php echo admin_url('admin-ajax.php?action=sm_export_violations_csv&range=week'); ?>" class="sm-dropdown-item">مخالفات الأسبوع</a>
-                            <a href="<?php echo admin_url('admin-ajax.php?action=sm_export_violations_csv&range=month'); ?>" class="sm-dropdown-item">مخالفات الشهر</a>
+                            <?php $v_nonce = wp_create_nonce('sm_export_action'); ?>
+                            <a href="<?php echo admin_url('admin-ajax.php?action=sm_export_violations_csv&range=today&nonce='.$v_nonce); ?>" class="sm-dropdown-item">مخالفات اليوم</a>
+                            <a href="<?php echo admin_url('admin-ajax.php?action=sm_export_violations_csv&range=week&nonce='.$v_nonce); ?>" class="sm-dropdown-item">مخالفات الأسبوع</a>
+                            <a href="<?php echo admin_url('admin-ajax.php?action=sm_export_violations_csv&range=month&nonce='.$v_nonce); ?>" class="sm-dropdown-item">مخالفات الشهر</a>
 
                             <div style="padding: 8px 15px; font-size: 10px; color: #718096; border-bottom: 1px solid #eee; font-weight: 700; margin-top: 5px;">تحميل ملف PDF احترافي</div>
                             <button onclick="exportViolationPDF()" class="sm-dropdown-item" style="width:100%; text-align:right; background:none; border:none; cursor:pointer;">تقرير المخالفات الشامل</button>

@@ -44,8 +44,8 @@
     <?php else: ?>
         <div class="report-header">
             <div style="text-align: right; flex: 1;">
-                <h2 style="margin: 0; color: #111F35; font-weight: 900;"><?php echo esc_html($school['school_name']); ?></h2>
-                <p style="margin: 5px 0; font-size: 13px; font-weight: 600; color: #4A5568;">وزارة التعليم - إدارة الانضباط المدرسي</p>
+                <h3 style="margin: 0; color: #111F35; font-weight: 900; font-size: 16px;">وزارة التربية والتعليم – الإمارات العربية المتحدة</h3>
+                <h2 style="margin: 5px 0; color: #4A5568; font-weight: 700; font-size: 18px;"><?php echo esc_html($school['school_name']); ?></h2>
                 <p style="margin: 2px 0; font-size: 12px; color: #718096;"><?php echo esc_html($school['address']); ?></p>
             </div>
             <div style="flex: 1; text-align: center;">
@@ -140,19 +140,16 @@
         </tbody>
     </table>
 
-    <div style="margin-top: 60px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 30px; text-align: center;">
+    <div style="margin-top: 60px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; text-align: center;">
         <div>
-            <p style="font-weight: 700; margin-bottom: 40px; color: #4A5568;">توقيع رائد الفصل</p>
-            <div style="border-bottom: 1px dashed #718096; width: 150px; margin: 0 auto;"></div>
+            <p style="font-weight: 700; margin-bottom: 40px; color: #4A5568;">مشرف الانضباط</p>
+            <div style="border-bottom: 1px dashed #718096; width: 200px; margin: 0 auto;"></div>
+            <div style="font-size: 12px; color: #718096; margin-top: 5px;">التوقيع والختم</div>
         </div>
         <div>
-            <p style="font-weight: 700; margin-bottom: 40px; color: #4A5568;">توقيع المشرف التربوي</p>
-            <div style="border-bottom: 1px dashed #718096; width: 150px; margin: 0 auto;"></div>
-        </div>
-        <div>
-            <p style="font-weight: 700; margin-bottom: 40px; color: #4A5568;">مصادقة مدير المدرسة</p>
+            <p style="font-weight: 700; margin-bottom: 40px; color: #4A5568;">مدير المدرسة</p>
             <div style="font-weight: 900; margin-bottom: 5px; color: #111F35;"><?php echo esc_html($school['school_principal_name'] ?? ''); ?></div>
-            <div style="border-bottom: 1px dashed #718096; width: 150px; margin: 0 auto;"></div>
+            <div style="border-bottom: 1px dashed #718096; width: 200px; margin: 0 auto;"></div>
         </div>
     </div>
     <?php if (!empty($print_settings['footer'])): ?>

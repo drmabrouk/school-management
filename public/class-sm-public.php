@@ -210,11 +210,16 @@ class SM_Public {
     }
 
     public function login_failed($username) {
+        SM_Logger::log('فشل تسجيل الدخول', "محاولة دخول فاشلة للمستخدم: $username");
         $referrer = wp_get_referer();
         if ($referrer && !strstr($referrer, 'wp-login') && !strstr($referrer, 'wp-admin')) {
             wp_redirect(add_query_arg('login', 'failed', $referrer));
             exit;
         }
+    }
+
+    public function log_successful_login($user_login, $user) {
+        SM_Logger::log('تسجيل دخول ناجح', "المستخدم: $user_login (ID: {$user->ID})");
     }
 
     public function handle_print() {
@@ -822,14 +827,24 @@ class SM_Public {
         if (!wp_verify_nonce($_POST['nonce'], 'sm_profile_action')) wp_send_json_error('Security check failed');
 
         $user_id = get_current_user_id();
+        $user = wp_get_current_user();
+        $is_restricted = in_array('sm_student', (array)$user->roles) || in_array('sm_parent', (array)$user->roles);
+
         $user_data = array(
-            'ID' => $user_id,
-            'display_name' => sanitize_text_field($_POST['display_name']),
-            'user_email' => sanitize_email($_POST['user_email'])
+            'ID' => $user_id
         );
+
+        if (!$is_restricted) {
+            $user_data['display_name'] = sanitize_text_field($_POST['display_name']);
+            $user_data['user_email'] = sanitize_email($_POST['user_email']);
+        }
 
         if (!empty($_POST['user_pass'])) {
             $user_data['user_pass'] = $_POST['user_pass'];
+        }
+
+        if (count($user_data) <= 1) {
+            wp_send_json_error('No data to update');
         }
 
         $result = wp_update_user($user_data);
@@ -1247,6 +1262,7 @@ class SM_Public {
 
     public function ajax_get_clinic_reports() {
         if (!is_user_logged_in() || !current_user_can('manage_clinic')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_GET['nonce'] ?? '', 'sm_clinic_action')) wp_send_json_error('Security check failed');
 
         global $wpdb;
         $type = sanitize_text_field($_GET['report_type']); // day, week, month, term, year
@@ -1353,6 +1369,7 @@ class SM_Public {
 
     public function ajax_export_violations_csv() {
         if (!is_user_logged_in() || !current_user_can('إدارة_المخالفات')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_GET['nonce'] ?? '', 'sm_export_action')) wp_send_json_error('Security check failed');
 
         global $wpdb;
         $range = sanitize_text_field($_GET['range']); // today, week, month
