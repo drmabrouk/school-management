@@ -62,6 +62,15 @@
                 <button type="submit" class="sm-btn" style="padding: 10px 15px;">بحث</button>
                 <?php if (!$is_parent): ?>
                     <button type="button" onclick="document.getElementById('violation-import-form').style.display='block'" class="sm-btn sm-btn-secondary" style="padding: 10px 15px;" title="استيراد">استيراد</button>
+
+                    <div class="sm-dropdown" style="position: relative;">
+                        <button type="button" class="sm-btn" style="background:#2d3748; padding: 10px 15px;" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'">تصدير تقارير <span class="dashicons dashicons-arrow-down-alt2"></span></button>
+                        <div style="display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100; min-width: 150px; margin-top: 5px;">
+                            <a href="<?php echo admin_url('admin-ajax.php?action=sm_export_violations_csv&range=today'); ?>" class="sm-dropdown-item">مخالفات اليوم</a>
+                            <a href="<?php echo admin_url('admin-ajax.php?action=sm_export_violations_csv&range=week'); ?>" class="sm-dropdown-item">مخالفات الأسبوع</a>
+                            <a href="<?php echo admin_url('admin-ajax.php?action=sm_export_violations_csv&range=month'); ?>" class="sm-dropdown-item">مخالفات الشهر</a>
+                        </div>
+                    </div>
                 <?php endif; ?>
                 <button type="button" onclick="window.print()" class="sm-btn" style="background:#27ae60; padding: 10px 15px;" title="طباعة">طباعة</button>
             </div>

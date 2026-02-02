@@ -169,12 +169,9 @@ function verifyCodeAndLoad(className, section, code) {
             noSel.style.display = 'none';
             container.style.display = 'block';
             atRenderList();
-
-            document.querySelectorAll('.at-violation-shortcut').forEach(el => el.style.display = 'flex');
         } else {
             isAuthorized = false;
             document.getElementById('at-security-code').style.borderColor = '#e53e3e';
-            document.querySelectorAll('.at-violation-shortcut').forEach(el => el.style.display = 'none');
 
             if (className === '') { // Visitor mode
                 container.style.display = 'none';
@@ -214,25 +211,6 @@ function atLoadStudentsForVisitor(className, section) {
     });
 }
 
-function openQuickViolation(studentId, studentName) {
-    if (!isAuthorized) {
-        alert('يرجى إدخال كود الأمان الصحيح أولاً.');
-        return;
-    }
-    // Access global violation modal
-    if (typeof smOpenViolationModal === 'function') {
-        smOpenViolationModal();
-        setTimeout(() => {
-            const searchInput = document.getElementById('student_unified_search');
-            if (searchInput) {
-                searchInput.value = studentName;
-                searchInput.dispatchEvent(new Event('input'));
-            }
-        }, 500);
-    } else {
-        alert('تسجيل مخالفة لـ ' + studentName);
-    }
-}
 
 function atUpdateSections() {
     const gradeSelect = document.getElementById('at-grade-select');
@@ -350,9 +328,6 @@ function atRenderList() {
                     </div>
                 </div>
                 <div style="display: flex; gap: 12px; align-items: center;">
-                    <button onclick="openQuickViolation(${s.id}, '${s.name}')" class="at-violation-shortcut" style="display: none; border: none; background: #FFF5F5; color: #F63049; width: 40px; height: 40px; border-radius: 10px; cursor: pointer; transition: 0.2s;" title="تسجيل مخالفة سريعة">
-                        <span class="dashicons dashicons-warning" style="font-size: 20px;"></span>
-                    </button>
 
                     <div style="display: flex; gap: 12px;">
                         ${!isSubmitted ? `

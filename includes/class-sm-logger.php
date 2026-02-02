@@ -10,7 +10,8 @@ class SM_Logger {
             array(
                 'user_id' => $user_id,
                 'action' => sanitize_text_field($action),
-                'details' => sanitize_textarea_field($details)
+                'details' => sanitize_textarea_field($details),
+                'created_at' => current_time('mysql')
             )
         );
 
