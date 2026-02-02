@@ -161,7 +161,7 @@ class SM_Public {
 
             case 'stats':
                 $filters = array();
-                if ($is_parent) {
+                if ($is_parent || $is_student) {
                     $my_stu = SM_DB::get_students_by_parent($user->ID);
                     $filters['student_id'] = isset($_GET['student_id']) ? intval($_GET['student_id']) : ($my_stu[0]->id ?? 0);
                 } else {
@@ -366,6 +366,15 @@ class SM_Public {
             include SM_PLUGIN_DIR . 'templates/print-student-credentials.php';
         } elseif ($type === 'student_credentials_card') {
             include SM_PLUGIN_DIR . 'templates/print-student-credentials-card.php';
+        } elseif ($type === 'violation_report') {
+            $filters = array();
+            if (!empty($_GET['search'])) $filters['search'] = sanitize_text_field($_GET['search']);
+            if (!empty($_GET['class_filter'])) $filters['class_name'] = sanitize_text_field($_GET['class_filter']);
+            if (!empty($_GET['section_filter'])) $filters['section'] = sanitize_text_field($_GET['section_filter']);
+            if (!empty($_GET['type_filter'])) $filters['type'] = sanitize_text_field($_GET['type_filter']);
+
+            $records = SM_DB::get_records($filters);
+            include SM_PLUGIN_DIR . 'templates/print-violation-report.php';
         }
         exit;
     }
@@ -1292,6 +1301,54 @@ class SM_Public {
         }
         fclose($output);
         exit;
+    }
+
+    public function ajax_save_grade_ajax() {
+        if (!is_user_logged_in() || !current_user_can('manage_grades')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_grade_action')) wp_send_json_error('Security check failed');
+
+        global $wpdb;
+        $result = $wpdb->insert("{$wpdb->prefix}sm_grades", array(
+            'student_id' => intval($_POST['student_id']),
+            'subject' => sanitize_text_field($_POST['subject']),
+            'term' => sanitize_text_field($_POST['term']),
+            'grade_val' => sanitize_text_field($_POST['grade_val']),
+            'created_at' => current_time('mysql')
+        ));
+
+        if ($result) {
+            SM_Logger::log('رصد درجة', "تم رصد درجة للطالب ID: {$_POST['student_id']} في مادة {$_POST['subject']}");
+            wp_send_json_success();
+        } else {
+            wp_send_json_error('Failed to save grade');
+        }
+    }
+
+    public function ajax_get_student_grades_ajax() {
+        if (!is_user_logged_in()) wp_send_json_error('Unauthorized');
+
+        global $wpdb;
+        $student_id = intval($_POST['student_id']);
+
+        // Security check: if student, can only see own. If staff, can see all.
+        if (in_array('sm_student', (array)wp_get_current_user()->roles)) {
+            $student = SM_DB::get_student_by_parent(get_current_user_id());
+            if (!$student || $student->id != $student_id) wp_send_json_error('Unauthorized access to grades');
+        }
+
+        $grades = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$wpdb->prefix}sm_grades WHERE student_id = %d ORDER BY created_at DESC", $student_id));
+        wp_send_json_success($grades);
+    }
+
+    public function ajax_delete_grade_ajax() {
+        if (!is_user_logged_in() || !current_user_can('manage_grades')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_grade_action')) wp_send_json_error('Security check failed');
+
+        global $wpdb;
+        $result = $wpdb->delete("{$wpdb->prefix}sm_grades", array('id' => intval($_POST['grade_id'])));
+
+        if ($result) wp_send_json_success();
+        else wp_send_json_error('Failed to delete grade');
     }
 
     public function ajax_export_violations_csv() {

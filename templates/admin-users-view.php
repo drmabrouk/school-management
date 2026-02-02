@@ -1,7 +1,21 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
     <h3 style="margin:0; border:none; padding:0;">إدارة مستخدمي النظام</h3>
-    <button onclick="document.getElementById('add-user-modal').style.display='flex'" class="sm-btn" style="width:auto;">+ إضافة مستخدم جديد</button>
+    <div style="display:flex; gap:10px;">
+        <div class="sm-dropdown" style="position: relative;">
+            <button class="sm-btn sm-btn-outline" style="width:auto; font-size:12px;" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'">تصفية حسب الرتبة <span class="dashicons dashicons-filter"></span></button>
+            <div style="display: none; position: absolute; top: 100%; right: 0; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100; min-width: 180px; margin-top: 5px;">
+                <a href="<?php echo remove_query_arg('role_filter'); ?>" class="sm-dropdown-item">الكل</a>
+                <a href="<?php echo add_query_arg('role_filter', 'sm_student'); ?>" class="sm-dropdown-item">الطلاب</a>
+                <a href="<?php echo add_query_arg('role_filter', 'sm_teacher'); ?>" class="sm-dropdown-item">المعلمون</a>
+                <a href="<?php echo add_query_arg('role_filter', 'sm_coordinator'); ?>" class="sm-dropdown-item">منسقو المواد</a>
+                <a href="<?php echo add_query_arg('role_filter', 'sm_supervisor'); ?>" class="sm-dropdown-item">المشرفون</a>
+                <a href="<?php echo add_query_arg('role_filter', 'sm_principal'); ?>" class="sm-dropdown-item">مديرو المدارس</a>
+                <a href="<?php echo add_query_arg('role_filter', 'sm_system_admin'); ?>" class="sm-dropdown-item">مديرو النظام</a>
+            </div>
+        </div>
+        <button onclick="document.getElementById('add-user-modal').style.display='flex'" class="sm-btn" style="width:auto;">+ إضافة مستخدم جديد</button>
+    </div>
 </div>
 
 <div class="sm-table-container">
@@ -31,10 +45,30 @@
             $current_level = $hierarchy[$current_role] ?? -3;
 
             $all_users = get_users();
-            usort($all_users, function($a, $b) use ($hierarchy) {
-                $lvl_a = $hierarchy[$a->roles[0]] ?? -3;
-                $lvl_b = $hierarchy[$b->roles[0]] ?? -3;
-                return $lvl_b <=> $lvl_a;
+
+            // Filter by role if requested
+            if (!empty($_GET['role_filter'])) {
+                $filter_role = sanitize_text_field($_GET['role_filter']);
+                $all_users = array_filter($all_users, function($u) use ($filter_role) {
+                    return in_array($filter_role, $u->roles);
+                });
+            }
+
+            // Ordering hierarchy: Students, Teachers, Coordinators, Supervisors, Principal, Admin
+            $sort_hierarchy = array(
+                'sm_student' => 0,
+                'sm_teacher' => 1,
+                'sm_coordinator' => 2,
+                'sm_supervisor' => 3,
+                'sm_principal' => 4,
+                'sm_system_admin' => 5,
+                'administrator' => 6
+            );
+
+            usort($all_users, function($a, $b) use ($sort_hierarchy) {
+                $lvl_a = $sort_hierarchy[$a->roles[0]] ?? 99;
+                $lvl_b = $sort_hierarchy[$b->roles[0]] ?? 99;
+                return $lvl_a <=> $lvl_b;
             });
 
             foreach ($all_users as $u):

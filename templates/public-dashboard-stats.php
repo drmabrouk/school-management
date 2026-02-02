@@ -2,7 +2,10 @@
 <div class="sm-admin-panel" dir="rtl">
     <h3 style="margin-bottom: 25px; font-weight: 800;">سجل سجلات الطلاب</h3>
     
-    <?php $is_parent = in_array('sm_parent', (array) wp_get_current_user()->roles); ?>
+    <?php
+    $user_roles = (array) wp_get_current_user()->roles;
+    $is_parent = in_array('sm_parent', $user_roles) || in_array('sm_student', $user_roles);
+    ?>
     <div style="background: white; padding: 30px; border: 1px solid var(--sm-border-color); border-radius: var(--sm-radius); margin-bottom: 30px; box-shadow: var(--sm-shadow);">
         <form method="get" style="display: grid; grid-template-columns: repeat(<?php echo $is_parent ? '4' : '6'; ?>, 1fr) auto; gap: 15px; align-items: end;">
             <input type="hidden" name="page" value="sm-dashboard">
@@ -38,15 +41,6 @@
             </div>
             <?php endif; ?>
             
-            <div class="sm-form-group" style="margin-bottom:0;">
-                <label class="sm-label">من:</label>
-                <input type="date" name="start_date" class="sm-input" value="<?php echo esc_attr($_GET['start_date'] ?? ''); ?>">
-            </div>
-
-            <div class="sm-form-group" style="margin-bottom:0;">
-                <label class="sm-label">إلى:</label>
-                <input type="date" name="end_date" class="sm-input" value="<?php echo esc_attr($_GET['end_date'] ?? ''); ?>">
-            </div>
             
             <div class="sm-form-group" style="margin-bottom:0;">
                 <label class="sm-label">النوع:</label>
@@ -65,10 +59,14 @@
 
                     <div class="sm-dropdown" style="position: relative;">
                         <button type="button" class="sm-btn" style="background:#2d3748; padding: 10px 15px;" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'">تصدير تقارير <span class="dashicons dashicons-arrow-down-alt2"></span></button>
-                        <div style="display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100; min-width: 150px; margin-top: 5px;">
+                        <div style="display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100; min-width: 180px; margin-top: 5px;">
+                            <div style="padding: 8px 15px; font-size: 10px; color: #718096; border-bottom: 1px solid #eee; font-weight: 700;">تحميل Excel (CSV)</div>
                             <a href="<?php echo admin_url('admin-ajax.php?action=sm_export_violations_csv&range=today'); ?>" class="sm-dropdown-item">مخالفات اليوم</a>
                             <a href="<?php echo admin_url('admin-ajax.php?action=sm_export_violations_csv&range=week'); ?>" class="sm-dropdown-item">مخالفات الأسبوع</a>
                             <a href="<?php echo admin_url('admin-ajax.php?action=sm_export_violations_csv&range=month'); ?>" class="sm-dropdown-item">مخالفات الشهر</a>
+
+                            <div style="padding: 8px 15px; font-size: 10px; color: #718096; border-bottom: 1px solid #eee; font-weight: 700; margin-top: 5px;">تحميل ملف PDF احترافي</div>
+                            <button onclick="exportViolationPDF()" class="sm-dropdown-item" style="width:100%; text-align:right; background:none; border:none; cursor:pointer;">تقرير المخالفات الشامل</button>
                         </div>
                     </div>
                 <?php endif; ?>
@@ -267,6 +265,21 @@
     </div>
 
     <script>
+    function exportViolationPDF() {
+        const student = document.querySelector('input[name="student_search"]').value;
+        const grade = document.querySelector('select[name="class_filter"]').value;
+        const section = document.querySelector('select[name="section_filter"]').value;
+        const type = document.querySelector('select[name="type_filter"]').value;
+
+        let url = '<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=violation_report'); ?>';
+        if (student) url += '&search=' + encodeURIComponent(student);
+        if (grade) url += '&class_filter=' + encodeURIComponent(grade);
+        if (section) url += '&section_filter=' + encodeURIComponent(section);
+        if (type) url += '&type_filter=' + encodeURIComponent(type);
+
+        window.open(url, '_blank');
+    }
+
     (function() {
         window.confirmDeleteRecord = function(id) {
             document.getElementById('confirm_delete_record_id').value = id;

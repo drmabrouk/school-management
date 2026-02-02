@@ -130,6 +130,18 @@ class SM_Activator {
             PRIMARY KEY  (id),
             KEY student_id (student_id),
             KEY referrer_id (referrer_id)
+        ) $charset_collate;
+
+        CREATE TABLE {$wpdb->prefix}sm_grades (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            student_id bigint(20) NOT NULL,
+            subject varchar(100) NOT NULL,
+            term varchar(50) NOT NULL,
+            grade_val varchar(20) NOT NULL,
+            notes text,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            PRIMARY KEY  (id),
+            KEY student_id (student_id)
         ) $charset_collate;";
 
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
@@ -200,6 +212,7 @@ class SM_Activator {
             'add_violation' => 'تسجيل_مخالفة',
             'print_reports' => 'طباعة_التقارير',
             'review_plans' => 'مراجعة_التحضير',
+            'manage_grades' => 'إدارة_الدرجات',
             'manage_assignments' => 'إدارة_الواجبات',
             'view_own_data' => 'عرض_بياناتي',
             'submit_complaint' => 'تقديم_شكوى'
@@ -243,6 +256,7 @@ class SM_Activator {
         $coordinator = get_role('sm_coordinator');
         if ($coordinator) {
             $coordinator->add_cap($caps['review_plans']);
+            $coordinator->add_cap($caps['manage_grades']);
             $coordinator->add_cap('read');
         }
 
@@ -254,6 +268,7 @@ class SM_Activator {
             $teacher->add_cap($caps['submit_complaint']);
             $teacher->add_cap($caps['manage_assignments']);
             $teacher->add_cap($caps['manage_students']);
+            $teacher->add_cap($caps['manage_grades']);
         }
 
         // 6. طالب (Student) - View own results/attendance, assignments, personal photo
