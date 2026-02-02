@@ -142,6 +142,13 @@ class SM_Activator {
             created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
             PRIMARY KEY  (id),
             KEY student_id (student_id)
+        ) $charset_collate;
+
+        CREATE TABLE {$wpdb->prefix}sm_subjects (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            name varchar(255) NOT NULL,
+            grade_id int(11) NOT NULL,
+            PRIMARY KEY  (id)
         ) $charset_collate;";
 
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');

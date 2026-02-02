@@ -18,40 +18,106 @@ $students = SM_DB::get_students();
         <h3 style="margin: 0; font-weight: 800;">إدارة الدرجات والنتائج الأكاديمية</h3>
     </div>
 
-    <div style="background: #fff; padding: 25px; border-radius: 12px; border: 1px solid var(--sm-border-color); margin-bottom: 30px;">
-        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 15px; align-items: end;">
-            <div class="sm-form-group" style="margin-bottom:0;">
-                <label class="sm-label">اختر الطالب:</label>
-                <select id="grade-student-id" class="sm-select">
-                    <option value="">-- اختر طالب --</option>
-                    <?php foreach ($students as $s): ?>
-                        <option value="<?php echo $s->id; ?>"><?php echo esc_html($s->name); ?> (<?php echo $s->class_name; ?>)</option>
-                    <?php endforeach; ?>
-                </select>
+    <div class="sm-tabs-wrapper" style="display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 10px;">
+        <button class="sm-tab-btn sm-active" onclick="smOpenInternalTab('individual-grading', this)">رصد فردي</button>
+        <button class="sm-tab-btn" onclick="smOpenInternalTab('class-grading', this)">رصد جماعي (حسب الصف)</button>
+        <?php if (current_user_can('إدارة_النظام')): ?>
+            <button class="sm-tab-btn" onclick="smOpenInternalTab('subject-mgmt', this)">إدارة المواد</button>
+        <?php endif; ?>
+    </div>
+
+    <div id="individual-grading" class="sm-internal-tab">
+        <div style="background: #fff; padding: 25px; border-radius: 12px; border: 1px solid var(--sm-border-color); margin-bottom: 30px;">
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 15px; align-items: end;">
+                <div class="sm-form-group" style="margin-bottom:0;">
+                    <label class="sm-label">اختر الطالب:</label>
+                    <select id="grade-student-id" class="sm-select">
+                        <option value="">-- اختر طالب --</option>
+                        <?php foreach ($students as $s): ?>
+                            <option value="<?php echo $s->id; ?>"><?php echo esc_html($s->name); ?> (<?php echo $s->class_name; ?>)</option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="sm-form-group" style="margin-bottom:0;">
+                    <label class="sm-label">المادة:</label>
+                    <input type="text" id="grade-subject" class="sm-input" placeholder="مثال: لغة عربية">
+                </div>
+                <div class="sm-form-group" style="margin-bottom:0;">
+                    <label class="sm-label">الفصل:</label>
+                    <select id="grade-term" class="sm-select">
+                        <option value="الفصل الأول">الفصل الأول</option>
+                        <option value="الفصل الثاني">الفصل الثاني</option>
+                        <option value="الفصل الثالث">الفصل الثالث</option>
+                    </select>
+                </div>
+                <div class="sm-form-group" style="margin-bottom:0;">
+                    <label class="sm-label">الدرجة:</label>
+                    <input type="text" id="grade-val" class="sm-input" placeholder="100/95">
+                </div>
+                <button onclick="saveStudentGrade()" class="sm-btn" style="height: 45px; background: var(--sm-primary-color);">رصد الدرجة</button>
             </div>
-            <div class="sm-form-group" style="margin-bottom:0;">
-                <label class="sm-label">المادة:</label>
-                <input type="text" id="grade-subject" class="sm-input" placeholder="مثال: لغة عربية">
-            </div>
-            <div class="sm-form-group" style="margin-bottom:0;">
-                <label class="sm-label">الفصل:</label>
-                <select id="grade-term" class="sm-select">
-                    <option value="الفصل الأول">الفصل الأول</option>
-                    <option value="الفصل الثاني">الفصل الثاني</option>
-                    <option value="الفصل الثالث">الفصل الثالث</option>
-                </select>
-            </div>
-            <div class="sm-form-group" style="margin-bottom:0;">
-                <label class="sm-label">الدرجة:</label>
-                <input type="text" id="grade-val" class="sm-input" placeholder="100/95">
-            </div>
-            <button onclick="saveStudentGrade()" class="sm-btn" style="height: 45px; background: var(--sm-primary-color);">رصد الدرجة</button>
+        </div>
+
+        <div id="grades-table-container">
+            <div style="padding: 40px; text-align: center; background: #f8fafc; border-radius: 12px; color: var(--sm-text-gray);">يرجى اختيار طالب لعرض درجاته.</div>
         </div>
     </div>
 
-    <div id="grades-table-container">
-        <div style="padding: 40px; text-align: center; background: #f8fafc; border-radius: 12px; color: var(--sm-text-gray);">يرجى اختيار طالب لعرض درجاته.</div>
+    <div id="class-grading" class="sm-internal-tab" style="display:none;">
+        <div style="background: #fff; padding: 25px; border-radius: 12px; border: 1px solid var(--sm-border-color); margin-bottom: 30px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 15px; align-items: end;">
+                <div class="sm-form-group" style="margin-bottom:0;">
+                    <label class="sm-label">الصف:</label>
+                    <select id="batch-class" class="sm-select" onchange="loadBatchStudents()">
+                        <option value="">-- اختر الصف --</option>
+                        <?php
+                        global $wpdb;
+                        $classes = $wpdb->get_results("SELECT DISTINCT class_name FROM {$wpdb->prefix}sm_students ORDER BY class_name ASC");
+                        foreach ($classes as $c) echo '<option value="'.$c->class_name.'">'.$c->class_name.'</option>';
+                        ?>
+                    </select>
+                </div>
+                <div class="sm-form-group" style="margin-bottom:0;">
+                    <label class="sm-label">المادة:</label>
+                    <input type="text" id="batch-subject" class="sm-input">
+                </div>
+                <div class="sm-form-group" style="margin-bottom:0;">
+                    <label class="sm-label">الفصل:</label>
+                    <select id="batch-term" class="sm-select">
+                        <option value="الفصل الأول">الفصل الأول</option>
+                        <option value="الفصل الثاني">الفصل الثاني</option>
+                        <option value="الفصل الثالث">الفصل الثالث</option>
+                    </select>
+                </div>
+                <button onclick="saveBatchGrades()" class="sm-btn" style="height: 45px; background: var(--sm-accent-color);">حفظ درجات الصف</button>
+            </div>
+        </div>
+        <div id="batch-students-container"></div>
     </div>
+
+    <?php if (current_user_can('إدارة_النظام')): ?>
+    <div id="subject-mgmt" class="sm-internal-tab" style="display:none;">
+        <div style="display: grid; grid-template-columns: 300px 1fr; gap: 30px;">
+            <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                <h4 style="margin-top:0;">إضافة مادة جديدة</h4>
+                <div class="sm-form-group">
+                    <label class="sm-label">اسم المادة:</label>
+                    <input type="text" id="new-subject-name" class="sm-input">
+                </div>
+                <div class="sm-form-group">
+                    <label class="sm-label">الصف:</label>
+                    <select id="new-subject-grade" class="sm-select">
+                        <?php for($i=1; $i<=12; $i++) echo '<option value="'.$i.'">الصف '.$i.'</option>'; ?>
+                    </select>
+                </div>
+                <button onclick="addSubject()" class="sm-btn" style="width:100%;">إضافة المادة</button>
+            </div>
+            <div id="subjects-list-container">
+                <!-- Loaded via JS -->
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
 </div>
 
 <script>
@@ -68,6 +134,7 @@ function loadStudentGrades(studentId) {
     const formData = new FormData();
     formData.append('action', 'sm_get_student_grades_ajax');
     formData.append('student_id', studentId);
+    formData.append('nonce', '<?php echo wp_create_nonce("sm_grade_action"); ?>');
 
     fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
     .then(r => r.json())
@@ -77,6 +144,88 @@ function loadStudentGrades(studentId) {
         }
     });
 }
+
+function loadBatchStudents() {
+    const className = document.getElementById('batch-class').value;
+    if (!className) return;
+
+    const container = document.getElementById('batch-students-container');
+    container.innerHTML = 'جاري التحميل...';
+
+    // Reuse search logic to get class students
+    fetch('<?php echo admin_url('admin-ajax.php'); ?>?action=sm_search_students&query=' + encodeURIComponent(className))
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            let html = '<table class="sm-table"><thead><tr><th>الطالب</th><th>الدرجة</th></tr></thead><tbody>';
+            res.data.forEach(s => {
+                html += `<tr><td>${s.name}</td><td><input type="text" class="sm-input batch-grade-input" data-student-id="${s.id}" style="width:100px;"></td></tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+    });
+}
+
+function saveBatchGrades() {
+    const subject = document.getElementById('batch-subject').value;
+    const term = document.getElementById('batch-term').value;
+    if (!subject) { alert('يرجى تحديد المادة'); return; }
+
+    const grades = {};
+    document.querySelectorAll('.batch-grade-input').forEach(input => {
+        grades[input.dataset.studentId] = input.value;
+    });
+
+    const formData = new FormData();
+    formData.append('action', 'sm_save_class_grades');
+    formData.append('subject', subject);
+    formData.append('term', term);
+    formData.append('grades', JSON.stringify(grades));
+    formData.append('nonce', '<?php echo wp_create_nonce("sm_grade_action"); ?>');
+
+    fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            smShowNotification(`تم حفظ ${res.data} درجة بنجاح`);
+        }
+    });
+}
+
+function addSubject() {
+    const name = document.getElementById('new-subject-name').value;
+    const gradeId = document.getElementById('new-subject-grade').value;
+    if (!name) return;
+
+    const formData = new FormData();
+    formData.append('action', 'sm_add_subject');
+    formData.append('name', name);
+    formData.append('grade_id', gradeId);
+    formData.append('nonce', '<?php echo wp_create_nonce("sm_admin_action"); ?>');
+
+    fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(res => { if (res.success) { smShowNotification('تمت إضافة المادة'); loadSubjects(); } });
+}
+
+function loadSubjects() {
+    const container = document.getElementById('subjects-list-container');
+    if (!container) return;
+    fetch('<?php echo admin_url('admin-ajax.php'); ?>?action=sm_get_subjects')
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            let html = '<table class="sm-table"><thead><tr><th>المادة</th><th>الصف</th><th>حذف</th></tr></thead><tbody>';
+            res.data.forEach(s => {
+                html += `<tr><td>${s.name}</td><td>الصف ${s.grade_id}</td><td><button onclick="deleteSubject(${s.id})" class="sm-btn sm-btn-outline" style="color:red;">×</button></td></tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+    });
+}
+document.addEventListener('DOMContentLoaded', loadSubjects);
 
 function renderGradesTable(grades) {
     const container = document.getElementById('grades-table-container');

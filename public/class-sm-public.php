@@ -75,21 +75,41 @@ class SM_Public {
             wp_redirect(home_url('/sm-admin'));
             exit;
         }
-        $output = '';
-        if (isset($_GET['login']) && $_GET['login'] == 'failed') {
-            $output .= '<div style="color:red; margin-bottom:10px;" dir="rtl">خطأ في اسم المستخدم أو كلمة المرور.</div>';
+        $school = SM_Settings::get_school_info();
+        $output = '<div class="sm-login-wrapper" style="max-width: 450px; margin: 60px auto; padding: 40px; background: #fff; border-radius: 20px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;" dir="rtl">';
+
+        // Logo & Name
+        $output .= '<div style="text-align: center; margin-bottom: 35px;">';
+        if (!empty($school['school_logo'])) {
+            $output .= '<img src="'.esc_url($school['school_logo']).'" style="max-height: 80px; margin-bottom: 15px;">';
         }
+        $output .= '<h2 style="margin: 0; font-weight: 900; color: #111F35; font-size: 1.6em;">'.esc_html($school['school_name']).'</h2>';
+        $output .= '<p style="margin-top: 5px; color: #718096; font-size: 0.9em;">نظام إدارة السلوك والنتائج الأكاديمية</p>';
+        $output .= '</div>';
+
+        if (isset($_GET['login']) && $_GET['login'] == 'failed') {
+            $output .= '<div style="background: #fff5f5; color: #c53030; padding: 12px; border-radius: 8px; border: 1px solid #feb2b2; margin-bottom: 20px; font-size: 0.9em; text-align: center;">خطأ في اسم المستخدم أو كلمة المرور.</div>';
+        }
+
         $args = array(
             'echo' => false,
-            'redirect' => home_url('/sm-admin'), // Standard redirect
+            'redirect' => home_url('/sm-admin'),
             'form_id' => 'sm_login_form',
-            'label_username' => 'اسم المستخدم',
+            'label_username' => 'اسم المستخدم أو الكود',
             'label_password' => 'كلمة المرور',
-            'label_remember' => 'تذكرني',
-            'label_log_in' => 'تسجيل الدخول',
+            'label_remember' => 'تذكرني على هذا الجهاز',
+            'label_log_in' => 'دخول النظام الآمن',
             'remember' => true
         );
-        return '<div class="sm-container" style="max-width: 450px; margin: 60px auto;" dir="rtl"><h3 style="text-align:center;">تسجيل دخول النظام</h3>' . $output . wp_login_form($args) . '</div>';
+        $output .= wp_login_form($args);
+
+        // Notice
+        $output .= '<div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #edf2f7; text-align: center;">';
+        $output .= '<p style="font-size: 0.85em; color: #718096; line-height: 1.6;">في حال نسيان بيانات الدخول، يرجى التواصل مع إدارة المدرسة أو المشرف التربوي لإعادة تعيين كلمة المرور الخاصة بك.</p>';
+        $output .= '</div>';
+
+        $output .= '</div>';
+        return $output;
     }
 
 
@@ -377,6 +397,18 @@ class SM_Public {
             if (!empty($_GET['class_filter'])) $filters['class_name'] = sanitize_text_field($_GET['class_filter']);
             if (!empty($_GET['section_filter'])) $filters['section'] = sanitize_text_field($_GET['section_filter']);
             if (!empty($_GET['type_filter'])) $filters['type'] = sanitize_text_field($_GET['type_filter']);
+
+            $range = $_GET['range'] ?? '';
+            if ($range === 'today') {
+                $filters['start_date'] = current_time('Y-m-d');
+                $filters['end_date'] = current_time('Y-m-d');
+            } elseif ($range === 'week') {
+                $filters['start_date'] = date('Y-m-d', strtotime('-7 days'));
+                $filters['end_date'] = current_time('Y-m-d');
+            } elseif ($range === 'month') {
+                $filters['start_date'] = date('Y-m-d', strtotime('-30 days'));
+                $filters['end_date'] = current_time('Y-m-d');
+            }
 
             $records = SM_DB::get_records($filters);
             include SM_PLUGIN_DIR . 'templates/print-violation-report.php';
@@ -841,6 +873,7 @@ class SM_Public {
 
         if (!empty($_POST['user_pass'])) {
             $user_data['user_pass'] = $_POST['user_pass'];
+            update_user_meta($user_id, 'sm_temp_pass', $_POST['user_pass']); // Store as visible
         }
 
         if (count($user_data) <= 1) {
@@ -1342,6 +1375,7 @@ class SM_Public {
 
     public function ajax_get_student_grades_ajax() {
         if (!is_user_logged_in()) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'sm_grade_action')) wp_send_json_error('Security');
 
         global $wpdb;
         $student_id = intval($_POST['student_id']);
@@ -1367,28 +1401,122 @@ class SM_Public {
         else wp_send_json_error('Failed to delete grade');
     }
 
+    public function ajax_add_subject() {
+        if (!current_user_can('إدارة_النظام')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_admin_action')) wp_send_json_error('Security');
+
+        $name = sanitize_text_field($_POST['name']);
+        $grade_id = intval($_POST['grade_id']);
+        if (SM_DB::add_subject($name, $grade_id)) wp_send_json_success();
+        else wp_send_json_error();
+    }
+
+    public function ajax_delete_subject() {
+        if (!current_user_can('إدارة_النظام')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_admin_action')) wp_send_json_error('Security');
+
+        if (SM_DB::delete_subject(intval($_POST['id']))) wp_send_json_success();
+        else wp_send_json_error();
+    }
+
+    public function ajax_get_subjects() {
+        if (!is_user_logged_in()) wp_send_json_error('Unauthorized');
+        $grade_id = isset($_GET['grade_id']) ? intval($_GET['grade_id']) : null;
+        wp_send_json_success(SM_DB::get_subjects($grade_id));
+    }
+
+    public function ajax_save_class_grades() {
+        if (!current_user_can('manage_grades')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_grade_action')) wp_send_json_error('Security');
+
+        $subject = sanitize_text_field($_POST['subject']);
+        $term = sanitize_text_field($_POST['term']);
+        $grades = json_decode(stripslashes($_POST['grades']), true);
+
+        global $wpdb;
+        $success = 0;
+        foreach ($grades as $student_id => $val) {
+            if ($val === '') continue;
+            $res = $wpdb->insert("{$wpdb->prefix}sm_grades", array(
+                'student_id' => intval($student_id),
+                'subject' => $subject,
+                'term' => $term,
+                'grade_val' => sanitize_text_field($val),
+                'created_at' => current_time('mysql')
+            ));
+            if ($res) $success++;
+        }
+        wp_send_json_success($success);
+    }
+
+    public function ajax_bulk_delete_students() {
+        if (!current_user_can('إدارة_الطلاب')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_delete_student')) wp_send_json_error('Security');
+
+        $ids = array_map('intval', explode(',', $_POST['student_ids']));
+        $count = 0;
+        foreach ($ids as $id) {
+            if (SM_DB::delete_student($id)) $count++;
+        }
+        SM_Logger::log('حذف طلاب (جماعي)', "تم حذف عدد ($count) طالب من النظام.");
+        wp_send_json_success($count);
+    }
+
+    public function ajax_bulk_delete_users() {
+        if (!current_user_can('إدارة_المستخدمين')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_teacher_action')) wp_send_json_error('Security check');
+
+        $ids = array_map('intval', explode(',', $_POST['user_ids']));
+        require_once(ABSPATH . 'wp-admin/includes/user.php');
+
+        $count = 0;
+        foreach ($ids as $id) {
+            if ($id != get_current_user_id()) {
+                if (wp_delete_user($id)) $count++;
+            }
+        }
+        SM_Logger::log('حذف مستخدمين (جماعي)', "تم حذف عدد ($count) مستخدم من النظام.");
+        wp_send_json_success();
+    }
+
     public function ajax_export_violations_csv() {
         if (!is_user_logged_in() || !current_user_can('إدارة_المخالفات')) wp_send_json_error('Unauthorized');
         if (!wp_verify_nonce($_GET['nonce'] ?? '', 'sm_export_action')) wp_send_json_error('Security check failed');
 
         global $wpdb;
-        $range = sanitize_text_field($_GET['range']); // today, week, month
+        $range = sanitize_text_field($_GET['range']); // today, week, month, all
         $start_date = '';
         $end_date = current_time('Y-m-d') . ' 23:59:59';
+        $student_code = $_GET['student_code'] ?? '';
 
-        switch ($range) {
-            case 'today': $start_date = current_time('Y-m-d') . ' 00:00:00'; break;
-            case 'week': $start_date = date('Y-m-d', strtotime('-7 days')) . ' 00:00:00'; break;
-            case 'month': $start_date = date('Y-m-d', strtotime('-30 days')) . ' 00:00:00'; break;
+        if ($range !== 'all') {
+            switch ($range) {
+                case 'today': $start_date = current_time('Y-m-d') . ' 00:00:00'; break;
+                case 'week': $start_date = date('Y-m-d', strtotime('-7 days')) . ' 00:00:00'; break;
+                case 'month': $start_date = date('Y-m-d', strtotime('-30 days')) . ' 00:00:00'; break;
+            }
         }
 
         $query = "SELECT r.*, s.name as student_name, s.class_name, s.section, s.student_code
                   FROM {$wpdb->prefix}sm_records r
                   JOIN {$wpdb->prefix}sm_students s ON r.student_id = s.id
-                  WHERE r.created_at BETWEEN %s AND %s
-                  ORDER BY r.created_at DESC";
+                  WHERE 1=1";
 
-        $records = $wpdb->get_results($wpdb->prepare($query, $start_date, $end_date));
+        $params = array();
+        if ($start_date) {
+            $query .= " AND r.created_at BETWEEN %s AND %s";
+            $params[] = $start_date;
+            $params[] = $end_date;
+        }
+
+        if ($student_code) {
+            $query .= " AND s.student_code = %s";
+            $params[] = $student_code;
+        }
+
+        $query .= " ORDER BY r.created_at DESC";
+
+        $records = empty($params) ? $wpdb->get_results($query) : $wpdb->get_results($wpdb->prepare($query, $params));
 
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename=violations_'.$range.'_'.date('Y-m-d').'.csv');
@@ -1879,30 +2007,46 @@ class SM_Public {
                         $results['error']++;
                         foreach ($errors as $err) $results['details'][] = array('type' => 'error', 'msg' => $err);
                     } else {
-                        // Match against existing students (Name, Grade, Section)
-                        $existing_id = SM_DB::student_exists($full_display_name, $class_name, $section);
+                        // Improved matching: Check by Code OR (Name + Grade + Section)
+                        $existing_id = false;
 
-                        if ($existing_id) {
-                            $results['success']++;
-                            // We don't increment sort_order here as we are skipping
-                            continue;
-                        }
+                        // If we had a code in the CSV (not currently mapped but let's assume Column G might have it or we use name match)
+                        // Actually, mapping says: A: Name, B: Grade, C: Section. Let's stick to Name+Grade+Section for now as primary identifier if code not provided.
+
+                        $existing_id = SM_DB::student_exists($full_display_name, $class_name, $section);
 
                         $extra = array(
                             'guardian_phone' => $guardian_phone,
-                            'nationality' => $nationality,
-                            'sort_order' => $next_sort_order++
+                            'nationality' => $nationality
                         );
-                        $imported_id = SM_DB::add_student($full_display_name, $class_name, $guardian_email, '', null, null, $section, $extra);
-                        if ($imported_id) {
+
+                        if ($existing_id) {
+                            // UPDATE EXISTING
+                            $update_data = array(
+                                'name' => $full_display_name,
+                                'class_name' => $class_name,
+                                'section' => $section,
+                                'parent_email' => $guardian_email,
+                                'guardian_phone' => $guardian_phone,
+                                'nationality' => $nationality,
+                                'student_code' => SM_DB::get_student_by_id($existing_id)->student_code // Keep same code
+                            );
+                            SM_DB::update_student($existing_id, $update_data);
                             $results['success']++;
-                            if (!empty($warnings)) {
-                                $results['warning']++;
-                                foreach ($warnings as $warn) $results['details'][] = array('type' => 'warning', 'msg' => $warn);
-                            }
                         } else {
-                            $results['error']++;
-                            $results['details'][] = array('type' => 'error', 'msg' => "فشل حفظ البيانات في قاعدة البيانات للسطر " . $row_index);
+                            // INSERT NEW
+                            $extra['sort_order'] = $next_sort_order++;
+                            $imported_id = SM_DB::add_student($full_display_name, $class_name, $guardian_email, '', null, null, $section, $extra);
+                            if ($imported_id) {
+                                $results['success']++;
+                                if (!empty($warnings)) {
+                                    $results['warning']++;
+                                    foreach ($warnings as $warn) $results['details'][] = array('type' => 'warning', 'msg' => $warn);
+                                }
+                            } else {
+                                $results['error']++;
+                                $results['details'][] = array('type' => 'error', 'msg' => "فشل حفظ البيانات في قاعدة البيانات للسطر " . $row_index);
+                            }
                         }
                     }
                 }

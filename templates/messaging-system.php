@@ -33,14 +33,27 @@
                 <label class="sm-label">إلى:</label>
                 <select name="receiver_id" class="sm-select" required>
                     <?php 
-                    $admins = get_users(array('role' => 'sm_principal'));
-                    $supervisors = get_users(array('role' => 'sm_supervisor'));
-                    echo '<optgroup label="مديري المدرسة">';
-                    foreach($admins as $a) echo '<option value="'.$a->ID.'">'.$a->display_name.'</option>';
-                    echo '</optgroup>';
-                    echo '<optgroup label="المشرفين التربويين">';
-                    foreach($supervisors as $o) echo '<option value="'.$o->ID.'">'.$o->display_name.'</option>';
-                    echo '</optgroup>';
+                    $curr_user = wp_get_current_user();
+                    $is_stu = in_array('sm_student', (array)$curr_user->roles);
+
+                    if ($is_stu) {
+                        $student = SM_DB::get_student_by_parent($curr_user->ID);
+                        if ($student) {
+                            $staff = SM_DB::get_staff_by_section($student->class_name, $student->section);
+                            echo '<optgroup label="المعلمون والمشرفون الخاصون بك">';
+                            foreach($staff as $u) echo '<option value="'.$u->ID.'">'.$u->display_name.'</option>';
+                            echo '</optgroup>';
+                        }
+                    } else {
+                        $admins = get_users(array('role' => 'sm_principal'));
+                        $supervisors = get_users(array('role' => 'sm_supervisor'));
+                        echo '<optgroup label="مديري المدرسة">';
+                        foreach($admins as $a) echo '<option value="'.$a->ID.'">'.$a->display_name.'</option>';
+                        echo '</optgroup>';
+                        echo '<optgroup label="المشرفين التربويين">';
+                        foreach($supervisors as $o) echo '<option value="'.$o->ID.'">'.$o->display_name.'</option>';
+                        echo '</optgroup>';
+                    }
                     ?>
                 </select>
             </div>

@@ -15,7 +15,7 @@
             </div>
         </div>
         <div style="flex: 1;">
-            <h2 style="margin: 0 0 12px 0; border: none; padding: 0; color: white; font-size: 2em; font-weight: 800;"><?php echo esc_html($student->name); ?></h2>
+            <h2 style="margin: 0 0 12px 0; border: none; padding: 0; color: white; font-size: 2em; font-weight: 800;">طالب: <?php echo esc_html($student->name); ?></h2>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 0.95em; opacity: 0.9;">
                 <span style="display: flex; align-items: center; gap: 8px;"><span class="dashicons dashicons-welcome-learn-more"></span> <?php echo SM_Settings::format_grade_name($student->class_name, $student->section); ?></span>
                 <span style="display: flex; align-items: center; gap: 8px;"><span class="dashicons dashicons-id"></span> كود الطالب: <?php echo esc_html($student->student_code); ?></span>

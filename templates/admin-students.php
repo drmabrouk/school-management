@@ -157,10 +157,16 @@ if ($import_results) {
         </form>
     </div>
     
+    <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center; background: #f8fafc; padding: 10px 20px; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <span style="font-size: 13px; font-weight: 700; color: #4a5568;">الإجراءات الجماعية:</span>
+        <button onclick="bulkDeleteSelected()" class="sm-btn" style="background: #e53e3e; font-size: 11px; padding: 5px 15px; width: auto;">حذف المحدد</button>
+    </div>
+
     <div class="sm-table-container">
         <table class="sm-table">
             <thead>
                 <tr>
+                    <th style="width: 40px;"><input type="checkbox" id="select-all-students" onclick="toggleAllStudents(this)"></th>
                     <th>كود الطالب</th>
                     <th>الصورة</th>
                     <th>اسم الطالب</th>
@@ -181,6 +187,7 @@ if ($import_results) {
                 <?php else: ?>
                     <?php foreach ($students as $student): ?>
                         <tr id="stu-row-<?php echo $student->id; ?>">
+                            <td><input type="checkbox" class="student-checkbox" value="<?php echo $student->id; ?>"></td>
                             <td style="font-family: 'Rubik', sans-serif; font-weight: 700; color: var(--sm-primary-color);"><?php echo esc_html($student->student_code); ?></td>
                             <td>
                                 <?php if ($student->photo_url): ?>
@@ -600,6 +607,30 @@ if ($import_results) {
                 });
             });
         }
+
+        window.toggleAllStudents = function(master) {
+            document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = master.checked);
+        };
+
+        window.bulkDeleteSelected = function() {
+            const selected = Array.from(document.querySelectorAll('.student-checkbox:checked')).map(cb => cb.value);
+            if (selected.length === 0) { alert('يرجى اختيار طلاب أولاً'); return; }
+            if (!confirm(`هل أنت متأكد من حذف ${selected.length} طالب نهائياً؟`)) return;
+
+            const formData = new FormData();
+            formData.append('action', 'sm_bulk_delete_students_ajax');
+            formData.append('student_ids', selected.join(','));
+            formData.append('nonce', '<?php echo wp_create_nonce("sm_delete_student"); ?>');
+
+            fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    smShowNotification(`تم حذف ${selected.length} طالب بنجاح`);
+                    setTimeout(() => location.reload(), 500);
+                }
+            });
+        };
     })();
     </script>
 </div>
