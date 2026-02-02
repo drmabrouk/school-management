@@ -7,16 +7,17 @@
     $is_parent = in_array('sm_parent', $user_roles) || in_array('sm_student', $user_roles);
     ?>
     <div style="background: white; padding: 30px; border: 1px solid var(--sm-border-color); border-radius: var(--sm-radius); margin-bottom: 30px; box-shadow: var(--sm-shadow);">
-        <form method="get" style="display: grid; grid-template-columns: repeat(<?php echo $is_parent ? '4' : '6'; ?>, 1fr) auto; gap: 15px; align-items: end;">
+        <form method="get" style="display: grid; grid-template-columns: 1fr; gap: 20px;">
             <input type="hidden" name="page" value="sm-dashboard">
             <input type="hidden" name="sm_tab" value="stats">
 
+            <div style="display: flex; gap: 15px; align-items: end; flex-wrap: wrap;">
             <?php if (!$is_parent): ?>
-            <div class="sm-form-group" style="margin-bottom:0;">
-                <label class="sm-label">الطالب:</label>
-                <input type="text" name="student_search" class="sm-input" value="<?php echo esc_attr($_GET['student_search'] ?? ''); ?>" placeholder="اسم/كود...">
+            <div class="sm-form-group" style="margin-bottom:0; flex: 2; min-width: 300px;">
+                <label class="sm-label">البحث عن طالب:</label>
+                <input type="text" name="student_search" class="sm-input" value="<?php echo esc_attr($_GET['student_search'] ?? ''); ?>" placeholder="ادخل اسم الطالب أو الكود الخاص به للبحث المباشر..." style="width: 100%;">
             </div>
-            <div class="sm-form-group" style="margin-bottom:0;">
+            <div class="sm-form-group" style="margin-bottom:0; flex: 1; min-width: 150px;">
                 <label class="sm-label">الصف:</label>
                 <select name="class_filter" class="sm-select">
                     <option value="">كل الصفوف</option>
@@ -28,7 +29,7 @@
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div class="sm-form-group" style="margin-bottom:0;">
+            <div class="sm-form-group" style="margin-bottom:0; flex: 1; min-width: 100px;">
                 <label class="sm-label">الشعبة:</label>
                 <select name="section_filter" class="sm-select">
                     <option value="">كل الشعب</option>
@@ -42,7 +43,7 @@
             <?php endif; ?>
             
             
-            <div class="sm-form-group" style="margin-bottom:0;">
+            <div class="sm-form-group" style="margin-bottom:0; flex: 1; min-width: 150px;">
                 <label class="sm-label">النوع:</label>
                 <select name="type_filter" class="sm-select">
                     <option value="">كل الأنواع</option>
@@ -52,14 +53,14 @@
                 </select>
             </div>
 
-            <div style="display: flex; gap: 8px;">
-                <button type="submit" class="sm-btn" style="padding: 10px 15px;">بحث</button>
+            <div style="display: flex; gap: 8px; align-items: end; margin-bottom: 3px;">
+                <button type="submit" class="sm-btn" style="padding: 10px 25px; height: 45px;">تطبيق الفلترة</button>
                 <?php if (!$is_parent): ?>
                     <button type="button" onclick="document.getElementById('violation-import-form').style.display='block'" class="sm-btn sm-btn-secondary" style="padding: 10px 15px;" title="استيراد">استيراد</button>
 
                     <div class="sm-dropdown" style="position: relative;">
                         <button type="button" class="sm-btn" style="background:#2d3748; padding: 10px 15px;" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'">تصدير تقارير <span class="dashicons dashicons-arrow-down-alt2"></span></button>
-                        <div style="display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100; min-width: 180px; margin-top: 5px;">
+                        <div style="display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100; min-width: 200px; margin-top: 5px;">
                             <div style="padding: 8px 15px; font-size: 10px; color: #718096; border-bottom: 1px solid #eee; font-weight: 700;">تحميل Excel (CSV)</div>
                             <?php $v_nonce = wp_create_nonce('sm_export_action'); ?>
                             <a href="<?php echo admin_url('admin-ajax.php?action=sm_export_violations_csv&range=today&nonce='.$v_nonce); ?>" class="sm-dropdown-item">مخالفات اليوم</a>
@@ -67,11 +68,15 @@
                             <a href="<?php echo admin_url('admin-ajax.php?action=sm_export_violations_csv&range=month&nonce='.$v_nonce); ?>" class="sm-dropdown-item">مخالفات الشهر</a>
 
                             <div style="padding: 8px 15px; font-size: 10px; color: #718096; border-bottom: 1px solid #eee; font-weight: 700; margin-top: 5px;">تحميل ملف PDF احترافي</div>
-                            <button onclick="exportViolationPDF()" class="sm-dropdown-item" style="width:100%; text-align:right; background:none; border:none; cursor:pointer;">تقرير المخالفات الشامل</button>
+                            <a href="<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=violation_report&range=today'); ?>" target="_blank" class="sm-dropdown-item">مخالفات اليوم (PDF)</a>
+                            <a href="<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=violation_report&range=week'); ?>" target="_blank" class="sm-dropdown-item">مخالفات الأسبوع (PDF)</a>
+                            <a href="<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=violation_report&range=month'); ?>" target="_blank" class="sm-dropdown-item">مخالفات الشهر (PDF)</a>
+                            <button onclick="exportViolationPDF()" class="sm-dropdown-item" style="width:100%; text-align:right; background:none; border:none; cursor:pointer;">تقرير المخالفات الشامل (المفلتر)</button>
                         </div>
                     </div>
                 <?php endif; ?>
                 <button type="button" onclick="window.print()" class="sm-btn" style="background:#27ae60; padding: 10px 15px;" title="طباعة">طباعة</button>
+            </div>
             </div>
         </form>
     </div>

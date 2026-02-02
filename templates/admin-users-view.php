@@ -18,13 +18,20 @@
     </div>
 </div>
 
+<div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center; background: #f8fafc; padding: 10px 20px; border-radius: 8px; border: 1px solid #e2e8f0;">
+    <span style="font-size: 13px; font-weight: 700; color: #4a5568;">الإجراءات الجماعية:</span>
+    <button onclick="bulkDeleteUsers()" class="sm-btn" style="background: #e53e3e; font-size: 11px; padding: 5px 15px; width: auto;">حذف المستخدمين المحددين</button>
+</div>
+
 <div class="sm-table-container">
     <table class="sm-table">
         <thead>
             <tr>
+                <th style="width: 40px;"><input type="checkbox" id="select-all-users" onclick="toggleAllUsers(this)"></th>
                 <th>المستخدم</th>
                 <th>البريد الإلكتروني</th>
                 <th>الرتبة</th>
+                <th>كلمة المرور</th>
                 <th>الإجراءات</th>
             </tr>
         </thead>
@@ -79,6 +86,7 @@
                 if ($u_level > $current_level && !current_user_can('administrator')) continue;
             ?>
                 <tr>
+                    <td><input type="checkbox" class="user-checkbox" value="<?php echo $u->ID; ?>" <?php if($u->ID == get_current_user_id()) echo 'disabled'; ?>></td>
                     <td>
                         <div style="display:flex; align-items:center; gap:10px;">
                             <?php echo get_avatar($u->ID, 32, '', '', array('style' => 'border-radius:50%;')); ?>
@@ -109,6 +117,9 @@
                         <?php if ($u_role_key === 'sm_teacher'): ?>
                             <div style="font-size:11px; color:var(--sm-primary-color); font-weight:700;">التخصص: <?php echo esc_html(get_user_meta($u->ID, 'sm_specialization', true) ?: 'غير محدد'); ?></div>
                         <?php endif; ?>
+                    </td>
+                    <td>
+                        <code style="background:#f1f5f9; padding:2px 5px; border-radius:4px; font-family:monospace;"><?php echo get_user_meta($u->ID, 'sm_temp_pass', true) ?: '********'; ?></code>
                     </td>
                     <td>
                         <div style="display:flex; gap:8px;">
@@ -172,8 +183,15 @@
                     </select>
                 </div>
                 <div class="sm-form-group spec-group" style="display:none;">
-                    <label class="sm-label">التخصص (للمعلمين):</label>
-                    <input type="text" name="specialization" class="sm-input" placeholder="مثال: معلم فيزياء">
+                    <label class="sm-label">المادة التخصصية (للمعلمين):</label>
+                    <select name="specialization" class="sm-select">
+                        <option value="">-- اختر المادة --</option>
+                        <?php
+                        $subjects = SM_DB::get_subjects();
+                        $unique_subjects = array_unique(array_map(function($s){ return $s->name; }, $subjects));
+                        foreach($unique_subjects as $sub_name) echo '<option value="'.$sub_name.'">'.$sub_name.'</option>';
+                        ?>
+                    </select>
                 </div>
                 <div class="sm-form-group" style="grid-column: span 2;">
                     <label class="sm-label">كلمة المرور:</label>
@@ -215,8 +233,13 @@
                     </select>
                 </div>
                 <div class="sm-form-group spec-group" id="edit_spec_group" style="display:none;">
-                    <label class="sm-label">التخصص (للمعلمين):</label>
-                    <input type="text" name="specialization" id="edit_u_spec" class="sm-input" placeholder="مثال: معلم رياضيات">
+                    <label class="sm-label">المادة التخصصية (للمعلمين):</label>
+                    <select name="specialization" id="edit_u_spec" class="sm-select">
+                        <option value="">-- اختر المادة --</option>
+                        <?php
+                        foreach($unique_subjects as $sub_name) echo '<option value="'.$sub_name.'">'.$sub_name.'</option>';
+                        ?>
+                    </select>
                 </div>
                 <div class="sm-form-group">
                     <label class="sm-label">كلمة مرور جديدة (اختياري):</label>
@@ -285,5 +308,29 @@
             });
         });
     }
+
+    window.toggleAllUsers = function(master) {
+        document.querySelectorAll('.user-checkbox:not(:disabled)').forEach(cb => cb.checked = master.checked);
+    };
+
+    window.bulkDeleteUsers = function() {
+        const selected = Array.from(document.querySelectorAll('.user-checkbox:checked')).map(cb => cb.value);
+        if (selected.length === 0) { alert('يرجى اختيار مستخدمين أولاً'); return; }
+        if (!confirm(`هل أنت متأكد من حذف ${selected.length} مستخدم نهائياً؟`)) return;
+
+        const formData = new FormData();
+        formData.append('action', 'sm_bulk_delete_users_ajax');
+        formData.append('user_ids', selected.join(','));
+        formData.append('nonce', '<?php echo wp_create_nonce("sm_teacher_action"); ?>');
+
+        fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                smShowNotification(`تم حذف ${selected.length} مستخدم بنجاح`);
+                setTimeout(() => location.reload(), 500);
+            }
+        });
+    };
 })();
 </script>

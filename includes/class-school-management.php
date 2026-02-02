@@ -90,6 +90,11 @@ class School_Management {
         $this->loader->add_action('wp_ajax_sm_save_grade_ajax', $plugin_public, 'ajax_save_grade_ajax');
         $this->loader->add_action('wp_ajax_sm_get_student_grades_ajax', $plugin_public, 'ajax_get_student_grades_ajax');
         $this->loader->add_action('wp_ajax_sm_delete_grade_ajax', $plugin_public, 'ajax_delete_grade_ajax');
+        $this->loader->add_action('wp_ajax_sm_add_subject', $plugin_public, 'ajax_add_subject');
+        $this->loader->add_action('wp_ajax_sm_delete_subject', $plugin_public, 'ajax_delete_subject');
+        $this->loader->add_action('wp_ajax_sm_get_subjects', $plugin_public, 'ajax_get_subjects');
+        $this->loader->add_action('wp_ajax_sm_save_class_grades', $plugin_public, 'ajax_save_class_grades');
+        $this->loader->add_action('wp_ajax_sm_bulk_delete_students_ajax', $plugin_public, 'ajax_bulk_delete_students');
     }
 
     public function run() {

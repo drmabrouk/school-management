@@ -203,6 +203,7 @@ class SM_DB {
         $violation_code = sanitize_text_field($data['violation_code'] ?? '');
         $degree = intval($data['degree'] ?? 1);
         $points = intval($data['points'] ?? 0);
+        $created_at = !empty($data['custom_date']) ? sanitize_text_field($data['custom_date']) . ' ' . current_time('H:i:s') : current_time('mysql');
 
         // Recurrence Tracking
         $recurrence = 1;
@@ -239,7 +240,8 @@ class SM_DB {
                 'details' => sanitize_textarea_field($data['details']),
                 'action_taken' => sanitize_text_field($data['action_taken']),
                 'reward_penalty' => sanitize_text_field($data['reward_penalty']),
-                'status' => $status
+                'status' => $status,
+                'created_at' => $created_at
             )
         );
 
@@ -357,6 +359,11 @@ class SM_DB {
             }
 
             $wpdb->delete("{$wpdb->prefix}sm_records", array('student_id' => $id));
+            $wpdb->delete("{$wpdb->prefix}sm_attendance", array('student_id' => $id));
+            $wpdb->delete("{$wpdb->prefix}sm_clinic", array('student_id' => $id));
+            $wpdb->delete("{$wpdb->prefix}sm_grades", array('student_id' => $id));
+            $wpdb->delete("{$wpdb->prefix}sm_assignments", array('student_id' => $id));
+
             return $wpdb->delete("{$wpdb->prefix}sm_students", array('id' => $id));
         }
         return false;
@@ -813,6 +820,26 @@ class SM_DB {
             if ($expires <= time()) $count++;
         }
         return $count;
+    }
+
+    // Subject Management
+    public static function get_subjects($grade_id = null) {
+        global $wpdb;
+        $query = "SELECT * FROM {$wpdb->prefix}sm_subjects";
+        if ($grade_id) {
+            $query .= $wpdb->prepare(" WHERE grade_id = %d", $grade_id);
+        }
+        return $wpdb->get_results($query);
+    }
+
+    public static function add_subject($name, $grade_id) {
+        global $wpdb;
+        return $wpdb->insert("{$wpdb->prefix}sm_subjects", array('name' => $name, 'grade_id' => $grade_id));
+    }
+
+    public static function delete_subject($id) {
+        global $wpdb;
+        return $wpdb->delete("{$wpdb->prefix}sm_subjects", array('id' => $id));
     }
 
     // Attendance Management

@@ -60,6 +60,11 @@
 
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
             <div class="sm-form-group">
+                <label class="sm-label">تاريخ المخالفة:</label>
+                <input type="date" name="custom_date" class="sm-input" value="<?php echo date('Y-m-d'); ?>" required>
+            </div>
+
+            <div class="sm-form-group">
                 <label class="sm-label">تصنيف الموقف:</label>
                 <select name="classification" class="sm-select">
                     <option value="general">عام</option>
