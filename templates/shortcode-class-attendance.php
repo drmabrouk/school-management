@@ -2,20 +2,8 @@
 $school = SM_Settings::get_school_info();
 $academic = SM_Settings::get_academic_structure();
 
-$att_status = get_option('sm_attendance_manual_status', 'auto');
-$is_open = false;
-
-if ($att_status === 'open') {
-    $is_open = true;
-} elseif ($att_status === 'closed') {
-    $is_open = false;
-} else {
-    // auto: 7:00 AM to 12:00 PM
-    $current_time = current_time('H:i');
-    if ($current_time >= '07:00' && $current_time <= '12:00') {
-        $is_open = true;
-    }
-}
+$att_status = get_option('sm_attendance_manual_status', 'open');
+$is_open = true; // Always open per user request, but requires security code
 ?>
 <div class="sm-class-attendance-shortcode" dir="rtl" style="max-width: 900px; margin: 20px auto; padding: 40px; background: #fff; border-radius: 20px; border: 1px solid var(--sm-border-color); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
 
@@ -52,7 +40,7 @@ if ($att_status === 'open') {
             <select id="at-grade-select" class="sm-select" style="height: 50px; font-size: 1.1em;" onchange="atUpdateSections()">
                 <option value="">-- اختر الصف --</option>
                 <?php
-                $active_grades = $academic['active_grades'];
+                $active_grades = $academic['active_grades'] ?? array();
                 sort($active_grades, SORT_NUMERIC);
                 foreach ($active_grades as $grade_num): ?>
                     <option value="الصف <?php echo $grade_num; ?>" data-grade-num="<?php echo $grade_num; ?>">الصف <?php echo $grade_num; ?></option>
@@ -65,6 +53,8 @@ if ($att_status === 'open') {
                 <option value="">-- اختر الشعبة --</option>
             </select>
         </div>
+        <?php endif; ?>
+
         <div class="sm-form-group" style="margin-bottom: 0; text-align: center;">
             <label class="sm-label" style="font-size: 1.1em;">كود دخول الفصل:</label>
             <input type="text" id="at-security-code" class="sm-input" maxlength="4" style="height: 50px; font-size: 1.5em; text-align: center; letter-spacing: 5px; font-family: monospace; max-width: 200px; margin: 0 auto;" placeholder="0000" oninput="checkSecurityCode()">
@@ -106,7 +96,6 @@ if ($att_status === 'open') {
 
 <script>
 const dbStructure = <?php echo json_encode(SM_Settings::get_sections_from_db()); ?>;
-const securityCodes = <?php echo json_encode(SM_Settings::get_class_security_codes()); ?>;
 let isSubmitted = false;
 let currentStudents = [];
 let isAuthorized = false;
@@ -127,56 +116,72 @@ function checkSecurityCode() {
     const isStaff = <?php echo $is_staff ? 'true' : 'false'; ?>;
     const inputCode = document.getElementById('at-security-code').value;
 
-    if (isStaff) {
-        const gradeSelect = document.getElementById('at-grade-select');
-        if (!gradeSelect) return;
-        const grade = gradeSelect.value;
-        const sectionSelect = document.getElementById('at-section-select');
-        if (!sectionSelect) return;
-        const section = sectionSelect.value;
-        if (!grade || !section) return;
-
-        const key = grade + '|' + section;
-        const correctCode = securityCodes[key];
-
-        if (inputCode && inputCode === correctCode) {
-            isAuthorized = true;
-            document.getElementById('at-security-code').style.borderColor = '#38a169';
-            document.getElementById('at-security-code').style.background = '#f0fff4';
-            document.querySelectorAll('.at-violation-shortcut').forEach(el => el.style.display = 'flex');
-        } else {
-            isAuthorized = false;
-            document.getElementById('at-security-code').style.borderColor = '';
-            document.getElementById('at-security-code').style.background = '';
-            document.querySelectorAll('.at-violation-shortcut').forEach(el => el.style.display = 'none');
-        }
-    } else {
-        // Visitor mode: Search for matching code
-        let found = false;
-        Object.keys(securityCodes).forEach(key => {
-            if (securityCodes[key] === inputCode && inputCode.length === 4) {
-                const parts = key.split('|');
-                const grade = parts[0];
-                const section = parts[1];
-
-                isAuthorized = true;
-                found = true;
-                document.getElementById('at-security-code').style.borderColor = '#38a169';
-                document.getElementById('at-security-code').style.background = '#f0fff4';
-
-                // Load this class
-                atLoadStudentsForVisitor(grade, section);
-            }
-        });
-
-        if (!found) {
-            isAuthorized = false;
-            document.getElementById('at-security-code').style.borderColor = '';
-            document.getElementById('at-security-code').style.background = '';
+    if (inputCode.length !== 4) {
+        isAuthorized = false;
+        document.getElementById('at-security-code').style.borderColor = '';
+        document.getElementById('at-security-code').style.background = '';
+        if (!isStaff) {
             document.getElementById('at-students-container').style.display = 'none';
             document.getElementById('at-no-selection').style.display = 'block';
         }
+        return;
     }
+
+    if (isStaff) {
+        const gradeSelect = document.getElementById('at-grade-select');
+        const sectionSelect = document.getElementById('at-section-select');
+        if (!gradeSelect || !sectionSelect) return;
+
+        const className = gradeSelect.value;
+        const section = sectionSelect.value;
+        if (!className || !section) return;
+
+        // Verify code via AJAX
+        verifyCodeAndLoad(className, section, inputCode);
+    } else {
+        // Visitor mode: Try to load any class with this code
+        verifyCodeAndLoad('', '', inputCode);
+    }
+}
+
+function verifyCodeAndLoad(className, section, code) {
+    const listContainer = document.getElementById('at-students-list');
+    const container = document.getElementById('at-students-container');
+    const noSel = document.getElementById('at-no-selection');
+
+    const date = new Date().toISOString().split('T')[0];
+    const formData = new FormData();
+    formData.append('action', 'sm_get_students_attendance_ajax');
+    if (className) formData.append('class_name', className);
+    if (section) formData.append('section', section);
+    formData.append('date', date);
+    formData.append('security_code', code);
+
+    fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            isAuthorized = true;
+            document.getElementById('at-security-code').style.borderColor = '#38a169';
+            document.getElementById('at-security-code').style.background = '#f0fff4';
+
+            currentStudents = res.data;
+            noSel.style.display = 'none';
+            container.style.display = 'block';
+            atRenderList();
+
+            document.querySelectorAll('.at-violation-shortcut').forEach(el => el.style.display = 'flex');
+        } else {
+            isAuthorized = false;
+            document.getElementById('at-security-code').style.borderColor = '#e53e3e';
+            document.querySelectorAll('.at-violation-shortcut').forEach(el => el.style.display = 'none');
+
+            if (className === '') { // Visitor mode
+                container.style.display = 'none';
+                noSel.style.display = 'block';
+            }
+        }
+    });
 }
 
 function atLoadStudentsForVisitor(className, section) {

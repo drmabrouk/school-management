@@ -23,6 +23,14 @@
     color: var(--sm-dark-color);
 }
 
+.sm-btn, .sm-btn * {
+    color: white !important;
+}
+
+.sm-btn-outline, .sm-btn-outline * {
+    color: var(--sm-text-gray) !important;
+}
+
 .sm-content-wrapper input,
 .sm-content-wrapper select,
 .sm-content-wrapper textarea,

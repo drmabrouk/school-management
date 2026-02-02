@@ -68,6 +68,7 @@ class School_Management {
         $this->loader->add_action('wp_ajax_sm_bulk_delete_ajax', $plugin_public, 'ajax_bulk_delete');
         $this->loader->add_action('wp_ajax_sm_initialize_system_ajax', $plugin_public, 'ajax_initialize_system');
         $this->loader->add_action('wp_ajax_sm_rollback_log_ajax', $plugin_public, 'ajax_rollback_log');
+        $this->loader->add_action('wp_ajax_sm_delete_log_ajax', $plugin_public, 'ajax_delete_log');
         $this->loader->add_action('wp_ajax_sm_get_students_attendance_ajax', $plugin_public, 'ajax_get_students_attendance');
         $this->loader->add_action('wp_ajax_nopriv_sm_get_students_attendance_ajax', $plugin_public, 'ajax_get_students_attendance');
         $this->loader->add_action('wp_ajax_sm_save_attendance_ajax', $plugin_public, 'ajax_save_attendance');

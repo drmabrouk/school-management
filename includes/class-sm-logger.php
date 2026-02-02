@@ -3,14 +3,23 @@
 class SM_Logger {
     public static function log($action, $details = '') {
         global $wpdb;
+        $user_id = get_current_user_id();
+
         $wpdb->insert(
             "{$wpdb->prefix}sm_logs",
             array(
-                'user_id' => get_current_user_id(),
+                'user_id' => $user_id,
                 'action' => sanitize_text_field($action),
                 'details' => sanitize_textarea_field($details)
             )
         );
+
+        // Limit to 200 entries
+        $count = (int)$wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}sm_logs");
+        if ($count > 200) {
+            $limit = $count - 200;
+            $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}sm_logs ORDER BY created_at ASC LIMIT %d", $limit));
+        }
     }
 
     public static function get_logs($limit = 100, $offset = 0) {

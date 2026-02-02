@@ -252,8 +252,10 @@ class SM_Activator {
 
     public static function migrate_old_roles() {
         $migration_map = array(
-            'discipline_officer' => 'sm_discipline_officer',
-            'school_admin'       => 'sm_school_admin',
+            'discipline_officer'    => 'sm_supervisor',
+            'school_admin'          => 'sm_principal',
+            'sm_discipline_officer' => 'sm_supervisor',
+            'sm_school_admin'       => 'sm_principal'
         );
 
         foreach ($migration_map as $old_slug => $new_slug) {

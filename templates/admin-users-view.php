@@ -31,10 +31,13 @@
                         <span class="sm-badge sm-badge-low">
                             <?php
                             $role_map = array(
-                                'administrator' => 'مدير النظام',
-                                'sm_school_admin' => 'مدير مدرسة',
-                                'sm_discipline_officer' => 'مسؤول انضباط',
+                                'administrator' => 'الإدارة المركزية (المطور)',
+                                'sm_system_admin' => 'مدير النظام التقني',
+                                'sm_principal' => 'مدير المدرسة',
+                                'sm_supervisor' => 'مشرف تربوي',
+                                'sm_coordinator' => 'منسق مادة',
                                 'sm_teacher' => 'معلم',
+                                'sm_student' => 'طالب',
                                 'sm_parent' => 'ولي أمر'
                             );
                             $display_roles = array_map(function($r) use ($role_map) { return $role_map[$r] ?? $r; }, $u->roles);
@@ -79,16 +82,19 @@
                     <input type="text" name="user_login" class="sm-input" required>
                 </div>
                 <div class="sm-form-group">
-                    <label class="sm-label">البريد الإلكتروني:</label>
-                    <input type="email" name="user_email" class="sm-input" required>
+                    <label class="sm-label">البريد الإلكتروني (اختياري):</label>
+                    <input type="email" name="user_email" class="sm-input">
+                    <div style="font-size: 10px; color: #718096; margin-top: 5px;">سيتم إنشاء بريد تلقائي إذا ترك فارغاً.</div>
                 </div>
                 <div class="sm-form-group">
                     <label class="sm-label">الرتبة:</label>
                     <select name="user_role" class="sm-select">
-                        <option value="sm_school_admin">مدير مدرسة</option>
-                        <option value="sm_discipline_officer">مسؤول انضباط</option>
+                        <option value="sm_system_admin">مدير النظام التقني</option>
+                        <option value="sm_principal">مدير المدرسة</option>
+                        <option value="sm_supervisor">مشرف تربوي</option>
+                        <option value="sm_coordinator">منسق مادة</option>
                         <option value="sm_teacher">معلم</option>
-                        <option value="sm_parent">ولي أمر</option>
+                        <option value="sm_student">طالب</option>
                     </select>
                 </div>
                 <div class="sm-form-group" style="grid-column: span 2;">
@@ -117,15 +123,17 @@
                 </div>
                 <div class="sm-form-group">
                     <label class="sm-label">البريد الإلكتروني:</label>
-                    <input type="email" name="user_email" id="edit_u_email" class="sm-input" required>
+                    <input type="email" name="user_email" id="edit_u_email" class="sm-input">
                 </div>
                 <div class="sm-form-group">
                     <label class="sm-label">الرتبة:</label>
                     <select name="user_role" id="edit_u_role" class="sm-select">
-                        <option value="sm_school_admin">مدير مدرسة</option>
-                        <option value="sm_discipline_officer">مسؤول انضباط</option>
+                        <option value="sm_system_admin">مدير النظام التقني</option>
+                        <option value="sm_principal">مدير المدرسة</option>
+                        <option value="sm_supervisor">مشرف تربوي</option>
+                        <option value="sm_coordinator">منسق مادة</option>
                         <option value="sm_teacher">معلم</option>
-                        <option value="sm_parent">ولي أمر</option>
+                        <option value="sm_student">طالب</option>
                     </select>
                 </div>
                 <div class="sm-form-group">

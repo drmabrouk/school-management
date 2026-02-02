@@ -605,7 +605,11 @@ class SM_Public {
         if (!current_user_can('إدارة_الطلاب')) wp_send_json_error('Unauthorized');
         if (!wp_verify_nonce($_POST['nonce'], 'sm_delete_student')) wp_send_json_error('Security check failed');
 
-        if (SM_DB::delete_student(intval($_POST['student_id']))) {
+        $student_id = intval($_POST['student_id']);
+        $student = SM_DB::get_student_by_id($student_id);
+
+        if ($student && SM_DB::delete_student($student_id)) {
+            SM_Logger::log('حذف طالب', "تم حذف الطالب: {$student->name} (كود: {$student->student_code})");
             wp_send_json_success('Deleted');
         } else {
             wp_send_json_error('Failed to delete');
@@ -654,7 +658,11 @@ class SM_Public {
         if (!current_user_can('إدارة_المخالفات')) wp_send_json_error('Unauthorized');
         if (!wp_verify_nonce($_POST['nonce'], 'sm_record_action')) wp_send_json_error('Security check failed');
 
-        if (SM_DB::delete_record(intval($_POST['record_id']))) {
+        $record_id = intval($_POST['record_id']);
+        $record = SM_DB::get_record_by_id($record_id);
+
+        if ($record && SM_DB::delete_record($record_id)) {
+            SM_Logger::log('حذف مخالفة', "تم حذف مخالفة ID: $record_id للطالب ID: {$record->student_id}");
             wp_send_json_success('Deleted');
         } else {
             wp_send_json_error('Failed to delete');
@@ -669,20 +677,53 @@ class SM_Public {
         ));
     }
 
+    public function ajax_add_parent() {
+        if (!current_user_can('إدارة_المستخدمين')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['sm_nonce'], 'sm_user_action')) wp_send_json_error('Security check failed');
+
+        $username = sanitize_user($_POST['user_login']);
+        $email = sanitize_email($_POST['user_email']);
+        if (empty($email)) $email = $username . '@parent.local';
+
+        $user_id = wp_insert_user(array(
+            'user_login' => $username,
+            'user_email' => $email,
+            'display_name' => sanitize_text_field($_POST['display_name']),
+            'user_pass' => $_POST['user_pass'],
+            'role' => 'sm_parent'
+        ));
+
+        if (is_wp_error($user_id)) wp_send_json_error($user_id->get_error_message());
+        else {
+            SM_Logger::log('إضافة ولي أمر', "تم إنشاء حساب ولي أمر جديد: {$_POST['display_name']}");
+            wp_send_json_success($user_id);
+        }
+    }
+
     public function ajax_add_user() {
         if (!current_user_can('إدارة_المستخدمين')) wp_send_json_error('Unauthorized');
         if (!wp_verify_nonce($_POST['sm_nonce'], 'sm_user_action')) wp_send_json_error('Security check failed');
 
+        $username = sanitize_user($_POST['user_login']);
+        $email = sanitize_email($_POST['user_email']);
+
+        if (empty($email)) {
+            $email = $username . '@school-system.local';
+        }
+
         $user_data = array(
-            'user_login' => sanitize_user($_POST['user_login']),
-            'user_email' => sanitize_email($_POST['user_email']),
+            'user_login' => $username,
+            'user_email' => $email,
             'display_name' => sanitize_text_field($_POST['display_name']),
             'user_pass' => $_POST['user_pass'],
             'role' => sanitize_text_field($_POST['user_role'])
         );
         $user_id = wp_insert_user($user_data);
         if (is_wp_error($user_id)) wp_send_json_error($user_id->get_error_message());
-        else wp_send_json_success($user_id);
+        else {
+            SM_Logger::log('إضافة مستخدم جديد', "تم إنشاء مستخدم باسم: {$_POST['display_name']} ورتبة: {$_POST['user_role']}");
+            wp_send_json_success($user_id);
+        }
     }
 
     public function ajax_update_generic_user() {
@@ -704,6 +745,7 @@ class SM_Public {
         $u = new WP_User($user_id);
         $u->set_role(sanitize_text_field($_POST['user_role']));
         
+        SM_Logger::log('تعديل بيانات مستخدم', "تم تحديث بيانات المستخدم: {$_POST['display_name']} (ID: $user_id)");
         wp_send_json_success('Updated');
     }
 
@@ -803,18 +845,31 @@ class SM_Public {
     }
 
     public function ajax_get_students_attendance() {
-        $class_name = sanitize_text_field($_POST['class_name']);
-        $section = sanitize_text_field($_POST['section']);
-        $date = sanitize_text_field($_POST['date']);
+        $class_name = sanitize_text_field($_POST['class_name'] ?? '');
+        $section = sanitize_text_field($_POST['section'] ?? '');
+        $date = sanitize_text_field($_POST['date'] ?? current_time('Y-m-d'));
         $code = sanitize_text_field($_POST['security_code'] ?? '');
 
         // Security Check: Either Staff or Valid Class Code
         $is_staff = is_user_logged_in() && current_user_can('إدارة_الطلاب');
-        $valid_code = (SM_Settings::get_class_security_code($class_name, $section) === $code);
 
-        if (!$is_staff && !$valid_code) {
-            wp_send_json_error('Unauthorized: Invalid security code');
+        if (!$is_staff) {
+            if (empty($code)) wp_send_json_error('Security code required');
+
+            if (empty($class_name) || empty($section)) {
+                // Visitor mode: Search for class by code
+                $all_codes = SM_Settings::get_class_security_codes();
+                $found_key = array_search($code, $all_codes);
+                if (!$found_key) wp_send_json_error('Invalid security code');
+
+                list($class_name, $section) = explode('|', $found_key);
+            } else {
+                $valid_code = (SM_Settings::get_class_security_code($class_name, $section) === $code);
+                if (!$valid_code) wp_send_json_error('Invalid security code');
+            }
         }
+
+        if (empty($class_name) || empty($section)) wp_send_json_error('Missing class information');
 
         $students = SM_DB::get_students_attendance($class_name, $section, $date);
         wp_send_json_success($students);
@@ -905,6 +960,18 @@ class SM_Public {
         $status = sanitize_text_field($_POST['status']);
         update_option('sm_attendance_manual_status', $status);
         wp_send_json_success();
+    }
+
+    public function ajax_delete_log() {
+        if (!current_user_can('إدارة_النظام')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_admin_action')) wp_send_json_error('Security check failed');
+
+        global $wpdb;
+        $log_id = intval($_POST['log_id']);
+        $result = $wpdb->delete("{$wpdb->prefix}sm_logs", array('id' => $log_id));
+
+        if ($result) wp_send_json_success();
+        else wp_send_json_error('Failed to delete log');
     }
 
     public function ajax_rollback_log() {
@@ -1061,11 +1128,13 @@ class SM_Public {
         $ids = array_map('intval', explode(',', $_POST['user_ids']));
         require_once(ABSPATH . 'wp-admin/includes/user.php');
 
+        $count = 0;
         foreach ($ids as $id) {
             if ($id != get_current_user_id()) {
-                wp_delete_user($id);
+                if (wp_delete_user($id)) $count++;
             }
         }
+        SM_Logger::log('حذف مستخدمين (جماعي)', "تم حذف عدد ($count) مستخدم من النظام.");
         wp_send_json_success();
     }
 
@@ -1312,6 +1381,7 @@ class SM_Public {
                         'students' => isset($_POST['work_students']) ? array_map('sanitize_text_field', $_POST['work_students']) : array()
                     )
                 ));
+                SM_Logger::log('تحديث بيانات السلطة', "تم تحديث بيانات المدرسة والمدير: {$_POST['school_name']}");
                 SM_Settings::save_academic_structure(array(
                     'terms_count' => intval($_POST['terms_count']),
                     'grades_count' => intval($_POST['grades_count']),
@@ -1341,6 +1411,7 @@ class SM_Public {
                     'table_style' => sanitize_text_field($_POST['table_style']),
                     'button_style' => sanitize_text_field($_POST['button_style'])
                 ));
+                SM_Logger::log('تحديث تصميم النظام', "تم تغيير إعدادات الألوان والمظهر العام.");
                 wp_redirect(add_query_arg('sm_admin_msg', 'settings_saved', $_SERVER['REQUEST_URI']));
                 exit;
             }
@@ -1349,6 +1420,7 @@ class SM_Public {
         // Handle Violation Settings Save
         if (isset($_POST['sm_save_violation_settings']) && wp_verify_nonce($_POST['sm_admin_nonce'], 'sm_admin_action')) {
             if (current_user_can('إدارة_النظام')) {
+                SM_Logger::log('تحديث إعدادات المخالفات', "تم تحديث أنواع المخالفات والإجراءات المقترحة.");
                 $types_raw = explode("\n", str_replace("\r", "", $_POST['violation_types']));
                 $types = array();
                 foreach ($types_raw as $line) {
