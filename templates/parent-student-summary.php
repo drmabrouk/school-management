@@ -16,9 +16,11 @@
         </div>
         <div style="flex: 1;">
             <h2 style="margin: 0 0 12px 0; border: none; padding: 0; color: white; font-size: 2em; font-weight: 800;"><?php echo esc_html($student->name); ?></h2>
-            <div style="display: flex; gap: 25px; font-size: 1.1em; opacity: 0.9;">
-                <span style="display: flex; align-items: center; gap: 8px;"><span class="dashicons dashicons-welcome-learn-more"></span> <?php echo esc_html($student->class_name); ?></span>
-                <span style="display: flex; align-items: center; gap: 8px;"><span class="dashicons dashicons-id"></span> كود: <?php echo esc_html($student->student_code); ?></span>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 0.95em; opacity: 0.9;">
+                <span style="display: flex; align-items: center; gap: 8px;"><span class="dashicons dashicons-welcome-learn-more"></span> <?php echo SM_Settings::format_grade_name($student->class_name, $student->section); ?></span>
+                <span style="display: flex; align-items: center; gap: 8px;"><span class="dashicons dashicons-id"></span> كود الطالب: <?php echo esc_html($student->student_code); ?></span>
+                <span style="display: flex; align-items: center; gap: 8px;"><span class="dashicons dashicons-admin-site"></span> الجنسية: <?php echo esc_html($student->nationality ?: 'غير محدد'); ?></span>
+                <span style="display: flex; align-items: center; gap: 8px;"><span class="dashicons dashicons-calendar-alt"></span> تاريخ التسجيل: <?php echo esc_html($student->registration_date); ?></span>
             </div>
         </div>
         <div style="text-align: left; display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
@@ -68,6 +70,52 @@
     </div>
 </div>
 
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 40px;">
+    <div style="background: #fff; padding: 30px; border-radius: 12px; border: 1px solid var(--sm-border-color);">
+        <h3 style="margin-top:0; border-bottom: 2px solid var(--sm-primary-color); padding-bottom: 10px;">الواجبات المدرسية</h3>
+        <?php if (empty($student_assignments)): ?>
+            <p style="padding: 20px; text-align: center; color: var(--sm-text-gray);">لا يوجد واجبات حالياً.</p>
+        <?php else: ?>
+            <div style="max-height: 400px; overflow-y: auto;">
+                <?php foreach ($student_assignments as $assign): ?>
+                    <div style="padding: 15px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 10px;">
+                        <div style="font-weight: 800; color: var(--sm-dark-color);"><?php echo esc_html($assign->title); ?></div>
+                        <div style="font-size: 11px; color: var(--sm-text-gray); margin: 5px 0;">
+                            <?php echo esc_html($assign->sender_name); ?>
+                            <?php if ($assign->specialization): ?>(<?php echo esc_html($assign->specialization); ?>)<?php endif; ?>
+                            | <?php echo date('Y-m-d', strtotime($assign->created_at)); ?>
+                        </div>
+                        <div style="font-size: 12px;"><?php echo nl2br(esc_html($assign->description)); ?></div>
+                        <?php if ($assign->file_url): ?>
+                            <a href="<?php echo esc_url($assign->file_url); ?>" target="_blank" class="sm-btn" style="height: 28px; font-size: 10px; margin-top: 10px; width: auto;">📎 تحميل المرفق</a>
+                        <?php endif; ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </div>
+
+    <div style="background: #fff; padding: 30px; border-radius: 12px; border: 1px solid var(--sm-border-color);">
+        <h3 style="margin-top:0; border-bottom: 2px solid var(--sm-accent-color); padding-bottom: 10px;">نظام الاستشارات والاستفسارات</h3>
+        <?php if (!$supervisor): ?>
+            <p style="padding: 20px; text-align: center; color: var(--sm-text-gray);">لم يتم تعيين مشرف لهذا الصف بعد.</p>
+        <?php else: ?>
+            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px;">
+                <?php echo get_avatar($supervisor->ID, 40, '', '', array('style' => 'border-radius:50%;')); ?>
+                <div>
+                    <div style="font-weight: 800; font-size: 0.9em;">المشرف: <?php echo esc_html($supervisor->display_name); ?></div>
+                    <div style="font-size: 11px; color: #38a169;">متاح لاستلام استفساراتك</div>
+                </div>
+            </div>
+            <div class="sm-form-group">
+                <label class="sm-label">موضوع الاستفسار:</label>
+                <textarea id="student-inquiry-msg" class="sm-textarea" rows="4" placeholder="اكتب استفسارك هنا وسيتم إرساله للمشرف مباشرة..."></textarea>
+            </div>
+            <button onclick="sendStudentInquiry(<?php echo $supervisor->ID; ?>)" class="sm-btn" style="background: var(--sm-accent-color);">إرسال الاستفسار الآن</button>
+        <?php endif; ?>
+    </div>
+</div>
+
 <div style="background: #fff; padding: 30px; border-radius: 12px; border: 1px solid var(--sm-border-color);">
     <h3 style="margin-top:0;">توزيع المخالفات حسب النوع</h3>
     <div style="max-width: 500px; margin: 0 auto;">
@@ -76,6 +124,27 @@
 </div>
 
 <script>
+function sendStudentInquiry(supervisorId) {
+    const msg = document.getElementById('student-inquiry-msg').value;
+    if (!msg) { alert('يرجى كتابة نص الاستفسار'); return; }
+
+    const formData = new FormData();
+    formData.append('action', 'sm_send_message_ajax');
+    formData.append('receiver_id', supervisorId);
+    formData.append('message', "استفسار طالب: " + msg);
+    formData.append('student_id', <?php echo $student->id; ?>);
+    formData.append('sm_message_nonce', '<?php echo wp_create_nonce("sm_message_action"); ?>');
+
+    fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            smShowNotification('تم إرسال استفسارك بنجاح');
+            document.getElementById('student-inquiry-msg').value = '';
+        }
+    });
+}
+
 (function() {
     const initParentChart = function() {
         if (typeof Chart === 'undefined') {
