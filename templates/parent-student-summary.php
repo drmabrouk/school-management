@@ -116,6 +116,13 @@
     </div>
 </div>
 
+    <div style="background: #fff; padding: 30px; border-radius: 12px; border: 1px solid var(--sm-border-color);">
+        <h3 style="margin-top:0; border-bottom: 2px solid #3498db; padding-bottom: 10px;">النتائج الأكاديمية</h3>
+        <div id="student-grades-display">
+            <div style="text-align: center; padding: 20px; color: var(--sm-text-gray);">جاري تحميل النتائج...</div>
+        </div>
+    </div>
+
 <div style="background: #fff; padding: 30px; border-radius: 12px; border: 1px solid var(--sm-border-color);">
     <h3 style="margin-top:0;">توزيع المخالفات حسب النوع</h3>
     <div style="max-width: 500px; margin: 0 auto;">
@@ -171,8 +178,36 @@ function sendStudentInquiry(supervisorId) {
             }
         });
     };
-    if (document.readyState === 'complete') initParentChart();
-    else window.addEventListener('load', initParentChart);
+    const loadGradesForDashboard = function() {
+        const container = document.getElementById('student-grades-display');
+        if (!container) return;
+
+        const formData = new FormData();
+        formData.append('action', 'sm_get_student_grades_ajax');
+        formData.append('student_id', <?php echo $student->id; ?>);
+
+        fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                if (res.data.length === 0) {
+                    container.innerHTML = '<p style="text-align:center; padding:20px; color:#718096;">لا يوجد نتائج معتمدة حالياً.</p>';
+                } else {
+                    let html = '<table class="sm-table" style="box-shadow:none; border:none;"><thead><tr><th>المادة</th><th>الفصل</th><th>الدرجة</th></tr></thead><tbody>';
+                    res.data.forEach(g => {
+                        html += `<tr><td style="font-weight:700;">${g.subject}</td><td>${g.term}</td><td><span class="sm-badge" style="background:var(--sm-bg-light); color:var(--sm-primary-color); font-size:1.1em;">${g.grade_val}</span></td></tr>`;
+                    });
+                    html += '</tbody></table>';
+                    container.innerHTML = html;
+                }
+            }
+        });
+    };
+
+    if (document.readyState === 'complete') { initParentChart(); loadGradesForDashboard(); }
+    else {
+        window.addEventListener('load', () => { initParentChart(); loadGradesForDashboard(); });
+    }
 })();
 
 function uploadStudentPhoto(input, studentId) {
