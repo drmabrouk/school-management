@@ -372,7 +372,9 @@ class SM_DB {
         global $wpdb;
         $data = array(
             'students' => $wpdb->get_results("SELECT * FROM {$wpdb->prefix}sm_students", ARRAY_A),
-            'records' => $wpdb->get_results("SELECT * FROM {$wpdb->prefix}sm_records", ARRAY_A)
+            'records' => $wpdb->get_results("SELECT * FROM {$wpdb->prefix}sm_records", ARRAY_A),
+            'attendance' => $wpdb->get_results("SELECT * FROM {$wpdb->prefix}sm_attendance", ARRAY_A),
+            'confiscated_items' => $wpdb->get_results("SELECT * FROM {$wpdb->prefix}sm_confiscated_items", ARRAY_A)
         );
         return json_encode($data);
     }
@@ -384,12 +386,28 @@ class SM_DB {
 
         $wpdb->query("TRUNCATE TABLE {$wpdb->prefix}sm_students");
         $wpdb->query("TRUNCATE TABLE {$wpdb->prefix}sm_records");
+        $wpdb->query("TRUNCATE TABLE {$wpdb->prefix}sm_attendance");
+        $wpdb->query("TRUNCATE TABLE {$wpdb->prefix}sm_confiscated_items");
 
-        foreach ($data['students'] as $student) {
-            $wpdb->insert("{$wpdb->prefix}sm_students", $student);
+        if (isset($data['students'])) {
+            foreach ($data['students'] as $student) {
+                $wpdb->insert("{$wpdb->prefix}sm_students", $student);
+            }
         }
-        foreach ($data['records'] as $record) {
-            $wpdb->insert("{$wpdb->prefix}sm_records", $record);
+        if (isset($data['records'])) {
+            foreach ($data['records'] as $record) {
+                $wpdb->insert("{$wpdb->prefix}sm_records", $record);
+            }
+        }
+        if (isset($data['attendance'])) {
+            foreach ($data['attendance'] as $att) {
+                $wpdb->insert("{$wpdb->prefix}sm_attendance", $att);
+            }
+        }
+        if (isset($data['confiscated_items'])) {
+            foreach ($data['confiscated_items'] as $item) {
+                $wpdb->insert("{$wpdb->prefix}sm_confiscated_items", $item);
+            }
         }
         return true;
     }

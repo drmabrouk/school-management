@@ -116,6 +116,20 @@ class SM_Activator {
             PRIMARY KEY  (id),
             KEY sender_id (sender_id),
             KEY receiver_id (receiver_id)
+        ) $charset_collate;
+
+        CREATE TABLE {$wpdb->prefix}sm_clinic (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            student_id bigint(20) NOT NULL,
+            referrer_id bigint(20) NOT NULL,
+            arrival_confirmed tinyint(1) DEFAULT 0,
+            health_condition text,
+            action_taken text,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            arrival_at datetime DEFAULT NULL,
+            PRIMARY KEY  (id),
+            KEY student_id (student_id),
+            KEY referrer_id (referrer_id)
         ) $charset_collate;";
 
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
@@ -178,6 +192,7 @@ class SM_Activator {
         // Capabilities
         $caps = array(
             'manage_system' => 'إدارة_النظام',
+            'manage_clinic' => 'إدارة_العيادة',
             'manage_users' => 'إدارة_المستخدمين',
             'manage_students' => 'إدارة_الطلاب',
             'manage_teachers' => 'إدارة_المعلمين',
@@ -247,6 +262,14 @@ class SM_Activator {
         if ($student) {
             $student->add_cap($caps['view_own_data']);
             $student->add_cap($caps['manage_assignments']);
+        }
+
+        // 7. العيادة (Clinic) - Referral list and history
+        add_role('sm_clinic', 'العيادة المدرسية', array('read' => true));
+        $clinic = get_role('sm_clinic');
+        if ($clinic) {
+            $clinic->add_cap($caps['manage_clinic']);
+            $clinic->add_cap('read');
         }
     }
 

@@ -14,22 +14,22 @@ if (!isset($attendance_summary)) {
         <h3 style="margin: 0; font-weight: 800;">سجل الحضور والغياب</h3>
         <div style="display: flex; gap: 15px; align-items: center;">
             <?php
-            $att_status = get_option('sm_attendance_manual_status', 'auto'); // auto, open, closed
-            $status_labels = array('auto' => 'تلقائي (7ص-12م)', 'open' => 'مفتوح يدوياً', 'closed' => 'مغلق يدوياً');
+            $att_status = get_option('sm_attendance_manual_status', 'open'); // auto, open, closed
+            $status_labels = array('auto' => 'تلقائي (7ص-12م)', 'open' => 'مفتوح دائماً', 'closed' => 'مغلق يدوياً');
             ?>
-            <div style="display: flex; background: #fff; border: 1px solid var(--sm-border-color); border-radius: 8px; overflow: hidden; height: 38px;">
-                <div style="padding: 0 15px; display: flex; align-items: center; font-size: 11px; font-weight: 700; background: var(--sm-bg-light); border-left: 1px solid var(--sm-border-color);">
-                    حالة التسجيل: <span style="margin-right: 5px; color: var(--sm-primary-color);"><?php echo $status_labels[$att_status]; ?></span>
+            <div style="display: flex; background: #fff; border: 1px solid var(--sm-border-color); border-radius: 12px; overflow: hidden; height: 45px; box-shadow: var(--sm-shadow);">
+                <div style="padding: 0 20px; display: flex; align-items: center; font-size: 13px; font-weight: 700; background: var(--sm-bg-light); border-left: 1px solid var(--sm-border-color); color: var(--sm-dark-color);">
+                    حالة التسجيل: <span style="margin-right: 8px; color: #38a169; display: flex; align-items: center; gap: 5px;"><span style="width: 8px; height: 8px; background: #38a169; border-radius: 50%; display: inline-block;"></span> <?php echo $status_labels[$att_status]; ?></span>
                 </div>
-                <button onclick="toggleAttendanceStatus()" class="sm-btn" style="border-radius: 0; padding: 0 15px; font-size: 11px; background: #111F35;">تغيير الحالة</button>
+                <button onclick="toggleAttendanceStatus()" class="sm-btn" style="border-radius: 0; padding: 0 20px; font-size: 12px; background: #111F35; color: white !important;">تغيير الحالة</button>
             </div>
-            <a href="<?php echo home_url('/attendance/'); ?>" class="sm-btn" style="background: var(--sm-accent-color); gap: 10px; text-decoration: none;">
+            <a href="<?php echo home_url('/attendance/'); ?>" class="sm-btn" style="background: var(--sm-accent-color); height: 45px; min-width: 160px; padding: 0 20px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; color: white !important;">
                 <span class="dashicons dashicons-edit"></span> تسجيل الحضور
             </a>
-            <button onclick="printAbsenceReport('daily')" class="sm-btn sm-btn-secondary" style="gap: 5px;">
+            <button onclick="printAbsenceReport('daily')" class="sm-btn sm-btn-secondary" style="height: 45px; min-width: 160px; padding: 0 20px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; color: white !important;">
                 <span class="dashicons dashicons-printer"></span> غيابات اليوم
             </button>
-            <button onclick="printAbsenceReport('term')" class="sm-btn sm-btn-accent" style="gap: 5px;">
+            <button onclick="printAbsenceReport('term')" class="sm-btn sm-btn-accent" style="height: 45px; min-width: 160px; padding: 0 20px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; color: white !important;">
                 <span class="dashicons dashicons-chart-bar"></span> الأكثر غياباً (الفصل)
             </button>
             <div class="sm-form-group" style="margin-bottom: 0;">
@@ -369,8 +369,8 @@ function printAbsenceReport(type) {
 }
 
 function toggleAttendanceStatus() {
-    const status = prompt('أدخل الحالة المطلوبة (auto, open, closed):', '<?php echo $att_status; ?>');
-    if (status && ['auto', 'open', 'closed'].includes(status)) {
+    const status = prompt('أدخل الحالة المطلوبة (open, closed):', '<?php echo $att_status; ?>');
+    if (status && ['open', 'closed'].includes(status)) {
         const formData = new FormData();
         formData.append('action', 'sm_toggle_attendance_status_ajax');
         formData.append('status', status);

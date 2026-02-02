@@ -69,6 +69,7 @@ class School_Management {
         $this->loader->add_action('wp_ajax_sm_initialize_system_ajax', $plugin_public, 'ajax_initialize_system');
         $this->loader->add_action('wp_ajax_sm_rollback_log_ajax', $plugin_public, 'ajax_rollback_log');
         $this->loader->add_action('wp_ajax_sm_delete_log_ajax', $plugin_public, 'ajax_delete_log');
+        $this->loader->add_action('wp_ajax_sm_delete_all_logs_ajax', $plugin_public, 'ajax_delete_all_logs');
         $this->loader->add_action('wp_ajax_sm_get_students_attendance_ajax', $plugin_public, 'ajax_get_students_attendance');
         $this->loader->add_action('wp_ajax_nopriv_sm_get_students_attendance_ajax', $plugin_public, 'ajax_get_students_attendance');
         $this->loader->add_action('wp_ajax_sm_save_attendance_ajax', $plugin_public, 'ajax_save_attendance');
@@ -80,6 +81,11 @@ class School_Management {
         $this->loader->add_action('wp_ajax_sm_add_assignment_ajax', $plugin_public, 'ajax_add_assignment');
         $this->loader->add_action('wp_ajax_sm_approve_plan_ajax', $plugin_public, 'ajax_approve_plan');
         $this->loader->add_action('wp_ajax_sm_bulk_delete_users_ajax', $plugin_public, 'ajax_bulk_delete_users');
+        $this->loader->add_action('wp_ajax_sm_add_clinic_referral', $plugin_public, 'ajax_add_clinic_referral');
+        $this->loader->add_action('wp_ajax_sm_confirm_clinic_arrival', $plugin_public, 'ajax_confirm_clinic_arrival');
+        $this->loader->add_action('wp_ajax_sm_update_clinic_record', $plugin_public, 'ajax_update_clinic_record');
+        $this->loader->add_action('wp_ajax_sm_get_clinic_reports', $plugin_public, 'ajax_get_clinic_reports');
+        $this->loader->add_action('wp_ajax_sm_export_violations_csv', $plugin_public, 'ajax_export_violations_csv');
     }
 
     public function run() {

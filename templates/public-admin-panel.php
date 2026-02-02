@@ -111,6 +111,23 @@
         });
     };
 
+    window.smDeleteAllLogs = function() {
+        if (!confirm('هل أنت متأكد من مسح كافة سجلات النشاط؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+
+        const formData = new FormData();
+        formData.append('action', 'sm_delete_all_logs_ajax');
+        formData.append('nonce', '<?php echo wp_create_nonce("sm_admin_action"); ?>');
+
+        fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                smShowNotification('تم مسح كافة النشاطات بنجاح');
+                setTimeout(() => location.reload(), 500);
+            }
+        });
+    };
+
     window.smDeleteLog = function(logId) {
         if (!confirm('هل أنت متأكد من حذف هذا السجل نهائياً؟')) return;
 
@@ -259,6 +276,7 @@ $is_supervisor = in_array('sm_supervisor', $roles);
 $is_coordinator = in_array('sm_coordinator', $roles);
 $is_teacher = in_array('sm_teacher', $roles);
 $is_student = in_array('sm_student', $roles);
+$is_clinic = in_array('sm_clinic', $roles);
 
 $active_tab = isset($_GET['sm_tab']) ? sanitize_text_field($_GET['sm_tab']) : 'summary';
 $school = SM_Settings::get_school_info();
@@ -434,6 +452,12 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                     </li>
                 <?php endif; ?>
 
+                <?php if ($is_admin || $is_sys_admin || $is_principal || $is_supervisor || $is_clinic): ?>
+                    <li class="sm-sidebar-item <?php echo $active_tab == 'clinic' ? 'sm-active' : ''; ?>">
+                        <a href="<?php echo add_query_arg('sm_tab', 'clinic'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-heart"></span> العيادة المدرسية</a>
+                    </li>
+                <?php endif; ?>
+
                 <?php if ($is_admin || $is_sys_admin): ?>
                     <li class="sm-sidebar-item <?php echo $active_tab == 'global-settings' ? 'sm-active' : ''; ?>">
                         <a href="<?php echo add_query_arg('sm_tab', 'global-settings'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-admin-generic"></span> إعدادات النظام</a>
@@ -510,6 +534,10 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
 
                 case 'assignments':
                     include SM_PLUGIN_DIR . 'templates/admin-assignments.php';
+                    break;
+
+                case 'clinic':
+                    include SM_PLUGIN_DIR . 'templates/admin-clinic.php';
                     break;
 
                 case 'global-settings':
@@ -808,7 +836,10 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                                     <div style="background:white; padding:20px; border-radius:8px; border:1px solid #eee;">
                                         <h5 style="margin-top:0;">تصدير البيانات</h5>
                                         <p style="font-size:12px; color:#666; margin-bottom:15px;">قم بتحميل نسخة كاملة من بيانات الطلاب والمخالفات بصيغة JSON.</p>
-                                        <form method="post"><button type="submit" name="sm_download_backup" class="sm-btn" style="background:#27ae60; width:auto;">تصدير الآن</button></form>
+                                        <form method="post">
+                                            <?php wp_nonce_field('sm_admin_action', 'sm_admin_nonce'); ?>
+                                            <button type="submit" name="sm_download_backup" class="sm-btn" style="background:#27ae60; width:auto;">تصدير الآن</button>
+                                        </form>
                                     </div>
                                     <div style="background:white; padding:20px; border-radius:8px; border:1px solid #eee;">
                                         <h5 style="margin-top:0;">استيراد البيانات</h5>
@@ -841,8 +872,11 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                         <div id="activity-logs" class="sm-internal-tab" style="display:none;">
                             <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:30px;">
                                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                                    <h4 style="margin:0;">سجل نشاطات النظام الشامل</h4>
-                                    <div style="font-size:12px; color:#718096;">يتم الاحتفاظ بآخر 200 نشاط فقط تلقائياً.</div>
+                                    <div>
+                                        <h4 style="margin:0;">سجل نشاطات النظام الشامل</h4>
+                                        <div style="font-size:12px; color:#718096; margin-top:5px;">يتم الاحتفاظ بآخر 200 نشاط فقط تلقائياً.</div>
+                                    </div>
+                                    <button onclick="smDeleteAllLogs()" class="sm-btn" style="background:#e53e3e; width:auto; font-size:12px;">مسح كافة النشاطات</button>
                                 </div>
                                 <div class="sm-table-container">
                                     <table class="sm-table">

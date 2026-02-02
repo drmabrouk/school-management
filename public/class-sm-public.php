@@ -974,6 +974,21 @@ class SM_Public {
         else wp_send_json_error('Failed to delete log');
     }
 
+    public function ajax_delete_all_logs() {
+        if (!current_user_can('إدارة_النظام')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_admin_action')) wp_send_json_error('Security check failed');
+
+        global $wpdb;
+        $result = $wpdb->query("TRUNCATE TABLE {$wpdb->prefix}sm_logs");
+
+        if ($result !== false) {
+            SM_Logger::log('مسح كافة النشاطات', 'قام المستخدم بمسح سجل النشاطات بالكامل');
+            wp_send_json_success();
+        } else {
+            wp_send_json_error('Failed to delete logs');
+        }
+    }
+
     public function ajax_rollback_log() {
         if (!current_user_can('إدارة_النظام')) wp_send_json_error('Unauthorized');
         if (!wp_verify_nonce($_POST['nonce'], 'sm_admin_action')) wp_send_json_error('Security check failed');
@@ -1136,6 +1151,168 @@ class SM_Public {
         }
         SM_Logger::log('حذف مستخدمين (جماعي)', "تم حذف عدد ($count) مستخدم من النظام.");
         wp_send_json_success();
+    }
+
+    public function ajax_add_clinic_referral() {
+        if (!is_user_logged_in() || !current_user_can('تسجيل_مخالفة')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_clinic_action')) wp_send_json_error('Security check');
+
+        global $wpdb;
+        $student_id = intval($_POST['student_id']);
+        $referrer_id = get_current_user_id();
+
+        $result = $wpdb->insert("{$wpdb->prefix}sm_clinic", array(
+            'student_id' => $student_id,
+            'referrer_id' => $referrer_id,
+            'created_at' => current_time('mysql')
+        ));
+
+        if ($result) {
+            $student = SM_DB::get_student_by_id($student_id);
+            SM_Logger::log('تحويل للعيادة', "تم تحويل الطالب: {$student->name} للعيادة");
+            wp_send_json_success();
+        } else {
+            wp_send_json_error('Failed to add referral');
+        }
+    }
+
+    public function ajax_confirm_clinic_arrival() {
+        if (!is_user_logged_in() || !current_user_can('manage_clinic')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_clinic_action')) wp_send_json_error('Security check');
+
+        global $wpdb;
+        $referral_id = intval($_POST['referral_id']);
+
+        $result = $wpdb->update("{$wpdb->prefix}sm_clinic", array(
+            'arrival_confirmed' => 1,
+            'arrival_at' => current_time('mysql')
+        ), array('id' => $referral_id));
+
+        if ($result) wp_send_json_success();
+        else wp_send_json_error('Failed to confirm arrival');
+    }
+
+    public function ajax_update_clinic_record() {
+        if (!is_user_logged_in() || !current_user_can('manage_clinic')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_clinic_action')) wp_send_json_error('Security check');
+
+        global $wpdb;
+        $referral_id = intval($_POST['referral_id']);
+        $health_condition = sanitize_textarea_field($_POST['health_condition']);
+        $action_taken = sanitize_textarea_field($_POST['action_taken']);
+
+        $result = $wpdb->update("{$wpdb->prefix}sm_clinic", array(
+            'health_condition' => $health_condition,
+            'action_taken' => $action_taken
+        ), array('id' => $referral_id));
+
+        if ($result) wp_send_json_success();
+        else wp_send_json_error('Failed to update record');
+    }
+
+    public function ajax_get_clinic_reports() {
+        if (!is_user_logged_in() || !current_user_can('manage_clinic')) wp_send_json_error('Unauthorized');
+
+        global $wpdb;
+        $type = sanitize_text_field($_GET['report_type']); // day, week, month, term, year
+        $start_date = '';
+        $end_date = current_time('Y-m-d') . ' 23:59:59';
+
+        switch ($type) {
+            case 'day': $start_date = current_time('Y-m-d') . ' 00:00:00'; break;
+            case 'week': $start_date = date('Y-m-d', strtotime('-7 days')) . ' 00:00:00'; break;
+            case 'month': $start_date = date('Y-m-d', strtotime('-30 days')) . ' 00:00:00'; break;
+            case 'term':
+                $academic = SM_Settings::get_academic_structure();
+                $today = current_time('Y-m-d');
+                foreach ($academic['term_dates'] as $t) {
+                    if ($today >= $t['start'] && $today <= $t['end']) {
+                        $start_date = $t['start'] . ' 00:00:00';
+                        $end_date = $t['end'] . ' 23:59:59';
+                        break;
+                    }
+                }
+                if (empty($start_date)) $start_date = date('Y-m-01') . ' 00:00:00';
+                break;
+            case 'year': $start_date = date('Y-01-01') . ' 00:00:00'; break;
+        }
+
+        $query = "SELECT c.*, s.name as student_name, s.class_name, s.section, u.display_name as referrer_name
+                  FROM {$wpdb->prefix}sm_clinic c
+                  JOIN {$wpdb->prefix}sm_students s ON c.student_id = s.id
+                  JOIN {$wpdb->prefix}users u ON c.referrer_id = u.ID
+                  WHERE c.created_at BETWEEN %s AND %s
+                  ORDER BY c.created_at DESC";
+
+        $records = $wpdb->get_results($wpdb->prepare($query, $start_date, $end_date));
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=clinic_report_'.$type.'_'.date('Y-m-d').'.csv');
+        $output = fopen('php://output', 'w');
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM for Excel
+        fputcsv($output, array('التاريخ', 'اسم الطالب', 'الصف', 'الشعبة', 'المحول', 'تأكيد الوصول', 'الحالة الصحية', 'الإجراء المتخذ'));
+
+        foreach ($records as $r) {
+            fputcsv($output, array(
+                $r->created_at,
+                $r->student_name,
+                $r->class_name,
+                $r->section,
+                $r->referrer_name,
+                $r->arrival_confirmed ? 'نعم' : 'لا',
+                $r->health_condition,
+                $r->action_taken
+            ));
+        }
+        fclose($output);
+        exit;
+    }
+
+    public function ajax_export_violations_csv() {
+        if (!is_user_logged_in() || !current_user_can('إدارة_المخالفات')) wp_send_json_error('Unauthorized');
+
+        global $wpdb;
+        $range = sanitize_text_field($_GET['range']); // today, week, month
+        $start_date = '';
+        $end_date = current_time('Y-m-d') . ' 23:59:59';
+
+        switch ($range) {
+            case 'today': $start_date = current_time('Y-m-d') . ' 00:00:00'; break;
+            case 'week': $start_date = date('Y-m-d', strtotime('-7 days')) . ' 00:00:00'; break;
+            case 'month': $start_date = date('Y-m-d', strtotime('-30 days')) . ' 00:00:00'; break;
+        }
+
+        $query = "SELECT r.*, s.name as student_name, s.class_name, s.section, s.student_code
+                  FROM {$wpdb->prefix}sm_records r
+                  JOIN {$wpdb->prefix}sm_students s ON r.student_id = s.id
+                  WHERE r.created_at BETWEEN %s AND %s
+                  ORDER BY r.created_at DESC";
+
+        $records = $wpdb->get_results($wpdb->prepare($query, $start_date, $end_date));
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=violations_'.$range.'_'.date('Y-m-d').'.csv');
+        $output = fopen('php://output', 'w');
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
+        fputcsv($output, array('التاريخ', 'اسم الطالب', 'كود الطالب', 'الصف', 'الشعبة', 'النوع', 'الحدة', 'الدرجة', 'النقاط', 'التفاصيل', 'الإجراء المتخذ'));
+
+        foreach ($records as $r) {
+            fputcsv($output, array(
+                $r->created_at,
+                $r->student_name,
+                $r->student_code,
+                $r->class_name,
+                $r->section,
+                $r->type,
+                $r->severity,
+                $r->degree,
+                $r->points,
+                $r->details,
+                $r->action_taken
+            ));
+        }
+        fclose($output);
+        exit;
     }
 
     public function handle_form_submission() {
