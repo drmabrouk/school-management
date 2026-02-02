@@ -1,4 +1,10 @@
-<?php if (!defined('ABSPATH')) exit; ?>
+<?php
+if (!defined('ABSPATH')) exit;
+if (in_array('sm_student', (array)wp_get_current_user()->roles)) {
+    echo '<p>يرجى التوجه إلى لوحة المعلومات الخاصة بك.</p>';
+    return;
+}
+?>
 <div class="sm-card-grid" style="margin-bottom: 40px;">
     <div class="sm-stat-card">
         <div style="font-size: 0.85em; color: var(--sm-text-gray); margin-bottom: 10px; font-weight: 700;">إجمالي الطلاب</div>

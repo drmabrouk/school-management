@@ -113,7 +113,7 @@ class SM_DB {
                 $password = '';
                 for($i=0; $i<10; $i++) $password .= rand(0,9);
 
-                $email_addr = $email ? $email : $code . '@school.local';
+                $email_addr = $code . '@school-system.local'; // Automated email generation
 
                 $user_id = wp_create_user($username, $password, $email_addr);
                 if (!is_wp_error($user_id)) {
@@ -512,7 +512,13 @@ class SM_DB {
             $q .= $wpdb->prepare(" AND a.type = %s", $type);
         }
         $q .= " ORDER BY a.created_at DESC";
-        return $wpdb->get_results($wpdb->prepare($q, $user_id));
+        $results = $wpdb->get_results($wpdb->prepare($q, $user_id));
+
+        foreach ($results as $res) {
+            $res->specialization = get_user_meta($res->sender_id, 'sm_specialization', true);
+        }
+
+        return $results;
     }
 
     public static function get_staff_by_section($grade, $section) {

@@ -15,7 +15,35 @@
             </tr>
         </thead>
         <tbody>
-            <?php foreach (get_users() as $u): ?>
+            <?php
+            $hierarchy = array(
+                'administrator' => 5,
+                'sm_system_admin' => 4,
+                'sm_principal' => 3,
+                'sm_supervisor' => 2,
+                'sm_coordinator' => 1,
+                'sm_teacher' => 0,
+                'sm_student' => -1,
+                'sm_parent' => -2
+            );
+            $current_user = wp_get_current_user();
+            $current_role = $current_user->roles[0];
+            $current_level = $hierarchy[$current_role] ?? -3;
+
+            $all_users = get_users();
+            usort($all_users, function($a, $b) use ($hierarchy) {
+                $lvl_a = $hierarchy[$a->roles[0]] ?? -3;
+                $lvl_b = $hierarchy[$b->roles[0]] ?? -3;
+                return $lvl_b <=> $lvl_a;
+            });
+
+            foreach ($all_users as $u):
+                $u_role = $u->roles[0];
+                $u_level = $hierarchy[$u_role] ?? -3;
+
+                // Hierarchical Visibility: Can only see equal or lower
+                if ($u_level > $current_level && !current_user_can('administrator')) continue;
+            ?>
                 <tr>
                     <td>
                         <div style="display:flex; align-items:center; gap:10px;">
@@ -28,7 +56,7 @@
                     </td>
                     <td><?php echo esc_html($u->user_email); ?></td>
                     <td>
-                        <span class="sm-badge sm-badge-low">
+                        <div style="font-weight:700;">
                             <?php
                             $role_map = array(
                                 'administrator' => 'الإدارة المركزية (المطور)',
@@ -40,14 +68,27 @@
                                 'sm_student' => 'طالب',
                                 'sm_parent' => 'ولي أمر'
                             );
-                            $display_roles = array_map(function($r) use ($role_map) { return $role_map[$r] ?? $r; }, $u->roles);
-                            echo implode(', ', $display_roles);
+                            $u_role_key = $u->roles[0];
+                            echo $role_map[$u_role_key] ?? $u_role_key;
                             ?>
-                        </span>
+                        </div>
+                        <?php if ($u_role_key === 'sm_teacher'): ?>
+                            <div style="font-size:11px; color:var(--sm-primary-color); font-weight:700;">التخصص: <?php echo esc_html(get_user_meta($u->ID, 'sm_specialization', true) ?: 'غير محدد'); ?></div>
+                        <?php endif; ?>
                     </td>
                     <td>
                         <div style="display:flex; gap:8px;">
-                            <button onclick='editSmGenericUser(<?php echo json_encode(array("id"=>$u->ID, "name"=>$u->display_name, "email"=>$u->user_email, "login"=>$u->user_login, "role"=>$u->roles[0])); ?>)' class="sm-btn" style="background:#edf2f7; color:#2d3748; padding:5px 10px; width:auto; font-size:11px;">تعديل</button>
+                            <?php
+                            $u_data = array(
+                                "id" => $u->ID,
+                                "name" => $u->display_name,
+                                "email" => $u->user_email,
+                                "login" => $u->user_login,
+                                "role" => $u_role_key,
+                                "specialization" => get_user_meta($u->ID, 'sm_specialization', true)
+                            );
+                            ?>
+                            <button onclick='editSmGenericUser(<?php echo json_encode($u_data); ?>)' class="sm-btn" style="background:#edf2f7; color:#2d3748; padding:5px 10px; width:auto; font-size:11px;">تعديل</button>
                             <?php if ($u->ID != get_current_user_id()): ?>
                                 <form method="post" style="display:inline;" onsubmit="return confirm('حذف هذا المستخدم نهائياً؟')">
                                     <?php wp_nonce_field('sm_user_action', 'sm_nonce'); ?>
@@ -82,20 +123,23 @@
                     <input type="text" name="user_login" class="sm-input" required>
                 </div>
                 <div class="sm-form-group">
-                    <label class="sm-label">البريد الإلكتروني (اختياري):</label>
-                    <input type="email" name="user_email" class="sm-input">
-                    <div style="font-size: 10px; color: #718096; margin-top: 5px;">سيتم إنشاء بريد تلقائي إذا ترك فارغاً.</div>
+                    <label class="sm-label">البريد الإلكتروني:</label>
+                    <input type="text" class="sm-input" value="سيتم إنشاؤه تلقائياً" disabled style="background:#f1f5f9;">
                 </div>
                 <div class="sm-form-group">
                     <label class="sm-label">الرتبة:</label>
-                    <select name="user_role" class="sm-select">
-                        <option value="sm_system_admin">مدير النظام التقني</option>
-                        <option value="sm_principal">مدير المدرسة</option>
-                        <option value="sm_supervisor">مشرف تربوي</option>
-                        <option value="sm_coordinator">منسق مادة</option>
-                        <option value="sm_teacher">معلم</option>
+                    <select name="user_role" class="sm-select" onchange="toggleSpecialization(this)">
+                        <?php if ($current_level >= 4): ?><option value="sm_system_admin">مدير النظام التقني</option><?php endif; ?>
+                        <?php if ($current_level >= 3): ?><option value="sm_principal">مدير المدرسة</option><?php endif; ?>
+                        <?php if ($current_level >= 2): ?><option value="sm_supervisor">مشرف تربوي</option><?php endif; ?>
+                        <?php if ($current_level >= 1): ?><option value="sm_coordinator">منسق مادة</option><?php endif; ?>
+                        <?php if ($current_level >= 0): ?><option value="sm_teacher">معلم</option><?php endif; ?>
                         <option value="sm_student">طالب</option>
                     </select>
+                </div>
+                <div class="sm-form-group spec-group" style="display:none;">
+                    <label class="sm-label">التخصص (للمعلمين):</label>
+                    <input type="text" name="specialization" class="sm-input" placeholder="مثال: معلم فيزياء">
                 </div>
                 <div class="sm-form-group" style="grid-column: span 2;">
                     <label class="sm-label">كلمة المرور:</label>
@@ -123,18 +167,22 @@
                 </div>
                 <div class="sm-form-group">
                     <label class="sm-label">البريد الإلكتروني:</label>
-                    <input type="email" name="user_email" id="edit_u_email" class="sm-input">
+                    <input type="email" name="user_email" id="edit_u_email" class="sm-input" readonly style="background:#f1f5f9;">
                 </div>
                 <div class="sm-form-group">
                     <label class="sm-label">الرتبة:</label>
-                    <select name="user_role" id="edit_u_role" class="sm-select">
-                        <option value="sm_system_admin">مدير النظام التقني</option>
-                        <option value="sm_principal">مدير المدرسة</option>
-                        <option value="sm_supervisor">مشرف تربوي</option>
-                        <option value="sm_coordinator">منسق مادة</option>
-                        <option value="sm_teacher">معلم</option>
+                    <select name="user_role" id="edit_u_role" class="sm-select" onchange="toggleSpecialization(this, 'edit')">
+                        <?php if ($current_level >= 4): ?><option value="sm_system_admin">مدير النظام التقني</option><?php endif; ?>
+                        <?php if ($current_level >= 3): ?><option value="sm_principal">مدير المدرسة</option><?php endif; ?>
+                        <?php if ($current_level >= 2): ?><option value="sm_supervisor">مشرف تربوي</option><?php endif; ?>
+                        <?php if ($current_level >= 1): ?><option value="sm_coordinator">منسق مادة</option><?php endif; ?>
+                        <?php if ($current_level >= 0): ?><option value="sm_teacher">معلم</option><?php endif; ?>
                         <option value="sm_student">طالب</option>
                     </select>
+                </div>
+                <div class="sm-form-group spec-group" id="edit_spec_group" style="display:none;">
+                    <label class="sm-label">التخصص (للمعلمين):</label>
+                    <input type="text" name="specialization" id="edit_u_spec" class="sm-input" placeholder="مثال: معلم رياضيات">
                 </div>
                 <div class="sm-form-group">
                     <label class="sm-label">كلمة مرور جديدة (اختياري):</label>
@@ -148,11 +196,23 @@
 
 <script>
 (function() {
+    window.toggleSpecialization = function(select, mode = 'add') {
+        const group = mode === 'add' ? select.closest('form').querySelector('.spec-group') : document.getElementById('edit_spec_group');
+        if (select.value === 'sm_teacher') {
+            group.style.display = 'block';
+        } else {
+            group.style.display = 'none';
+        }
+    };
+
     window.editSmGenericUser = function(u) {
         document.getElementById('edit_u_id').value = u.id;
         document.getElementById('edit_u_name').value = u.name;
         document.getElementById('edit_u_email').value = u.email;
         document.getElementById('edit_u_role').value = u.role;
+        document.getElementById('edit_u_spec').value = u.specialization || '';
+
+        toggleSpecialization(document.getElementById('edit_u_role'), 'edit');
         document.getElementById('edit-user-modal').style.display = 'flex';
     };
 

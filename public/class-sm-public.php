@@ -130,6 +130,20 @@ class SM_Public {
                     $student = SM_DB::get_student_by_parent($user->ID);
                     $student_id = $student ? $student->id : 0;
                     $stats = SM_DB::get_student_stats($student_id);
+                    $student_assignments = SM_DB::get_assignments($user->ID);
+
+                    // Find assigned supervisor
+                    $supervisor = null;
+                    if ($student) {
+                        $supervisors = get_users(array('role' => 'sm_supervisor'));
+                        foreach ($supervisors as $s) {
+                            $supervised = get_user_meta($s->ID, 'sm_supervised_classes', true);
+                            if (is_array($supervised) && in_array($student->class_name . '|' . $student->section, $supervised)) {
+                                $supervisor = $s;
+                                break;
+                            }
+                        }
+                    }
                 } else {
                     $stats = SM_DB::get_statistics($is_teacher && !$is_admin ? ['teacher_id' => $user->ID] : []);
                 }
@@ -705,11 +719,7 @@ class SM_Public {
         if (!wp_verify_nonce($_POST['sm_nonce'], 'sm_user_action')) wp_send_json_error('Security check failed');
 
         $username = sanitize_user($_POST['user_login']);
-        $email = sanitize_email($_POST['user_email']);
-
-        if (empty($email)) {
-            $email = $username . '@school-system.local';
-        }
+        $email = $username . '@school-system.local'; // Automated email generation
 
         $user_data = array(
             'user_login' => $username,
@@ -721,6 +731,9 @@ class SM_Public {
         $user_id = wp_insert_user($user_data);
         if (is_wp_error($user_id)) wp_send_json_error($user_id->get_error_message());
         else {
+            if (!empty($_POST['specialization'])) {
+                update_user_meta($user_id, 'sm_specialization', sanitize_text_field($_POST['specialization']));
+            }
             SM_Logger::log('إضافة مستخدم جديد', "تم إنشاء مستخدم باسم: {$_POST['display_name']} ورتبة: {$_POST['user_role']}");
             wp_send_json_success($user_id);
         }
@@ -733,7 +746,6 @@ class SM_Public {
         $user_id = intval($_POST['edit_user_id']);
         $user_data = array(
             'ID' => $user_id,
-            'user_email' => sanitize_email($_POST['user_email']),
             'display_name' => sanitize_text_field($_POST['display_name'])
         );
         if (!empty($_POST['user_pass'])) {
@@ -742,6 +754,10 @@ class SM_Public {
         $result = wp_update_user($user_data);
         if (is_wp_error($result)) wp_send_json_error($result->get_error_message());
         
+        if (!empty($_POST['specialization'])) {
+            update_user_meta($user_id, 'sm_specialization', sanitize_text_field($_POST['specialization']));
+        }
+
         $u = new WP_User($user_id);
         $u->set_role(sanitize_text_field($_POST['user_role']));
         
@@ -759,9 +775,12 @@ class SM_Public {
             for($i=0; $i<10; $i++) $pass .= rand(0,9);
         }
 
+        $username = sanitize_user($_POST['user_login']);
+        $email = $username . '@school-system.local'; // Automated
+
         $user_data = array(
-            'user_login' => sanitize_user($_POST['user_login']),
-            'user_email' => sanitize_email($_POST['user_email']),
+            'user_login' => $username,
+            'user_email' => $email,
             'display_name' => sanitize_text_field($_POST['display_name']),
             'user_pass' => $pass,
             'role' => sanitize_text_field($_POST['role'] ?: 'sm_teacher')
@@ -772,6 +791,10 @@ class SM_Public {
         update_user_meta($user_id, 'sm_temp_pass', $pass);
         update_user_meta($user_id, 'sm_teacher_id', sanitize_text_field($_POST['teacher_id']));
         update_user_meta($user_id, 'sm_phone', sanitize_text_field($_POST['phone']));
+
+        if (!empty($_POST['specialization'])) {
+            update_user_meta($user_id, 'sm_specialization', sanitize_text_field($_POST['specialization']));
+        }
 
         if (isset($_POST['assigned'])) {
             $assigned = array_map('sanitize_text_field', $_POST['assigned']);
@@ -1067,7 +1090,6 @@ class SM_Public {
         $user_id = intval($_POST['edit_teacher_id']);
         $user_data = array(
             'ID' => $user_id,
-            'user_email' => sanitize_email($_POST['user_email']),
             'display_name' => sanitize_text_field($_POST['display_name'])
         );
         if (!empty($_POST['user_pass'])) {
@@ -1084,6 +1106,10 @@ class SM_Public {
         update_user_meta($user_id, 'sm_teacher_id', sanitize_text_field($_POST['teacher_id']));
         update_user_meta($user_id, 'sm_phone', sanitize_text_field($_POST['phone']));
         update_user_meta($user_id, 'sm_account_status', sanitize_text_field($_POST['account_status']));
+
+        if (!empty($_POST['specialization'])) {
+            update_user_meta($user_id, 'sm_specialization', sanitize_text_field($_POST['specialization']));
+        }
 
         // Clean old assignments
         delete_user_meta($user_id, 'sm_assigned_sections');
