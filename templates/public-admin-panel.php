@@ -276,6 +276,7 @@ $is_supervisor = in_array('sm_supervisor', $roles);
 $is_coordinator = in_array('sm_coordinator', $roles);
 $is_teacher = in_array('sm_teacher', $roles);
 $is_student = in_array('sm_student', $roles);
+$is_parent = in_array('sm_parent', $roles);
 $is_clinic = in_array('sm_clinic', $roles);
 
 $active_tab = isset($_GET['sm_tab']) ? sanitize_text_field($_GET['sm_tab']) : 'summary';
@@ -355,8 +356,11 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                             <div style="font-weight: 800; color: var(--sm-dark-color);"><?php echo $user->display_name; ?></div>
                             <div style="font-size: 11px; color: var(--sm-text-gray);"><?php echo $user->user_email; ?></div>
                         </div>
-                        <?php if (!$is_student): ?>
+                        <?php if (!$is_student && !$is_parent): ?>
                             <a href="javascript:smEditProfile()" class="sm-dropdown-item"><span class="dashicons dashicons-edit"></span> تعديل البيانات الشخصية</a>
+                        <?php endif; ?>
+                        <?php if ($is_student || $is_parent): ?>
+                            <a href="javascript:smEditProfile()" class="sm-dropdown-item"><span class="dashicons dashicons-lock"></span> تغيير كلمة المرور</a>
                         <?php endif; ?>
                         <?php if ($is_admin): ?>
                             <a href="<?php echo add_query_arg('sm_tab', 'global-settings'); ?>" class="sm-dropdown-item"><span class="dashicons dashicons-admin-generic"></span> إعدادات النظام</a>
@@ -368,11 +372,11 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                         <div style="font-weight: 800; margin-bottom: 15px; font-size: 13px; border-bottom: 1px solid #eee; padding-bottom: 10px;">تعديل الملف الشخصي</div>
                         <div class="sm-form-group" style="margin-bottom: 10px;">
                             <label class="sm-label" style="font-size: 11px;">الاسم المفضل:</label>
-                            <input type="text" id="sm_edit_display_name" class="sm-input" style="padding: 8px; font-size: 12px;" value="<?php echo esc_attr($user->display_name); ?>">
+                            <input type="text" id="sm_edit_display_name" class="sm-input" style="padding: 8px; font-size: 12px;" value="<?php echo esc_attr($user->display_name); ?>" <?php if ($is_student || $is_parent) echo 'disabled style="background:#f1f5f9; cursor:not-allowed;"'; ?>>
                         </div>
                         <div class="sm-form-group" style="margin-bottom: 10px;">
                             <label class="sm-label" style="font-size: 11px;">البريد الإلكتروني:</label>
-                            <input type="email" id="sm_edit_user_email" class="sm-input" style="padding: 8px; font-size: 12px;" value="<?php echo esc_attr($user->user_email); ?>">
+                            <input type="email" id="sm_edit_user_email" class="sm-input" style="padding: 8px; font-size: 12px;" value="<?php echo esc_attr($user->user_email); ?>" <?php if ($is_student || $is_parent) echo 'disabled style="background:#f1f5f9; cursor:not-allowed;"'; ?>>
                         </div>
                         <div class="sm-form-group" style="margin-bottom: 15px;">
                             <label class="sm-label" style="font-size: 11px;">كلمة مرور جديدة (اختياري):</label>

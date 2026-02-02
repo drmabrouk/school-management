@@ -13,16 +13,6 @@ if (!isset($attendance_summary)) {
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
         <h3 style="margin: 0; font-weight: 800;">سجل الحضور والغياب</h3>
         <div style="display: flex; gap: 15px; align-items: center;">
-            <?php
-            $att_status = get_option('sm_attendance_manual_status', 'open'); // auto, open, closed
-            $status_labels = array('auto' => 'تلقائي (7ص-12م)', 'open' => 'مفتوح دائماً', 'closed' => 'مغلق يدوياً');
-            ?>
-            <div style="display: flex; background: #fff; border: 1px solid var(--sm-border-color); border-radius: 12px; overflow: hidden; height: 45px; box-shadow: var(--sm-shadow);">
-                <div style="padding: 0 20px; display: flex; align-items: center; font-size: 13px; font-weight: 700; background: var(--sm-bg-light); border-left: 1px solid var(--sm-border-color); color: var(--sm-dark-color);">
-                    حالة التسجيل: <span style="margin-right: 8px; color: #38a169; display: flex; align-items: center; gap: 5px;"><span style="width: 8px; height: 8px; background: #38a169; border-radius: 50%; display: inline-block;"></span> <?php echo $status_labels[$att_status]; ?></span>
-                </div>
-                <button onclick="toggleAttendanceStatus()" class="sm-btn" style="border-radius: 0; padding: 0 20px; font-size: 12px; background: #111F35; color: white !important;">تغيير الحالة</button>
-            </div>
             <a href="<?php echo home_url('/attendance/'); ?>" class="sm-btn" style="background: var(--sm-accent-color); height: 45px; min-width: 160px; padding: 0 20px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; color: white !important;">
                 <span class="dashicons dashicons-edit"></span> تسجيل الحضور
             </a>
@@ -368,24 +358,6 @@ function printAbsenceReport(type) {
     window.open(url, '_blank');
 }
 
-function toggleAttendanceStatus() {
-    const status = prompt('أدخل الحالة المطلوبة (open, closed):', '<?php echo $att_status; ?>');
-    if (status && ['open', 'closed'].includes(status)) {
-        const formData = new FormData();
-        formData.append('action', 'sm_toggle_attendance_status_ajax');
-        formData.append('status', status);
-        formData.append('nonce', '<?php echo wp_create_nonce("sm_attendance_action"); ?>');
-
-        fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
-        .then(r => r.json())
-        .then(res => {
-            if (res.success) {
-                smShowNotification('تم تحديث حالة التسجيل بنجاح');
-                setTimeout(() => location.reload(), 500);
-            }
-        });
-    }
-}
 </script>
 
 <style>
