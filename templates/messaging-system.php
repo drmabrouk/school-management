@@ -33,13 +33,13 @@
                 <label class="sm-label">إلى:</label>
                 <select name="receiver_id" class="sm-select" required>
                     <?php 
-                    $admins = get_users(array('role' => 'sm_school_admin'));
-                    $officers = get_users(array('role' => 'sm_discipline_officer'));
+                    $admins = get_users(array('role' => 'sm_principal'));
+                    $supervisors = get_users(array('role' => 'sm_supervisor'));
                     echo '<optgroup label="مديري المدرسة">';
                     foreach($admins as $a) echo '<option value="'.$a->ID.'">'.$a->display_name.'</option>';
                     echo '</optgroup>';
-                    echo '<optgroup label="مسؤولي الانضباط">';
-                    foreach($officers as $o) echo '<option value="'.$o->ID.'">'.$o->display_name.'</option>';
+                    echo '<optgroup label="المشرفين التربويين">';
+                    foreach($supervisors as $o) echo '<option value="'.$o->ID.'">'.$o->display_name.'</option>';
                     echo '</optgroup>';
                     ?>
                 </select>
@@ -65,9 +65,9 @@
             <div class="sm-form-group">
                 <label class="sm-label">الفئة المستهدفة:</label>
                 <select name="target_role" class="sm-select">
-                    <option value="sm_parent">كافة أولياء الأمور</option>
+                    <option value="sm_student">كافة الطلاب</option>
                     <option value="sm_teacher">كافة المعلمين</option>
-                    <option value="sm_discipline_officer">كافة مسؤولي الانضباط</option>
+                    <option value="sm_supervisor">كافة المشرفين</option>
                 </select>
             </div>
             <div class="sm-form-group">

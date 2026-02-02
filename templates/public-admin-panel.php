@@ -111,6 +111,24 @@
         });
     };
 
+    window.smDeleteLog = function(logId) {
+        if (!confirm('هل أنت متأكد من حذف هذا السجل نهائياً؟')) return;
+
+        const formData = new FormData();
+        formData.append('action', 'sm_delete_log_ajax');
+        formData.append('log_id', logId);
+        formData.append('nonce', '<?php echo wp_create_nonce("sm_admin_action"); ?>');
+
+        fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                smShowNotification('تم حذف السجل بنجاح');
+                setTimeout(() => location.reload(), 500);
+            }
+        });
+    };
+
     window.smOpenViolationModal = function() {
         document.getElementById('sm-global-violation-modal').style.display = 'flex';
     };
@@ -497,16 +515,15 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                 case 'global-settings':
                     if ($is_admin || current_user_can('إدارة_النظام')) {
                         ?>
-                        <div class="sm-tabs-wrapper" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #eee;">
-                            <button class="sm-tab-btn sm-active" onclick="smOpenInternalTab('school-settings', this)">بيانات المدرسة</button>
+                        <div class="sm-tabs-wrapper" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #eee; overflow-x: auto; white-space: nowrap; padding-bottom: 10px;">
+                            <button class="sm-tab-btn sm-active" onclick="smOpenInternalTab('school-settings', this)">السلطة</button>
                             <button class="sm-tab-btn" onclick="smOpenInternalTab('design-settings', this)">تصميم النظام</button>
-                            <button class="sm-tab-btn" onclick="smOpenInternalTab('app-settings', this)">إعدادات المخالفات</button>
                             <button class="sm-tab-btn" onclick="smOpenInternalTab('violation-hierarchy', this)">تخصيص اللائحة</button>
                             <button class="sm-tab-btn" onclick="smOpenInternalTab('user-settings', this)">إدارة المستخدمين</button>
                             <button class="sm-tab-btn" onclick="smOpenInternalTab('school-structure', this)">الهيكل المدرسي</button>
                             <button class="sm-tab-btn" onclick="smOpenInternalTab('backup-settings', this)">مركز النسخ الاحتياطي</button>
                             <?php if ($is_admin): ?>
-                                <button class="sm-tab-btn" onclick="smOpenInternalTab('activity-logs', this)">النشاطات</button>
+                                <button class="sm-tab-btn" onclick="smOpenInternalTab('activity-logs', this)">سجل النشاطات</button>
                             <?php endif; ?>
                         </div>
                         <div id="school-settings" class="sm-internal-tab">
@@ -525,6 +542,16 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                                         </div>
                                     </div>
                                     <div class="sm-form-group" style="grid-column: span 2;"><label class="sm-label">العنوان:</label><input type="text" name="school_address" value="<?php echo esc_attr($school['address']); ?>" class="sm-input"></div>
+
+                                    <div class="sm-form-group" style="grid-column: span 2; background: #fffaf0; padding: 20px; border-radius: 8px; border: 1px solid #feebc8; margin-top: 10px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <div>
+                                                <h4 style="margin:0; color: #744210;">قسم تصميم النظام</h4>
+                                                <p style="margin: 5px 0 0 0; font-size: 12px; color: #975a16;">يمكنك التحكم في الألوان والخطوط والمظهر العام للنظام من خلال تبويب "تصميم النظام".</p>
+                                            </div>
+                                            <button type="button" onclick="smOpenInternalTab('design-settings', document.querySelector('[onclick*=\"design-settings\"]'))" class="sm-btn" style="width:auto; background:#d69e2e;">انتقل للتصميم</button>
+                                        </div>
+                                    </div>
 
                                     <div class="sm-form-group" style="grid-column: span 2;">
                                         <label class="sm-label">أيام العمل الأسبوعية (الجدول الرسمي):</label>
@@ -553,7 +580,7 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                                         </div>
                                     </div>
                                 </div>
-                                <button type="submit" name="sm_save_settings_unified" class="sm-btn" style="width:auto;">حفظ بيانات المدرسة</button>
+                                <button type="submit" name="sm_save_settings_unified" class="sm-btn" style="width:auto;">حفظ الإعدادات</button>
                             </form>
                         </div>
                         <div id="design-settings" class="sm-internal-tab" style="display:none;">
@@ -588,30 +615,32 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                                 <button type="submit" name="sm_save_appearance" class="sm-btn" style="width:auto;">حفظ تصميم النظام</button>
                             </form>
                         </div>
-                        <div id="app-settings" class="sm-internal-tab" style="display:none;">
-                            <form method="post">
-                                <?php wp_nonce_field('sm_admin_action', 'sm_admin_nonce'); ?>
-                                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
-                                    <div class="sm-form-group">
-                                        <label class="sm-label">أنواع المخالفات العامة (مفتاح|اسم):</label>
-                                        <textarea name="violation_types" class="sm-textarea" rows="5"><?php foreach(SM_Settings::get_violation_types() as $k=>$v) echo "$k|$v\n"; ?></textarea>
-                                    </div>
-                                    <div class="sm-form-group">
-                                        <?php $actions = SM_Settings::get_suggested_actions(); ?>
-                                        <label class="sm-label">اقتراحات الإجراءات (كل سطر خيار):</label>
-                                        <div style="font-size:11px; margin-bottom:5px;">منخفضة:</div>
-                                        <textarea name="suggested_low" class="sm-textarea" rows="2"><?php echo esc_textarea($actions['low']); ?></textarea>
-                                        <div style="font-size:11px; margin-top:5px; margin-bottom:5px;">متوسطة:</div>
-                                        <textarea name="suggested_medium" class="sm-textarea" rows="2"><?php echo esc_textarea($actions['medium']); ?></textarea>
-                                        <div style="font-size:11px; margin-top:5px; margin-bottom:5px;">خطيرة:</div>
-                                        <textarea name="suggested_high" class="sm-textarea" rows="2"><?php echo esc_textarea($actions['high']); ?></textarea>
-                                    </div>
-                                </div>
-                                <button type="submit" name="sm_save_violation_settings" class="sm-btn" style="width:auto;">حفظ إعدادات المخالفات</button>
-                            </form>
-                        </div>
 
                         <div id="violation-hierarchy" class="sm-internal-tab" style="display:none;">
+                            <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:25px; margin-bottom:30px;">
+                                <h4 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:15px; color:var(--sm-primary-color);">إعدادات المخالفات العامة</h4>
+                                <form method="post">
+                                    <?php wp_nonce_field('sm_admin_action', 'sm_admin_nonce'); ?>
+                                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                                        <div class="sm-form-group">
+                                            <label class="sm-label">أنواع المخالفات العامة (مفتاح|اسم):</label>
+                                            <textarea name="violation_types" class="sm-textarea" rows="5"><?php foreach(SM_Settings::get_violation_types() as $k=>$v) echo "$k|$v\n"; ?></textarea>
+                                        </div>
+                                        <div class="sm-form-group">
+                                            <?php $actions = SM_Settings::get_suggested_actions(); ?>
+                                            <label class="sm-label">اقتراحات الإجراءات (كل سطر خيار):</label>
+                                            <div style="font-size:11px; margin-bottom:5px;">منخفضة:</div>
+                                            <textarea name="suggested_low" class="sm-textarea" rows="2"><?php echo esc_textarea($actions['low']); ?></textarea>
+                                            <div style="font-size:11px; margin-top:5px; margin-bottom:5px;">متوسطة:</div>
+                                            <textarea name="suggested_medium" class="sm-textarea" rows="2"><?php echo esc_textarea($actions['medium']); ?></textarea>
+                                            <div style="font-size:11px; margin-top:5px; margin-bottom:5px;">خطيرة:</div>
+                                            <textarea name="suggested_high" class="sm-textarea" rows="2"><?php echo esc_textarea($actions['high']); ?></textarea>
+                                        </div>
+                                    </div>
+                                    <button type="submit" name="sm_save_violation_settings" class="sm-btn" style="width:auto;">حفظ إعدادات المخالفات</button>
+                                </form>
+                            </div>
+
                             <form method="post">
                                 <?php wp_nonce_field('sm_admin_action', 'sm_admin_nonce');
                                 $h_violations = SM_Settings::get_hierarchical_violations();
@@ -810,44 +839,11 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                         </div>
                         <?php if ($is_admin): ?>
                         <div id="activity-logs" class="sm-internal-tab" style="display:none;">
-                            <!-- Latest Disciplinary Officer Updates -->
-                            <div style="background:#fff; border:1px solid #bee3f8; border-right: 5px solid #3182ce; border-radius:12px; padding:30px; margin-bottom: 30px;">
-                                <h4 style="margin-top:0; color: #2b6cb0; display: flex; align-items: center; gap: 10px;">
-                                    <span class="dashicons dashicons-id-alt"></span> آخر تحديثات مسؤولي الانضباط
-                                </h4>
-                                <div class="sm-table-container" style="border:none;">
-                                    <table class="sm-table" style="font-size: 0.9em;">
-                                        <thead>
-                                            <tr>
-                                                <th>المسؤول</th>
-                                                <th>النشاط</th>
-                                                <th>الوقت</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php
-                                            $officer_logs = array_filter(SM_Logger::get_logs(50), function($log) {
-                                                $user = get_userdata($log->user_id);
-                                                return $user && in_array('sm_discipline_officer', (array)$user->roles);
-                                            });
-                                            if (empty($officer_logs)): ?>
-                                                <tr><td colspan="3" style="text-align:center; padding:20px; color:#666;">لا توجد تحديثات أخيرة لمسؤولي الانضباط.</td></tr>
-                                            <?php else:
-                                                foreach (array_slice($officer_logs, 0, 10) as $log): ?>
-                                                    <tr>
-                                                        <td style="font-weight:600;"><?php echo esc_html($log->display_name); ?></td>
-                                                        <td><?php echo esc_html($log->action); ?></td>
-                                                        <td style="color:#718096;"><?php echo date('Y-m-d H:i', strtotime($log->created_at)); ?></td>
-                                                    </tr>
-                                                <?php endforeach; ?>
-                                            <?php endif; ?>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
                             <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:30px;">
-                                <h4 style="margin-top:0;">سجل نشاطات النظام الشامل</h4>
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                                    <h4 style="margin:0;">سجل نشاطات النظام الشامل</h4>
+                                    <div style="font-size:12px; color:#718096;">يتم الاحتفاظ بآخر 200 نشاط فقط تلقائياً.</div>
+                                </div>
                                 <div class="sm-table-container">
                                     <table class="sm-table">
                                         <thead>
@@ -855,6 +851,8 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                                                 <th>الوقت</th>
                                                 <th>المستخدم</th>
                                                 <th>الإجراء</th>
+                                                <th>التفاصيل</th>
+                                                <th>الإجراءات</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -868,16 +866,21 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
 
                                             foreach ($all_logs as $log):
                                                 $can_rollback = strpos($log->details, 'ROLLBACK_DATA:') === 0;
+                                                $details_display = $can_rollback ? 'بيانات مستعادة' : esc_html($log->details);
                                             ?>
                                                 <tr>
-                                                    <td style="font-size: 0.8em; color: #718096;"><?php echo esc_html($log->created_at); ?></td>
-                                                    <td style="font-weight: 600;"><?php echo esc_html($log->display_name); ?></td>
+                                                    <td style="font-size: 0.85em; color: #718096;"><?php echo esc_html($log->created_at); ?></td>
+                                                    <td style="font-weight: 600;">
+                                                        <?php echo esc_html($log->display_name ?: 'مستخدم غير معروف'); ?>
+                                                    </td>
+                                                    <td style="font-weight:700; color:var(--sm-primary-color);"><?php echo esc_html($log->action); ?></td>
+                                                    <td style="font-size:0.9em;"><?php echo $details_display; ?></td>
                                                     <td>
-                                                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                                                            <div><?php echo esc_html($log->action); ?></div>
+                                                        <div style="display:flex; gap:8px;">
                                                             <?php if ($can_rollback): ?>
-                                                                <button onclick="smRollbackLog(<?php echo $log->id; ?>)" class="sm-btn" style="width:auto; height:24px; padding:0 8px; font-size:10px; background:#4a5568;">استعادة</button>
+                                                                <button onclick="smRollbackLog(<?php echo $log->id; ?>)" class="sm-btn" style="width:auto; height:28px; padding:0 12px; font-size:11px; background:#2d3748;">استعادة</button>
                                                             <?php endif; ?>
+                                                            <button onclick="smDeleteLog(<?php echo $log->id; ?>)" class="sm-btn" style="width:auto; height:28px; padding:0 12px; font-size:11px; background:#e53e3e;">حذف</button>
                                                         </div>
                                                     </td>
                                                 </tr>

@@ -103,6 +103,7 @@ class SM_Admin {
             check_admin_referer('sm_admin_action', 'sm_admin_nonce');
             SM_Settings::save_school_info(array(
                 'school_name' => sanitize_text_field($_POST['school_name']),
+                'school_principal_name' => sanitize_text_field($_POST['school_principal_name']),
                 'phone' => sanitize_text_field($_POST['school_phone']),
                 'email' => sanitize_email($_POST['school_email']),
                 'school_logo' => esc_url_raw($_POST['school_logo']),
@@ -148,7 +149,8 @@ class SM_Admin {
         }
 
         $student_filters = array();
-        $records = array();
+        $stats = SM_DB::get_statistics();
+        $records = SM_DB::get_records();
         $students = SM_DB::get_students();
         include SM_PLUGIN_DIR . 'templates/public-admin-panel.php';
     }
