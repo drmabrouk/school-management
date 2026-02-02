@@ -1,10 +1,40 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <div class="sm-lesson-plans-container" dir="rtl">
+    <?php if ($is_principal || $is_admin): ?>
+    <div class="sm-card-grid" style="margin-bottom: 30px;">
+        <?php
+        global $wpdb;
+        $total_plans = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}sm_assignments WHERE type = 'lesson_plan'");
+        $approved_plans = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}sm_assignments WHERE type = 'lesson_plan' AND receiver_id != 0");
+        $pending_plans = $total_plans - $approved_plans;
+        $teachers_count = count(get_users(array('role' => 'sm_teacher')));
+        $uploaded_this_week = $wpdb->get_var("SELECT COUNT(DISTINCT sender_id) FROM {$wpdb->prefix}sm_assignments WHERE type = 'lesson_plan' AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
+        ?>
+        <div class="sm-stat-card" style="border-right: 5px solid #38a169;">
+            <div style="font-size: 0.85em; color: var(--sm-text-gray); margin-bottom: 10px; font-weight: 700;">تحضيرات معتمدة</div>
+            <div style="font-size: 2em; font-weight: 900; color: #38a169;"><?php echo $approved_plans; ?></div>
+        </div>
+        <div class="sm-stat-card" style="border-right: 5px solid #F63049;">
+            <div style="font-size: 0.85em; color: var(--sm-text-gray); margin-bottom: 10px; font-weight: 700;">تحضيرات قيد الانتظار</div>
+            <div style="font-size: 2em; font-weight: 900; color: #F63049;"><?php echo $pending_plans; ?></div>
+        </div>
+        <div class="sm-stat-card">
+            <div style="font-size: 0.85em; color: var(--sm-text-gray); margin-bottom: 10px; font-weight: 700;">معلمون قدموا هذا الأسبوع</div>
+            <div style="font-size: 2em; font-weight: 900; color: var(--sm-primary-color);"><?php echo $uploaded_this_week; ?> / <?php echo $teachers_count; ?></div>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
         <h3 style="margin: 0; font-weight: 800;">تحضير الدروس اليومي</h3>
-        <?php if ($is_teacher): ?>
-            <button onclick="document.getElementById('add-plan-modal').style.display='flex'" class="sm-btn" style="width: auto;">+ إضافة تحضير جديد</button>
-        <?php endif; ?>
+        <div style="display:flex; gap:10px;">
+            <?php if ($is_principal || $is_coordinator || $is_admin): ?>
+                <a href="<?php echo admin_url('admin-ajax.php?action=sm_download_plans_zip&nonce='.wp_create_nonce('sm_admin_action')); ?>" class="sm-btn" style="width: auto; background: #2c3e50; color:white !important; text-decoration:none;">تحميل كافة التحضيرات (ZIP)</a>
+            <?php endif; ?>
+            <?php if ($is_teacher): ?>
+                <button onclick="document.getElementById('add-plan-modal').style.display='flex'" class="sm-btn" style="width: auto;">+ إضافة تحضير جديد</button>
+            <?php endif; ?>
+        </div>
     </div>
 
     <div class="sm-table-container">
@@ -23,7 +53,7 @@
                 <?php
                 // Plans logic
                 $plans = array();
-                if ($is_coordinator) {
+                if ($is_coordinator || $is_principal || $is_admin) {
                     // Show all lesson plans for review (Maybe filter by department later)
                     global $wpdb;
                     $plans = $wpdb->get_results("SELECT a.*, u.display_name as sender_name FROM {$wpdb->prefix}sm_assignments a JOIN {$wpdb->prefix}users u ON a.sender_id = u.ID WHERE a.type = 'lesson_plan' ORDER BY a.created_at DESC");

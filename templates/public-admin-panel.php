@@ -470,6 +470,18 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                     </li>
                 <?php endif; ?>
 
+                <?php if ($is_admin || $is_sys_admin || $is_principal || $is_supervisor): ?>
+                    <li class="sm-sidebar-item <?php echo $active_tab == 'surveys' ? 'sm-active' : ''; ?>">
+                        <a href="<?php echo add_query_arg('sm_tab', 'surveys'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-clipboard"></span> استطلاعات الرأي</a>
+                    </li>
+                <?php endif; ?>
+
+                <?php if ($is_admin || $is_sys_admin || $is_principal || $is_supervisor): ?>
+                    <li class="sm-sidebar-item <?php echo $active_tab == 'timetables' ? 'sm-active' : ''; ?>">
+                        <a href="<?php echo add_query_arg('sm_tab', 'timetables'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-calendar-alt"></span> الجداول المدرسية</a>
+                    </li>
+                <?php endif; ?>
+
                 <?php if ($is_admin || $is_sys_admin): ?>
                     <li class="sm-sidebar-item <?php echo $active_tab == 'global-settings' ? 'sm-active' : ''; ?>">
                         <a href="<?php echo add_query_arg('sm_tab', 'global-settings'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-admin-generic"></span> إعدادات النظام</a>
@@ -550,6 +562,18 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
 
                 case 'clinic':
                     include SM_PLUGIN_DIR . 'templates/admin-clinic.php';
+                    break;
+
+                case 'surveys':
+                    if ($is_admin || $is_sys_admin || $is_principal || $is_supervisor) {
+                        include SM_PLUGIN_DIR . 'templates/admin-surveys.php';
+                    }
+                    break;
+
+                case 'timetables':
+                    if ($is_admin || $is_sys_admin || $is_principal || $is_supervisor) {
+                        include SM_PLUGIN_DIR . 'templates/admin-timetables.php';
+                    }
                     break;
 
                 case 'grades':

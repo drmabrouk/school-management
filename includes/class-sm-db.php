@@ -842,6 +842,102 @@ class SM_DB {
         return $wpdb->delete("{$wpdb->prefix}sm_subjects", array('id' => $id));
     }
 
+    // Survey Management
+    public static function add_survey($title, $questions, $target_roles, $user_id) {
+        global $wpdb;
+        $success = $wpdb->insert("{$wpdb->prefix}sm_surveys", array(
+            'title' => sanitize_text_field($title),
+            'target_roles' => sanitize_text_field($target_roles),
+            'questions' => is_array($questions) ? json_encode($questions) : $questions,
+            'created_by' => $user_id,
+            'status' => 'active'
+        ));
+        return $success ? $wpdb->insert_id : false;
+    }
+
+    public static function get_surveys($role = null) {
+        global $wpdb;
+        $query = "SELECT * FROM {$wpdb->prefix}sm_surveys WHERE status = 'active'";
+        if ($role) {
+            if ($role === 'all') {
+                $query .= " AND target_roles = 'all'";
+            } else {
+                $query .= $wpdb->prepare(" AND (target_roles = 'all' OR target_roles LIKE %s)", '%' . $wpdb->esc_like($role) . '%');
+            }
+        }
+        $query .= " ORDER BY created_at DESC";
+        return $wpdb->get_results($query);
+    }
+
+    public static function get_survey($id) {
+        global $wpdb;
+        return $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}sm_surveys WHERE id = %d", $id));
+    }
+
+    public static function save_survey_response($survey_id, $user_id, $responses) {
+        global $wpdb;
+        // Check if already responded
+        $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}sm_survey_responses WHERE survey_id = %d AND user_id = %d", $survey_id, $user_id));
+        if ($exists) return false;
+
+        return $wpdb->insert("{$wpdb->prefix}sm_survey_responses", array(
+            'survey_id' => $survey_id,
+            'user_id' => $user_id,
+            'responses' => is_array($responses) ? json_encode($responses) : $responses
+        ));
+    }
+
+    public static function get_survey_responses($survey_id) {
+        global $wpdb;
+        return $wpdb->get_results($wpdb->prepare("SELECT r.*, u.display_name FROM {$wpdb->prefix}sm_survey_responses r JOIN {$wpdb->prefix}users u ON r.user_id = u.ID WHERE r.survey_id = %d", $survey_id));
+    }
+
+    public static function get_survey_results($survey_id) {
+        $responses = self::get_survey_responses($survey_id);
+        $survey = self::get_survey($survey_id);
+        if (!$survey) return array();
+
+        $questions = json_decode($survey->questions, true);
+        $results = array();
+        foreach($questions as $index => $q) {
+            $results[$index] = array('question' => $q, 'answers' => array());
+        }
+
+        foreach ($responses as $r) {
+            $ans_data = json_decode($r->responses, true);
+            foreach ($ans_data as $index => $val) {
+                if (isset($results[$index])) {
+                    if (!isset($results[$index]['answers'][$val])) $results[$index]['answers'][$val] = 0;
+                    $results[$index]['answers'][$val]++;
+                }
+            }
+        }
+        return $results;
+    }
+
+    // Timetable Management
+    public static function update_timetable($class, $section, $day, $period, $subject_id, $teacher_id) {
+        global $wpdb;
+        $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}sm_timetables WHERE class_name = %s AND section = %s AND day = %s AND period = %d", $class, $section, $day, $period));
+        if ($exists) {
+            return $wpdb->update("{$wpdb->prefix}sm_timetables", array('subject_id' => $subject_id, 'teacher_id' => $teacher_id), array('id' => $exists));
+        } else {
+            return $wpdb->insert("{$wpdb->prefix}sm_timetables", array(
+                'class_name' => $class,
+                'section' => $section,
+                'day' => $day,
+                'period' => $period,
+                'subject_id' => $subject_id,
+                'teacher_id' => $teacher_id
+            ));
+        }
+    }
+
+    public static function get_timetable($class, $section) {
+        global $wpdb;
+        return $wpdb->get_results($wpdb->prepare("SELECT t.*, s.name as subject_name, u.display_name as teacher_name FROM {$wpdb->prefix}sm_timetables t JOIN {$wpdb->prefix}sm_subjects s ON t.subject_id = s.id JOIN {$wpdb->prefix}users u ON t.teacher_id = u.ID WHERE t.class_name = %s AND t.section = %s ORDER BY t.day, t.period", $class, $section));
+    }
+
     // Attendance Management
     public static function get_attendance_summary($date) {
         global $wpdb;

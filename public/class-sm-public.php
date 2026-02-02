@@ -1462,21 +1462,157 @@ class SM_Public {
         wp_send_json_success($count);
     }
 
-    public function ajax_bulk_delete_users() {
-        if (!current_user_can('إدارة_المستخدمين')) wp_send_json_error('Unauthorized');
-        if (!wp_verify_nonce($_POST['nonce'], 'sm_teacher_action')) wp_send_json_error('Security check');
+    public function ajax_add_survey() {
+        if (!current_user_can('manage_options') && !in_array('sm_principal', (array)wp_get_current_user()->roles) && !in_array('sm_supervisor', (array)wp_get_current_user()->roles)) {
+            wp_send_json_error('Unauthorized');
+        }
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_admin_action')) wp_send_json_error('Security');
 
-        $ids = array_map('intval', explode(',', $_POST['user_ids']));
-        require_once(ABSPATH . 'wp-admin/includes/user.php');
+        $title = sanitize_text_field($_POST['title']);
+        $questions = json_decode(stripslashes($_POST['questions']), true);
+        $recipients = sanitize_text_field($_POST['recipients']); // role or 'all'
 
-        $count = 0;
-        foreach ($ids as $id) {
-            if ($id != get_current_user_id()) {
-                if (wp_delete_user($id)) $count++;
+        $survey_id = SM_DB::add_survey($title, $questions, $recipients, get_current_user_id());
+        if ($survey_id) wp_send_json_success($survey_id);
+        else wp_send_json_error('Failed to add survey');
+    }
+
+    public function ajax_cancel_survey() {
+        if (!current_user_can('manage_options') && !in_array('sm_principal', (array)wp_get_current_user()->roles) && !in_array('sm_supervisor', (array)wp_get_current_user()->roles)) {
+            wp_send_json_error('Unauthorized');
+        }
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_admin_action')) wp_send_json_error('Security');
+
+        $survey_id = intval($_POST['id']);
+        global $wpdb;
+        $wpdb->update("{$wpdb->prefix}sm_surveys", array('status' => 'cancelled'), array('id' => $survey_id));
+        wp_send_json_success();
+    }
+
+    public function ajax_submit_survey_response() {
+        if (!is_user_logged_in()) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_attendance_action')) wp_send_json_error('Security');
+
+        $survey_id = intval($_POST['survey_id']);
+        $responses = json_decode(stripslashes($_POST['responses']), true);
+        $user_id = get_current_user_id();
+
+        if (SM_DB::save_survey_response($survey_id, $user_id, $responses)) {
+            wp_send_json_success();
+        } else {
+            wp_send_json_error('Failed to save response');
+        }
+    }
+
+    public function ajax_get_survey_results() {
+        if (!current_user_can('manage_options') && !in_array('sm_principal', (array)wp_get_current_user()->roles) && !in_array('sm_supervisor', (array)wp_get_current_user()->roles)) {
+            wp_send_json_error('Unauthorized');
+        }
+        $survey_id = intval($_GET['id']);
+        $results = SM_DB::get_survey_results($survey_id);
+        wp_send_json_success($results);
+    }
+
+    public function ajax_export_survey_results() {
+         if (!current_user_can('manage_options') && !in_array('sm_principal', (array)wp_get_current_user()->roles) && !in_array('sm_supervisor', (array)wp_get_current_user()->roles)) {
+            wp_send_json_error('Unauthorized');
+        }
+        $survey_id = intval($_GET['id']);
+        $survey = SM_DB::get_survey($survey_id);
+        if (!$survey) wp_send_json_error('Survey not found');
+
+        $responses = SM_DB::get_survey_responses($survey_id);
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=survey_results_'.$survey_id.'.csv');
+        $output = fopen('php://output', 'w');
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
+
+        $questions = json_decode($survey->questions, true);
+        $header = array('المجيب', 'الدور');
+        foreach($questions as $q) $header[] = $q;
+        fputcsv($output, $header);
+
+        foreach ($responses as $r) {
+            $user = get_userdata($r->user_id);
+            $role = !empty($user->roles) ? $user->roles[0] : '';
+            $row = array($user->display_name, $role);
+            $res_data = json_decode($r->responses, true);
+            foreach($questions as $index => $q) {
+                $row[] = $res_data[$index] ?? '';
+            }
+            fputcsv($output, $row);
+        }
+        fclose($output);
+        exit;
+    }
+
+    public function ajax_update_timetable_entry() {
+        if (!current_user_can('manage_options') && !in_array('sm_principal', (array)wp_get_current_user()->roles) && !in_array('sm_supervisor', (array)wp_get_current_user()->roles)) {
+            wp_send_json_error('Unauthorized');
+        }
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_admin_action')) wp_send_json_error('Security');
+
+        $class = sanitize_text_field($_POST['class_name']);
+        $section = sanitize_text_field($_POST['section']);
+        $day = sanitize_text_field($_POST['day']);
+        $period = intval($_POST['period']);
+        $subject_id = intval($_POST['subject_id']);
+        $teacher_id = intval($_POST['teacher_id']);
+
+        if (SM_DB::update_timetable($class, $section, $day, $period, $subject_id, $teacher_id)) {
+            wp_send_json_success();
+        } else {
+            wp_send_json_error('Failed');
+        }
+    }
+
+    public function ajax_download_plans_zip() {
+        if (!current_user_can('manage_options') && !in_array('sm_principal', (array)wp_get_current_user()->roles) && !in_array('sm_coordinator', (array)wp_get_current_user()->roles)) {
+            wp_die('Unauthorized');
+        }
+        if (!wp_verify_nonce($_GET['nonce'], 'sm_admin_action')) wp_die('Security');
+
+        global $wpdb;
+        $plans = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}sm_assignments WHERE type = 'lesson_plan'");
+
+        if (empty($plans)) wp_die('No plans to download');
+
+        if (!class_exists('ZipArchive')) {
+            wp_die('ZipArchive extension not enabled on this server.');
+        }
+
+        $zip = new ZipArchive();
+        $zip_name = 'lesson_plans_' . date('Y-m-d') . '.zip';
+        $upload_dir = wp_upload_dir();
+        $zip_path = $upload_dir['path'] . '/' . $zip_name;
+
+        if ($zip->open($zip_path, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== TRUE) {
+            wp_die('Could not create zip file');
+        }
+
+        foreach ($plans as $p) {
+            if (empty($p->file_url)) continue;
+
+            // Try to get local path
+            $file_path = str_replace($upload_dir['baseurl'], $upload_dir['basedir'], $p->file_url);
+            if (file_exists($file_path)) {
+                $zip->addFile($file_path, basename($file_path));
             }
         }
-        SM_Logger::log('حذف مستخدمين (جماعي)', "تم حذف عدد ($count) مستخدم من النظام.");
-        wp_send_json_success();
+
+        $zip->close();
+
+        if (file_exists($zip_path)) {
+            header('Content-Type: application/zip');
+            header('Content-Disposition: attachment; filename="' . $zip_name . '"');
+            header('Content-Length: ' . filesize($zip_path));
+            readfile($zip_path);
+            unlink($zip_path);
+            exit;
+        } else {
+            wp_die('Failed to generate zip');
+        }
     }
 
     public function ajax_export_violations_csv() {

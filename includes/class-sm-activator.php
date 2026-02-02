@@ -149,6 +149,41 @@ class SM_Activator {
             name varchar(255) NOT NULL,
             grade_id int(11) NOT NULL,
             PRIMARY KEY  (id)
+        ) $charset_collate;
+
+        CREATE TABLE {$wpdb->prefix}sm_surveys (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            title varchar(255) NOT NULL,
+            description text,
+            target_roles varchar(255) NOT NULL,
+            questions text NOT NULL,
+            status varchar(20) DEFAULT 'active',
+            created_by bigint(20) NOT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            PRIMARY KEY  (id)
+        ) $charset_collate;
+
+        CREATE TABLE {$wpdb->prefix}sm_survey_responses (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            survey_id bigint(20) NOT NULL,
+            user_id bigint(20) NOT NULL,
+            answers text NOT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            PRIMARY KEY  (id),
+            KEY survey_id (survey_id),
+            KEY user_id (user_id)
+        ) $charset_collate;
+
+        CREATE TABLE {$wpdb->prefix}sm_timetables (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            class_name varchar(100) NOT NULL,
+            section varchar(50) NOT NULL,
+            day varchar(20) NOT NULL,
+            period int(11) NOT NULL,
+            subject_id bigint(20) NOT NULL,
+            teacher_id bigint(20) NOT NULL,
+            PRIMARY KEY  (id),
+            KEY class_section (class_name, section)
         ) $charset_collate;";
 
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
