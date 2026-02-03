@@ -57,10 +57,14 @@
             <div class="report-type">قرار إداري انضباطي</div>
         </div>
 
+        <?php
+        $report_date = date_i18n('Y-m-d');
+        $archive_no = 'ARCH-' . date('Ymd') . '-' . strtoupper(wp_generate_password(4, false));
+        ?>
         <div class="meta-info">
+            <div>الرقم الأرشيفي: <strong><?php echo $archive_no; ?></strong></div>
+            <div>تاريخ التقرير: <strong><?php echo $report_date; ?></strong></div>
             <div>الرقم المرجعي: <strong><?php echo 'DEC-' . date('Ym') . '-' . $record->id; ?></strong></div>
-            <div>تاريخ الطباعة: <strong><?php echo date('Y/m/d'); ?></strong></div>
-            <div>وقت الطباعة: <strong><?php echo date('H:i'); ?></strong></div>
         </div>
 
         <div class="content-grid">
@@ -81,29 +85,12 @@
                 <span class="value"><?php echo date('Y/m/d', strtotime($record->created_at)); ?></span>
             </div>
             <div class="row">
-                <span class="label">نوع المخالفة:</span>
-                <span class="value"><?php
-                    $types = SM_Settings::get_violation_types();
-                    echo isset($types[$record->type]) ? esc_html($types[$record->type]) : esc_html($record->type);
-                ?></span>
+                <span class="label">البند القانوني / المرجع:</span>
+                <span class="value"><?php echo esc_html($record->violation_code); ?></span>
             </div>
             <div class="row">
-                <span class="label">المستوى / الدرجة:</span>
-                <span class="value">المستوى <?php echo (int)$record->degree; ?> (<?php echo (int)$record->points; ?> نقطة)</span>
-            </div>
-
-            <div class="row full">
-                <span class="label">تفاصيل الواقعة:</span>
-                <div class="details-box">
-                    <?php echo nl2br(esc_html($record->details)); ?>
-                </div>
-            </div>
-
-            <div class="row full">
-                <span class="label">الإجراء التربوي المتخذ:</span>
-                <div class="action-box">
-                    <strong><?php echo esc_html($record->action_taken); ?></strong>
-                </div>
+                <span class="label">القرار (الإجراء المتخذ):</span>
+                <span class="value" style="font-weight: 800; color: #F63049;"><?php echo esc_html($record->action_taken); ?></span>
             </div>
         </div>
 
@@ -116,7 +103,7 @@
             <div class="sig-box">
                 <div class="sig-label">مدير المدرسة</div>
                 <div class="sig-line"></div>
-                <div class="sig-name"><?php echo esc_html($school['school_principal_name']); ?></div>
+                <div class="sig-name">التوقيع والختم</div>
             </div>
         </div>
 

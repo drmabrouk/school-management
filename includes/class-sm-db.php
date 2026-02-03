@@ -183,9 +183,12 @@ class SM_DB {
             array(
                 'type' => sanitize_text_field($data['type']),
                 'severity' => sanitize_text_field($data['severity']),
+                'degree' => intval($data['degree'] ?? 1),
+                'violation_code' => sanitize_text_field($data['violation_code'] ?? ''),
+                'classification' => sanitize_text_field($data['classification'] ?? 'general'),
+                'points' => intval($data['points'] ?? 0),
                 'details' => sanitize_textarea_field($data['details']),
-                'action_taken' => sanitize_text_field($data['action_taken']),
-                'reward_penalty' => sanitize_text_field($data['reward_penalty'])
+                'action_taken' => sanitize_text_field($data['action_taken'])
             ),
             array('id' => $id)
         );
@@ -239,7 +242,6 @@ class SM_DB {
                 'recurrence_count' => $recurrence,
                 'details' => sanitize_textarea_field($data['details']),
                 'action_taken' => sanitize_text_field($data['action_taken']),
-                'reward_penalty' => sanitize_text_field($data['reward_penalty']),
                 'status' => $status,
                 'created_at' => $created_at
             )
@@ -517,7 +519,7 @@ class SM_DB {
                 COUNT(CASE WHEN DATE(created_at) = CURDATE() THEN 1 END) as violations_today,
                 COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 END) as violations_week,
                 COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as violations_month,
-                COUNT(CASE WHEN action_taken != '' OR reward_penalty != '' THEN 1 END) as total_actions
+                COUNT(CASE WHEN action_taken != '' THEN 1 END) as total_actions
             FROM {$wpdb->prefix}sm_records $where
         ");
 

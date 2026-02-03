@@ -33,10 +33,15 @@ $academic = SM_Settings::get_academic_structure();
     </style>
 </head>
 <body onload="window.print()">
+    <?php
+    $report_date = date_i18n('Y-m-d');
+    $archive_no = 'ARCH-' . date('Ymd') . '-' . strtoupper(wp_generate_password(4, false));
+    ?>
     <div class="header">
         <div class="school-info">
             <h1><?php echo esc_html($school['school_name']); ?></h1>
-            <p><?php echo date_i18n('l j F Y'); ?></p>
+            <p style="font-weight: 800; color: #111F35; margin-top: 10px;">الرقم الأرشيفي: <?php echo $archive_no; ?></p>
+            <p style="font-weight: 800; color: #111F35;">تاريخ التقرير: <?php echo $report_date; ?></p>
         </div>
         <div class="logo">
             <?php if ($school['school_logo']): ?>
@@ -52,25 +57,21 @@ $academic = SM_Settings::get_academic_structure();
     <table>
         <thead>
             <tr>
-                <th>التاريخ</th>
-                <th>اسم الطالب</th>
-                <th>الصف</th>
-                <th>البند</th>
-                <th>النقاط</th>
-                <th>تكرار</th>
-                <th>الإجراء المتخذ</th>
+                <th>كود الطالب</th>
+                <th>تاريخ المخالفة</th>
+                <th>الصف / الفصل</th>
+                <th>القرار</th>
+                <th>البند القانوني / المرجع</th>
             </tr>
         </thead>
         <tbody>
             <?php foreach ($records as $r): ?>
                 <tr>
+                    <td style="font-family: monospace; font-weight: 700;"><?php echo esc_html($r->student_code); ?></td>
                     <td><?php echo date('Y-m-d', strtotime($r->created_at)); ?></td>
-                    <td style="font-weight:700; text-align:right;"><?php echo esc_html($r->student_name); ?></td>
-                    <td><?php echo esc_html($r->class_name); ?> - <?php echo esc_html($r->section); ?></td>
+                    <td><?php echo SM_Settings::format_grade_name($r->class_name, $r->section); ?></td>
+                    <td style="text-align:right; font-weight: 700;"><?php echo esc_html($r->action_taken); ?></td>
                     <td><?php echo esc_html($r->violation_code); ?></td>
-                    <td style="font-weight:700; color:#F63049;"><?php echo (int)$r->points; ?></td>
-                    <td><?php echo (int)$r->recurrence_count; ?></td>
-                    <td style="text-align:right;"><?php echo esc_html($r->action_taken); ?></td>
                 </tr>
             <?php endforeach; ?>
         </tbody>
