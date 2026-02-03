@@ -342,7 +342,7 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                 <a href="<?php echo add_query_arg('sm_tab', 'attendance'); ?>" class="sm-btn sm-btn-secondary" style="height: 38px; font-size: 12px; color: white !important; text-decoration: none;">سجل الحضور والغياب</a>
             <?php endif; ?>
 
-            <?php if ($is_admin || current_user_can('تسجيل_مخالفة')): ?>
+            <?php if ($active_tab !== 'attendance' && ($is_admin || current_user_can('تسجيل_مخالفة'))): ?>
                 <button onclick="smOpenViolationModal()" class="sm-btn" style="background: var(--sm-primary-color); height: 38px; font-size: 12px; color: white !important;">+ تسجيل مخالفة</button>
             <?php endif; ?>
 
@@ -883,7 +883,7 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                                         <div style="display:flex; gap:10px;">
                                             <form method="post">
                                                 <?php wp_nonce_field('sm_admin_action', 'sm_admin_nonce'); ?>
-                                                <button type="submit" name="sm_download_backup" class="sm-btn" style="background:#27ae60; width:auto;">نسخة JSON (للاستعادة)</button>
+                                                <button type="submit" name="sm_download_backup" class="sm-btn" style="background:#27ae60; width:auto;">تصدير الآن (JSON)</button>
                                             </form>
                                             <form method="get" action="<?php echo admin_url('admin-ajax.php'); ?>">
                                                 <input type="hidden" name="action" value="sm_export_violations_csv">

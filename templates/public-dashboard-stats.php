@@ -6,6 +6,17 @@
     $user_roles = (array) wp_get_current_user()->roles;
     $is_parent = in_array('sm_parent', $user_roles) || in_array('sm_student', $user_roles);
     ?>
+
+    <!-- Quick Export Actions -->
+    <?php if (!$is_parent): ?>
+    <div style="display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 10px;">
+        <span style="align-self: center; font-weight: 700; font-size: 13px; color: #4a5568; margin-left: 10px;">تحميل القوائم:</span>
+        <a href="<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=violation_report&range=today'); ?>" target="_blank" class="sm-btn sm-btn-outline" style="font-size: 11px; padding: 8px 15px; width: auto; color: var(--sm-primary-color) !important; border-color: var(--sm-primary-color);">مخالفات اليوم (PDF)</a>
+        <a href="<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=violation_report&range=week'); ?>" target="_blank" class="sm-btn sm-btn-outline" style="font-size: 11px; padding: 8px 15px; width: auto; color: var(--sm-primary-color) !important; border-color: var(--sm-primary-color);">مخالفات الأسبوع (PDF)</a>
+        <a href="<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=violation_report&range=month'); ?>" target="_blank" class="sm-btn sm-btn-outline" style="font-size: 11px; padding: 8px 15px; width: auto; color: var(--sm-primary-color) !important; border-color: var(--sm-primary-color);">مخالفات الشهر (PDF)</a>
+    </div>
+    <?php endif; ?>
+
     <div style="background: white; padding: 30px; border: 1px solid var(--sm-border-color); border-radius: var(--sm-radius); margin-bottom: 30px; box-shadow: var(--sm-shadow);">
         <form method="get" style="display: grid; grid-template-columns: 1fr; gap: 20px;">
             <input type="hidden" name="page" value="sm-dashboard">
@@ -65,7 +76,14 @@
                             <a href="<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=violation_report&range=today'); ?>" target="_blank" class="sm-dropdown-item">مخالفات اليوم (PDF)</a>
                             <a href="<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=violation_report&range=week'); ?>" target="_blank" class="sm-dropdown-item">مخالفات الأسبوع (PDF)</a>
                             <a href="<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=violation_report&range=month'); ?>" target="_blank" class="sm-dropdown-item">مخالفات الشهر (PDF)</a>
-                            <button onclick="exportViolationPDF()" class="sm-dropdown-item" style="width:100%; text-align:right; background:none; border:none; cursor:pointer;">تقرير المخالفات الشامل (المفلتر)</button>
+
+                            <div style="padding: 10px 15px; font-size: 11px; color: #111F35; border-bottom: 2px solid #eee; border-top: 1px solid #eee; font-weight: 800; background: #f8fafc;">تصدير بيانات CSV</div>
+                            <a href="<?php echo admin_url('admin-ajax.php?action=sm_export_violations_csv&range=today&nonce='.wp_create_nonce('sm_export_action')); ?>" class="sm-dropdown-item">مخالفات اليوم (CSV)</a>
+                            <a href="<?php echo admin_url('admin-ajax.php?action=sm_export_violations_csv&range=week&nonce='.wp_create_nonce('sm_export_action')); ?>" class="sm-dropdown-item">مخالفات الأسبوع (CSV)</a>
+                            <a href="<?php echo admin_url('admin-ajax.php?action=sm_export_violations_csv&range=month&nonce='.wp_create_nonce('sm_export_action')); ?>" class="sm-dropdown-item">مخالفات الشهر (CSV)</a>
+
+                            <hr style="margin:0; border:none; border-top:1px solid #eee;">
+                            <button onclick="exportViolationPDF()" class="sm-dropdown-item" style="width:100%; text-align:right; background:none; border:none; cursor:pointer; font-weight:700;">تقرير المخالفات الشامل (المفلتر)</button>
                         </div>
                     </div>
                 <?php endif; ?>
