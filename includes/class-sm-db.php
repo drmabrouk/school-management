@@ -39,12 +39,14 @@ class SM_DB {
         
         if (!empty($filters['search'])) {
             $search_str = trim($filters['search']);
-            $search_like = '%' . $wpdb->esc_like($search_str) . '%';
+            $normalized_search = self::normalize_arabic($search_str);
+            $search_like = '%' . $wpdb->esc_like($normalized_search) . '%';
+            $name_sql = self::get_arabic_normalized_column('name');
 
             if (preg_match('/^ST[0-9]+$/i', $search_str)) {
-                $query .= $wpdb->prepare(" AND (student_code = %s OR name LIKE %s)", $search_str, $search_like);
+                $query .= $wpdb->prepare(" AND (student_code = %s OR $name_sql LIKE %s)", $search_str, $search_like);
             } else {
-                $query .= $wpdb->prepare(" AND (name LIKE %s OR student_code LIKE %s OR class_name LIKE %s OR section LIKE %s)", $search_like, $search_like, $search_like, $search_like);
+                $query .= $wpdb->prepare(" AND ($name_sql LIKE %s OR student_code LIKE %s OR class_name LIKE %s OR section LIKE %s)", $search_like, $search_like, $search_like, $search_like);
             }
         }
         
@@ -113,7 +115,7 @@ class SM_DB {
                 $password = '';
                 for($i=0; $i<10; $i++) $password .= rand(0,9);
 
-                $email_addr = $email ? $email : $code . '@school.local';
+                $email_addr = $code . '@school-system.local'; // Automated email generation
 
                 $user_id = wp_create_user($username, $password, $email_addr);
                 if (!is_wp_error($user_id)) {
@@ -181,9 +183,12 @@ class SM_DB {
             array(
                 'type' => sanitize_text_field($data['type']),
                 'severity' => sanitize_text_field($data['severity']),
+                'degree' => intval($data['degree'] ?? 1),
+                'violation_code' => sanitize_text_field($data['violation_code'] ?? ''),
+                'classification' => sanitize_text_field($data['classification'] ?? 'general'),
+                'points' => intval($data['points'] ?? 0),
                 'details' => sanitize_textarea_field($data['details']),
-                'action_taken' => sanitize_text_field($data['action_taken']),
-                'reward_penalty' => sanitize_text_field($data['reward_penalty'])
+                'action_taken' => sanitize_text_field($data['action_taken'])
             ),
             array('id' => $id)
         );
@@ -201,6 +206,7 @@ class SM_DB {
         $violation_code = sanitize_text_field($data['violation_code'] ?? '');
         $degree = intval($data['degree'] ?? 1);
         $points = intval($data['points'] ?? 0);
+        $created_at = !empty($data['custom_date']) ? sanitize_text_field($data['custom_date']) . ' ' . current_time('H:i:s') : current_time('mysql');
 
         // Recurrence Tracking
         $recurrence = 1;
@@ -236,8 +242,8 @@ class SM_DB {
                 'recurrence_count' => $recurrence,
                 'details' => sanitize_textarea_field($data['details']),
                 'action_taken' => sanitize_text_field($data['action_taken']),
-                'reward_penalty' => sanitize_text_field($data['reward_penalty']),
-                'status' => $status
+                'status' => $status,
+                'created_at' => $created_at
             )
         );
 
@@ -277,8 +283,12 @@ class SM_DB {
         }
 
         if (!empty($filters['search'])) {
-            $search = '%' . $wpdb->esc_like($filters['search']) . '%';
-            $query .= $wpdb->prepare(" AND (s.name LIKE %s OR s.student_code LIKE %s)", $search, $search);
+            $search_str = trim($filters['search']);
+            $normalized_search = self::normalize_arabic($search_str);
+            $search_like = '%' . $wpdb->esc_like($normalized_search) . '%';
+            $name_sql = self::get_arabic_normalized_column('s.name');
+
+            $query .= $wpdb->prepare(" AND ($name_sql LIKE %s OR s.student_code LIKE %s)", $search_like, $search_like);
         }
 
         if (!empty($filters['class_name'])) {
@@ -351,6 +361,11 @@ class SM_DB {
             }
 
             $wpdb->delete("{$wpdb->prefix}sm_records", array('student_id' => $id));
+            $wpdb->delete("{$wpdb->prefix}sm_attendance", array('student_id' => $id));
+            $wpdb->delete("{$wpdb->prefix}sm_clinic", array('student_id' => $id));
+            $wpdb->delete("{$wpdb->prefix}sm_grades", array('student_id' => $id));
+            $wpdb->delete("{$wpdb->prefix}sm_assignments", array('student_id' => $id));
+
             return $wpdb->delete("{$wpdb->prefix}sm_students", array('id' => $id));
         }
         return false;
@@ -372,7 +387,9 @@ class SM_DB {
         global $wpdb;
         $data = array(
             'students' => $wpdb->get_results("SELECT * FROM {$wpdb->prefix}sm_students", ARRAY_A),
-            'records' => $wpdb->get_results("SELECT * FROM {$wpdb->prefix}sm_records", ARRAY_A)
+            'records' => $wpdb->get_results("SELECT r.*, s.student_code FROM {$wpdb->prefix}sm_records r JOIN {$wpdb->prefix}sm_students s ON r.student_id = s.id", ARRAY_A),
+            'attendance' => $wpdb->get_results("SELECT a.*, s.student_code FROM {$wpdb->prefix}sm_attendance a JOIN {$wpdb->prefix}sm_students s ON a.student_id = s.id", ARRAY_A),
+            'confiscated_items' => $wpdb->get_results("SELECT c.*, s.student_code FROM {$wpdb->prefix}sm_confiscated_items c JOIN {$wpdb->prefix}sm_students s ON c.student_id = s.id", ARRAY_A)
         );
         return json_encode($data);
     }
@@ -382,14 +399,94 @@ class SM_DB {
         $data = json_decode($json, true);
         if (!$data) return false;
 
-        $wpdb->query("TRUNCATE TABLE {$wpdb->prefix}sm_students");
-        $wpdb->query("TRUNCATE TABLE {$wpdb->prefix}sm_records");
+        // Cache for student code -> local ID
+        $student_map = array();
 
-        foreach ($data['students'] as $student) {
-            $wpdb->insert("{$wpdb->prefix}sm_students", $student);
+        // 1. Process Students First
+        if (isset($data['students'])) {
+            foreach ($data['students'] as $student) {
+                $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}sm_students WHERE student_code = %s", $student['student_code']));
+                if ($exists) {
+                    unset($student['id']);
+                    $wpdb->update("{$wpdb->prefix}sm_students", $student, array('id' => $exists));
+                    $student_map[$student['student_code']] = $exists;
+                } else {
+                    unset($student['id']);
+                    $wpdb->insert("{$wpdb->prefix}sm_students", $student);
+                    $student_map[$student['student_code']] = $wpdb->insert_id;
+                }
+            }
         }
-        foreach ($data['records'] as $record) {
-            $wpdb->insert("{$wpdb->prefix}sm_records", $record);
+
+        // Helper to get student ID by code (local)
+        $get_sid = function($code) use (&$student_map, $wpdb) {
+            if (isset($student_map[$code])) return $student_map[$code];
+            $id = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}sm_students WHERE student_code = %s", $code));
+            if ($id) $student_map[$code] = $id;
+            return $id;
+        };
+
+        // 2. Process Records
+        if (isset($data['records'])) {
+            foreach ($data['records'] as $record) {
+                $local_sid = $get_sid($record['student_code'] ?? '');
+                if (!$local_sid) continue;
+
+                $old_id = $record['id'];
+                unset($record['id'], $record['student_code']);
+                $record['student_id'] = $local_sid;
+
+                // Check if this specific record exists (by time and student and type)
+                $exists = $wpdb->get_var($wpdb->prepare(
+                    "SELECT id FROM {$wpdb->prefix}sm_records WHERE student_id = %d AND created_at = %s AND type = %s",
+                    $local_sid, $record['created_at'], $record['type']
+                ));
+
+                if ($exists) {
+                    $wpdb->update("{$wpdb->prefix}sm_records", $record, array('id' => $exists));
+                } else {
+                    $wpdb->insert("{$wpdb->prefix}sm_records", $record);
+                }
+            }
+        }
+        // 3. Process Attendance
+        if (isset($data['attendance'])) {
+            foreach ($data['attendance'] as $att) {
+                $local_sid = $get_sid($att['student_code'] ?? '');
+                if (!$local_sid) continue;
+
+                unset($att['id'], $att['student_code']);
+                $att['student_id'] = $local_sid;
+
+                $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}sm_attendance WHERE student_id = %d AND date = %s", $local_sid, $att['date']));
+                if ($exists) {
+                    $wpdb->update("{$wpdb->prefix}sm_attendance", $att, array('id' => $exists));
+                } else {
+                    $wpdb->insert("{$wpdb->prefix}sm_attendance", $att);
+                }
+            }
+        }
+
+        // 4. Process Confiscated Items
+        if (isset($data['confiscated_items'])) {
+            foreach ($data['confiscated_items'] as $item) {
+                $local_sid = $get_sid($item['student_code'] ?? '');
+                if (!$local_sid) continue;
+
+                unset($item['id'], $item['student_code']);
+                $item['student_id'] = $local_sid;
+
+                $exists = $wpdb->get_var($wpdb->prepare(
+                    "SELECT id FROM {$wpdb->prefix}sm_confiscated_items WHERE student_id = %d AND created_at = %s AND item_name = %s",
+                    $local_sid, $item['created_at'], $item['item_name']
+                ));
+
+                if ($exists) {
+                    $wpdb->update("{$wpdb->prefix}sm_confiscated_items", $item, array('id' => $exists));
+                } else {
+                    $wpdb->insert("{$wpdb->prefix}sm_confiscated_items", $item);
+                }
+            }
         }
         return true;
     }
@@ -422,7 +519,7 @@ class SM_DB {
                 COUNT(CASE WHEN DATE(created_at) = CURDATE() THEN 1 END) as violations_today,
                 COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 END) as violations_week,
                 COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as violations_month,
-                COUNT(CASE WHEN action_taken != '' OR reward_penalty != '' THEN 1 END) as total_actions
+                COUNT(CASE WHEN action_taken != '' THEN 1 END) as total_actions
             FROM {$wpdb->prefix}sm_records $where
         ");
 
@@ -494,7 +591,13 @@ class SM_DB {
             $q .= $wpdb->prepare(" AND a.type = %s", $type);
         }
         $q .= " ORDER BY a.created_at DESC";
-        return $wpdb->get_results($wpdb->prepare($q, $user_id));
+        $results = $wpdb->get_results($wpdb->prepare($q, $user_id));
+
+        foreach ($results as $res) {
+            $res->specialization = get_user_meta($res->sender_id, 'sm_specialization', true);
+        }
+
+        return $results;
     }
 
     public static function get_staff_by_section($grade, $section) {
@@ -614,6 +717,22 @@ class SM_DB {
              WHERE sender_id = %d ORDER BY created_at DESC", 
             $user_id
         ));
+    }
+
+    public static function normalize_arabic($str) {
+        $search = array(
+            'أ', 'إ', 'آ', 'ة', 'ى',
+            'َ', 'ً', 'ُ', 'ٌ', 'ِ', 'ٍ', 'ْ', 'ّ'
+        );
+        $replace = array(
+            'ا', 'ا', 'ا', 'ه', 'ي',
+            '', '', '', '', '', '', '', ''
+        );
+        return str_replace($search, $replace, $str);
+    }
+
+    public static function get_arabic_normalized_column($column) {
+        return "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE($column, 'أ', 'ا'), 'إ', 'ا'), 'آ', 'ا'), 'ة', 'ه'), 'ى', 'ي'), 'َ', ''), 'ً', ''), 'ُ', ''), 'ٌ', ''), 'ِ', ''), 'ٍ', ''), 'ْ', ''), 'ّ', '')";
     }
 
     public static function get_student_stats($student_id) {
@@ -749,6 +868,129 @@ class SM_DB {
             if ($expires <= time()) $count++;
         }
         return $count;
+    }
+
+    // Subject Management
+    public static function get_subjects($grade_id = null) {
+        global $wpdb;
+        $query = "SELECT * FROM {$wpdb->prefix}sm_subjects";
+        if ($grade_id) {
+            $query .= $wpdb->prepare(" WHERE grade_id = %d", $grade_id);
+        }
+        return $wpdb->get_results($query);
+    }
+
+    public static function add_subject($name, $grade_ids) {
+        global $wpdb;
+        if (!is_array($grade_ids)) $grade_ids = array($grade_ids);
+
+        $success = 0;
+        foreach ($grade_ids as $gid) {
+            $res = $wpdb->insert("{$wpdb->prefix}sm_subjects", array('name' => sanitize_text_field($name), 'grade_id' => intval($gid)));
+            if ($res) $success++;
+        }
+        return $success > 0;
+    }
+
+    public static function delete_subject($id) {
+        global $wpdb;
+        return $wpdb->delete("{$wpdb->prefix}sm_subjects", array('id' => $id));
+    }
+
+    // Survey Management
+    public static function add_survey($title, $questions, $target_roles, $user_id) {
+        global $wpdb;
+        $success = $wpdb->insert("{$wpdb->prefix}sm_surveys", array(
+            'title' => sanitize_text_field($title),
+            'target_roles' => sanitize_text_field($target_roles),
+            'questions' => is_array($questions) ? json_encode($questions) : $questions,
+            'created_by' => $user_id,
+            'status' => 'active'
+        ));
+        return $success ? $wpdb->insert_id : false;
+    }
+
+    public static function get_surveys($role = null) {
+        global $wpdb;
+        $query = "SELECT * FROM {$wpdb->prefix}sm_surveys WHERE status = 'active'";
+        if ($role) {
+            if ($role === 'all') {
+                $query .= " AND target_roles = 'all'";
+            } else {
+                $query .= $wpdb->prepare(" AND (target_roles = 'all' OR target_roles LIKE %s)", '%' . $wpdb->esc_like($role) . '%');
+            }
+        }
+        $query .= " ORDER BY created_at DESC";
+        return $wpdb->get_results($query);
+    }
+
+    public static function get_survey($id) {
+        global $wpdb;
+        return $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}sm_surveys WHERE id = %d", $id));
+    }
+
+    public static function save_survey_response($survey_id, $user_id, $responses) {
+        global $wpdb;
+        // Check if already responded
+        $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}sm_survey_responses WHERE survey_id = %d AND user_id = %d", $survey_id, $user_id));
+        if ($exists) return false;
+
+        return $wpdb->insert("{$wpdb->prefix}sm_survey_responses", array(
+            'survey_id' => $survey_id,
+            'user_id' => $user_id,
+            'responses' => is_array($responses) ? json_encode($responses) : $responses
+        ));
+    }
+
+    public static function get_survey_responses($survey_id) {
+        global $wpdb;
+        return $wpdb->get_results($wpdb->prepare("SELECT r.*, u.display_name FROM {$wpdb->prefix}sm_survey_responses r JOIN {$wpdb->prefix}users u ON r.user_id = u.ID WHERE r.survey_id = %d", $survey_id));
+    }
+
+    public static function get_survey_results($survey_id) {
+        $responses = self::get_survey_responses($survey_id);
+        $survey = self::get_survey($survey_id);
+        if (!$survey) return array();
+
+        $questions = json_decode($survey->questions, true);
+        $results = array();
+        foreach($questions as $index => $q) {
+            $results[$index] = array('question' => $q, 'answers' => array());
+        }
+
+        foreach ($responses as $r) {
+            $ans_data = json_decode($r->responses, true);
+            foreach ($ans_data as $index => $val) {
+                if (isset($results[$index])) {
+                    if (!isset($results[$index]['answers'][$val])) $results[$index]['answers'][$val] = 0;
+                    $results[$index]['answers'][$val]++;
+                }
+            }
+        }
+        return $results;
+    }
+
+    // Timetable Management
+    public static function update_timetable($class, $section, $day, $period, $subject_id, $teacher_id) {
+        global $wpdb;
+        $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}sm_timetables WHERE class_name = %s AND section = %s AND day = %s AND period = %d", $class, $section, $day, $period));
+        if ($exists) {
+            return $wpdb->update("{$wpdb->prefix}sm_timetables", array('subject_id' => $subject_id, 'teacher_id' => $teacher_id), array('id' => $exists));
+        } else {
+            return $wpdb->insert("{$wpdb->prefix}sm_timetables", array(
+                'class_name' => $class,
+                'section' => $section,
+                'day' => $day,
+                'period' => $period,
+                'subject_id' => $subject_id,
+                'teacher_id' => $teacher_id
+            ));
+        }
+    }
+
+    public static function get_timetable($class, $section) {
+        global $wpdb;
+        return $wpdb->get_results($wpdb->prepare("SELECT t.*, s.name as subject_name, u.display_name as teacher_name FROM {$wpdb->prefix}sm_timetables t JOIN {$wpdb->prefix}sm_subjects s ON t.subject_id = s.id JOIN {$wpdb->prefix}users u ON t.teacher_id = u.ID WHERE t.class_name = %s AND t.section = %s ORDER BY t.day, t.period", $class, $section));
     }
 
     // Attendance Management

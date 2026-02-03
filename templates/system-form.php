@@ -1,8 +1,12 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <div class="sm-form-container" dir="rtl">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #eee;">
         <h3 class="sm-form-title" style="margin:0; border:none; padding:0; font-size: 1.2em; font-weight: 800; color: var(--sm-primary-color);">بيانات المخالفة الجديدة</h3>
-        <div id="barcode-scanner-section">
+        <div id="barcode-scanner-section" style="display: flex; align-items: center; gap: 15px;">
+            <div style="display: flex; align-items: center; gap: 10px; background: #f1f5f9; padding: 5px 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <label class="sm-label" style="margin:0; font-size: 12px; font-weight: 800; color: #475569;">التاريخ:</label>
+                <input type="date" form="violation-form" name="custom_date" class="sm-input" value="<?php echo date('Y-m-d'); ?>" required style="padding: 4px 8px; font-size: 12px; width: auto; border: none; background: transparent;">
+            </div>
             <button id="start-scanner" type="button" class="sm-btn" style="width: auto; padding: 10px 20px; background: var(--sm-dark-color); font-size: 13px; font-weight: 700;"><span class="dashicons dashicons-barcode" style="vertical-align: middle; margin-left: 5px;"></span> استخدام الماسح الضوئي</button>
         </div>
     </div>
@@ -75,20 +79,8 @@
                 <input type="number" name="points" id="violation_points" class="sm-input" value="0">
             </div>
 
-            <div class="sm-form-group">
-                <label class="sm-label">درجة الحدة (تلقائي):</label>
-                <select name="severity" id="violation_severity" class="sm-select">
-                    <option value="low">منخفضة (تنبيه)</option>
-                    <option value="medium">متوسطة (إنذار)</option>
-                    <option value="high">خطيرة (إجراء تأديبي)</option>
-                </select>
-            </div>
+            <input type="hidden" name="severity" id="violation_severity" value="low">
             <input type="hidden" name="type" id="hidden_violation_type">
-        </div>
-
-        <div class="sm-form-group">
-            <label class="sm-label">التفاصيل:</label>
-            <textarea name="details" class="sm-textarea" placeholder="اشرح الموقف بالتفصيل..." rows="3"></textarea>
         </div>
 
         <div class="sm-form-group">
@@ -100,8 +92,8 @@
         </div>
 
         <div class="sm-form-group">
-            <label class="sm-label">المكافأة أو العقوبة الإضافية:</label>
-            <input type="text" name="reward_penalty" class="sm-input" placeholder="تحسين السلوك سيؤدي إلى...">
+            <label class="sm-label">التفاصيل:</label>
+            <textarea name="details" class="sm-textarea" placeholder="اشرح الموقف بالتفصيل..." rows="3"></textarea>
         </div>
 
         <button type="submit" id="submit-btn" class="sm-btn" style="width: 100%; height: 50px; font-weight: 800; font-size: 1.1em; border-radius: 10px;">حفظ وتسجيل المخالفة الآن</button>
@@ -147,6 +139,8 @@ function onViolationSelected() {
     if (degree == 1) sev.value = 'low';
     else if (degree == 2) sev.value = 'medium';
     else sev.value = 'high';
+
+    if (typeof updateSuggestions === 'function') updateSuggestions(sev.value);
 }
 
 (function() {
@@ -157,14 +151,7 @@ const severityActions = {
     'high': <?php echo json_encode(explode("\n", str_replace("\r", "", $suggested['high']))); ?>
 };
 
-const sevEl = document.getElementById('violation_severity');
-if (sevEl) {
-    sevEl.addEventListener('change', function() {
-        updateSuggestions(this.value);
-    });
-}
-
-function updateSuggestions(sev) {
+window.updateSuggestions = function(sev) {
     const container = document.getElementById('action-suggestions');
     if (!container) return;
     container.innerHTML = '';
@@ -276,6 +263,7 @@ function renderSelectedStudents() {
 }
 
 function removeStudent(id) {
+    if (!confirm('هل أنت متأكد من إزالة هذا الطالب من القائمة؟')) return;
     selectedStudents = selectedStudents.filter(x => x.id !== id);
     renderSelectedStudents();
     if (selectedStudents.length === 1) fetchIntelligence(selectedStudents[0].id);
@@ -354,8 +342,11 @@ function fetchIntelligence(studentId) {
 
             // Smart Auto-select based on history
             if (data.stats.high_severity_count > 2) {
-                document.getElementById('violation_severity').value = 'high';
-                updateSuggestions('high');
+                const sEl = document.getElementById('violation_severity');
+                if (sEl) {
+                    sEl.value = 'high';
+                    updateSuggestions('high');
+                }
             }
         }
     });
@@ -365,7 +356,6 @@ function fetchIntelligence(studentId) {
 document.getElementById('violation-form').addEventListener('submit', function(e) {
     e.preventDefault();
     const btn = document.getElementById('submit-btn');
-    const responseDiv = document.getElementById('sm-ajax-response');
     
     btn.innerText = 'جاري الحفظ...';
     btn.disabled = true;
@@ -377,28 +367,35 @@ document.getElementById('violation-form').addEventListener('submit', function(e)
     .then(r => r.json())
     .then(res => {
         if (res.success) {
-            const printUrl = res.data.print_url;
-            const waMsg = encodeURIComponent(`تحية طيبة وبعد،\nنود إفادتكم بأنه تم تسجيل ملاحظة سلوكية بحق الطالب المذكور تفاصيلها كالتالي:\n\nالمخالفة: ${formData.get('details')}\nالإجراء: ${formData.get('action_taken')}\n\nشاكرين تعاونكم معنا لمصلحة الطالب.\nإدارة المدرسة`);
-            
-            responseDiv.innerHTML = `
-                <div style="background: #f0fff4; color: #22543d; padding: 25px; border-radius: 12px; border: 1px solid #c6f6d5; font-weight: 600;">
-                    <div style="margin-bottom: 15px;">✅ تم حفظ السجل بنجاح وإرسال التنبيهات اللازمة.</div>
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <a href="${printUrl}" target="_blank" class="sm-btn" style="width:auto; padding: 8px 15px; font-size:13px; background:#38a169;">🖨️ طباعة الإشعار</a>
-                        <a href="https://wa.me/?text=${waMsg}" target="_blank" class="sm-btn" style="width:auto; padding: 8px 15px; font-size:13px; background:#25D366; border:none;">📱 مشاركة عبر واتساب</a>
-                    </div>
+            // Large Centered Success Notification
+            const overlay = document.createElement('div');
+            overlay.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; z-index:10002; animation: fadeIn 0.3s;";
+            overlay.innerHTML = `
+                <div style="background:white; padding:50px 80px; border-radius:20px; text-align:center; box-shadow:0 20px 25px -5px rgba(0,0,0,0.2);">
+                    <div style="font-size:60px; color:#38a169; margin-bottom:20px;">✅</div>
+                    <h2 style="margin:0; color:#1a202c; font-weight:900;">تم تسجيل المخالفة بنجاح</h2>
+                    <p style="margin-top:10px; color:#718096; font-weight:700;">يتم إرسال التنبيهات الآن وإغلاق النافذة...</p>
                 </div>
             `;
-            responseDiv.style.display = 'block';
+            document.body.appendChild(overlay);
+
+            setTimeout(() => {
+                overlay.remove();
+                if (typeof smCloseViolationModal === 'function') {
+                    smCloseViolationModal();
+                } else if (document.getElementById('sm-global-violation-modal')) {
+                    document.getElementById('sm-global-violation-modal').style.display = 'none';
+                }
+                location.reload(); // To update the dashboard
+            }, 2000);
+
             this.reset();
             clearStudentSelection();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            smShowNotification('تم تسجيل المخالفة بنجاح');
         } else {
             smShowNotification('خطأ: ' + (res.data || 'فشل في حفظ السجل'), true);
+            btn.innerText = 'حفظ وإرسال تنبيه فوري';
+            btn.disabled = false;
         }
-        btn.innerText = 'حفظ وإرسال تنبيه فوري';
-        btn.disabled = false;
     });
 });
 })();

@@ -75,21 +75,41 @@ class SM_Public {
             wp_redirect(home_url('/sm-admin'));
             exit;
         }
-        $output = '';
-        if (isset($_GET['login']) && $_GET['login'] == 'failed') {
-            $output .= '<div style="color:red; margin-bottom:10px;" dir="rtl">خطأ في اسم المستخدم أو كلمة المرور.</div>';
+        $school = SM_Settings::get_school_info();
+        $output = '<div class="sm-login-wrapper" style="max-width: 450px; margin: 60px auto; padding: 40px; background: #fff; border-radius: 20px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;" dir="rtl">';
+
+        // Logo & Name
+        $output .= '<div style="text-align: center; margin-bottom: 35px;">';
+        if (!empty($school['school_logo'])) {
+            $output .= '<img src="'.esc_url($school['school_logo']).'" style="max-height: 80px; margin-bottom: 15px;">';
         }
+        $output .= '<h2 style="margin: 0; font-weight: 900; color: #111F35; font-size: 1.6em;">'.esc_html($school['school_name']).'</h2>';
+        $output .= '<p style="margin-top: 5px; color: #718096; font-size: 0.9em;">نظام إدارة السلوك والنتائج الأكاديمية</p>';
+        $output .= '</div>';
+
+        if (isset($_GET['login']) && $_GET['login'] == 'failed') {
+            $output .= '<div style="background: #fff5f5; color: #c53030; padding: 12px; border-radius: 8px; border: 1px solid #feb2b2; margin-bottom: 20px; font-size: 0.9em; text-align: center;">خطأ في اسم المستخدم أو كلمة المرور.</div>';
+        }
+
         $args = array(
             'echo' => false,
-            'redirect' => home_url('/sm-admin'), // Standard redirect
+            'redirect' => home_url('/sm-admin'),
             'form_id' => 'sm_login_form',
-            'label_username' => 'اسم المستخدم',
+            'label_username' => 'اسم المستخدم أو الكود',
             'label_password' => 'كلمة المرور',
-            'label_remember' => 'تذكرني',
-            'label_log_in' => 'تسجيل الدخول',
+            'label_remember' => 'تذكرني على هذا الجهاز',
+            'label_log_in' => 'دخول النظام الآمن',
             'remember' => true
         );
-        return '<div class="sm-container" style="max-width: 450px; margin: 60px auto;" dir="rtl"><h3 style="text-align:center;">تسجيل دخول النظام</h3>' . $output . wp_login_form($args) . '</div>';
+        $output .= wp_login_form($args);
+
+        // Notice
+        $output .= '<div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #edf2f7; text-align: center;">';
+        $output .= '<p style="font-size: 0.85em; color: #718096; line-height: 1.6;">في حال نسيان بيانات الدخول، يرجى التواصل مع إدارة المدرسة أو المشرف التربوي لإعادة تعيين كلمة المرور الخاصة بك.</p>';
+        $output .= '</div>';
+
+        $output .= '</div>';
+        return $output;
     }
 
 
@@ -119,6 +139,7 @@ class SM_Public {
         if ($active_tab === 'confiscated' && !current_user_can('إدارة_المخالفات')) $active_tab = 'summary';
         if ($active_tab === 'printing' && !current_user_can('طباعة_التقارير')) $active_tab = 'summary';
         if ($active_tab === 'attendance' && !current_user_can('إدارة_الطلاب')) $active_tab = 'summary';
+        if ($active_tab === 'clinic' && !current_user_can('إدارة_العيادة')) $active_tab = 'summary';
         if ($active_tab === 'global-settings' && !current_user_can('إدارة_النظام')) $active_tab = 'summary';
         if ($active_tab === 'lesson-plans' && !($is_coordinator || $is_teacher)) $active_tab = 'summary';
         if ($active_tab === 'assignments' && !($is_teacher || $is_student)) $active_tab = 'summary';
@@ -130,6 +151,20 @@ class SM_Public {
                     $student = SM_DB::get_student_by_parent($user->ID);
                     $student_id = $student ? $student->id : 0;
                     $stats = SM_DB::get_student_stats($student_id);
+                    $student_assignments = SM_DB::get_assignments($user->ID);
+
+                    // Find assigned supervisor
+                    $supervisor = null;
+                    if ($student) {
+                        $supervisors = get_users(array('role' => 'sm_supervisor'));
+                        foreach ($supervisors as $s) {
+                            $supervised = get_user_meta($s->ID, 'sm_supervised_classes', true);
+                            if (is_array($supervised) && in_array($student->class_name . '|' . $student->section, $supervised)) {
+                                $supervisor = $s;
+                                break;
+                            }
+                        }
+                    }
                 } else {
                     $stats = SM_DB::get_statistics($is_teacher && !$is_admin ? ['teacher_id' => $user->ID] : []);
                 }
@@ -147,7 +182,7 @@ class SM_Public {
 
             case 'stats':
                 $filters = array();
-                if ($is_parent) {
+                if ($is_parent || $is_student) {
                     $my_stu = SM_DB::get_students_by_parent($user->ID);
                     $filters['student_id'] = isset($_GET['student_id']) ? intval($_GET['student_id']) : ($my_stu[0]->id ?? 0);
                 } else {
@@ -196,11 +231,16 @@ class SM_Public {
     }
 
     public function login_failed($username) {
+        SM_Logger::log('فشل تسجيل الدخول', "محاولة دخول فاشلة للمستخدم: $username");
         $referrer = wp_get_referer();
         if ($referrer && !strstr($referrer, 'wp-login') && !strstr($referrer, 'wp-admin')) {
             wp_redirect(add_query_arg('login', 'failed', $referrer));
             exit;
         }
+    }
+
+    public function log_successful_login($user_login, $user) {
+        SM_Logger::log('تسجيل دخول ناجح', "المستخدم: $user_login (ID: {$user->ID})");
     }
 
     public function handle_print() {
@@ -352,6 +392,27 @@ class SM_Public {
             include SM_PLUGIN_DIR . 'templates/print-student-credentials.php';
         } elseif ($type === 'student_credentials_card') {
             include SM_PLUGIN_DIR . 'templates/print-student-credentials-card.php';
+        } elseif ($type === 'violation_report') {
+            $filters = array();
+            if (!empty($_GET['search'])) $filters['search'] = sanitize_text_field($_GET['search']);
+            if (!empty($_GET['class_filter'])) $filters['class_name'] = sanitize_text_field($_GET['class_filter']);
+            if (!empty($_GET['section_filter'])) $filters['section'] = sanitize_text_field($_GET['section_filter']);
+            if (!empty($_GET['type_filter'])) $filters['type'] = sanitize_text_field($_GET['type_filter']);
+
+            $range = $_GET['range'] ?? '';
+            if ($range === 'today') {
+                $filters['start_date'] = current_time('Y-m-d');
+                $filters['end_date'] = current_time('Y-m-d');
+            } elseif ($range === 'week') {
+                $filters['start_date'] = date('Y-m-d', strtotime('-7 days'));
+                $filters['end_date'] = current_time('Y-m-d');
+            } elseif ($range === 'month') {
+                $filters['start_date'] = date('Y-m-d', strtotime('-30 days'));
+                $filters['end_date'] = current_time('Y-m-d');
+            }
+
+            $records = SM_DB::get_records($filters);
+            include SM_PLUGIN_DIR . 'templates/print-violation-report.php';
         }
         exit;
     }
@@ -705,11 +766,7 @@ class SM_Public {
         if (!wp_verify_nonce($_POST['sm_nonce'], 'sm_user_action')) wp_send_json_error('Security check failed');
 
         $username = sanitize_user($_POST['user_login']);
-        $email = sanitize_email($_POST['user_email']);
-
-        if (empty($email)) {
-            $email = $username . '@school-system.local';
-        }
+        $email = $username . '@school-system.local'; // Automated email generation
 
         $user_data = array(
             'user_login' => $username,
@@ -721,6 +778,9 @@ class SM_Public {
         $user_id = wp_insert_user($user_data);
         if (is_wp_error($user_id)) wp_send_json_error($user_id->get_error_message());
         else {
+            if (!empty($_POST['specialization'])) {
+                update_user_meta($user_id, 'sm_specialization', sanitize_text_field($_POST['specialization']));
+            }
             SM_Logger::log('إضافة مستخدم جديد', "تم إنشاء مستخدم باسم: {$_POST['display_name']} ورتبة: {$_POST['user_role']}");
             wp_send_json_success($user_id);
         }
@@ -733,7 +793,6 @@ class SM_Public {
         $user_id = intval($_POST['edit_user_id']);
         $user_data = array(
             'ID' => $user_id,
-            'user_email' => sanitize_email($_POST['user_email']),
             'display_name' => sanitize_text_field($_POST['display_name'])
         );
         if (!empty($_POST['user_pass'])) {
@@ -742,6 +801,10 @@ class SM_Public {
         $result = wp_update_user($user_data);
         if (is_wp_error($result)) wp_send_json_error($result->get_error_message());
         
+        if (!empty($_POST['specialization'])) {
+            update_user_meta($user_id, 'sm_specialization', sanitize_text_field($_POST['specialization']));
+        }
+
         $u = new WP_User($user_id);
         $u->set_role(sanitize_text_field($_POST['user_role']));
         
@@ -759,9 +822,12 @@ class SM_Public {
             for($i=0; $i<10; $i++) $pass .= rand(0,9);
         }
 
+        $username = sanitize_user($_POST['user_login']);
+        $email = $username . '@school-system.local'; // Automated
+
         $user_data = array(
-            'user_login' => sanitize_user($_POST['user_login']),
-            'user_email' => sanitize_email($_POST['user_email']),
+            'user_login' => $username,
+            'user_email' => $email,
             'display_name' => sanitize_text_field($_POST['display_name']),
             'user_pass' => $pass,
             'role' => sanitize_text_field($_POST['role'] ?: 'sm_teacher')
@@ -772,6 +838,10 @@ class SM_Public {
         update_user_meta($user_id, 'sm_temp_pass', $pass);
         update_user_meta($user_id, 'sm_teacher_id', sanitize_text_field($_POST['teacher_id']));
         update_user_meta($user_id, 'sm_phone', sanitize_text_field($_POST['phone']));
+
+        if (!empty($_POST['specialization'])) {
+            update_user_meta($user_id, 'sm_specialization', sanitize_text_field($_POST['specialization']));
+        }
 
         if (isset($_POST['assigned'])) {
             $assigned = array_map('sanitize_text_field', $_POST['assigned']);
@@ -790,14 +860,25 @@ class SM_Public {
         if (!wp_verify_nonce($_POST['nonce'], 'sm_profile_action')) wp_send_json_error('Security check failed');
 
         $user_id = get_current_user_id();
+        $user = wp_get_current_user();
+        $is_restricted = in_array('sm_student', (array)$user->roles) || in_array('sm_parent', (array)$user->roles);
+
         $user_data = array(
-            'ID' => $user_id,
-            'display_name' => sanitize_text_field($_POST['display_name']),
-            'user_email' => sanitize_email($_POST['user_email'])
+            'ID' => $user_id
         );
+
+        if (!$is_restricted) {
+            $user_data['display_name'] = sanitize_text_field($_POST['display_name']);
+            $user_data['user_email'] = sanitize_email($_POST['user_email']);
+        }
 
         if (!empty($_POST['user_pass'])) {
             $user_data['user_pass'] = $_POST['user_pass'];
+            update_user_meta($user_id, 'sm_temp_pass', $_POST['user_pass']); // Store as visible
+        }
+
+        if (count($user_data) <= 1) {
+            wp_send_json_error('No data to update');
         }
 
         $result = wp_update_user($user_data);
@@ -974,6 +1055,21 @@ class SM_Public {
         else wp_send_json_error('Failed to delete log');
     }
 
+    public function ajax_delete_all_logs() {
+        if (!current_user_can('إدارة_النظام')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_admin_action')) wp_send_json_error('Security check failed');
+
+        global $wpdb;
+        $result = $wpdb->query("TRUNCATE TABLE {$wpdb->prefix}sm_logs");
+
+        if ($result !== false) {
+            SM_Logger::log('مسح كافة النشاطات', 'قام المستخدم بمسح سجل النشاطات بالكامل');
+            wp_send_json_success();
+        } else {
+            wp_send_json_error('Failed to delete logs');
+        }
+    }
+
     public function ajax_rollback_log() {
         if (!current_user_can('إدارة_النظام')) wp_send_json_error('Unauthorized');
         if (!wp_verify_nonce($_POST['nonce'], 'sm_admin_action')) wp_send_json_error('Security check failed');
@@ -1052,7 +1148,6 @@ class SM_Public {
         $user_id = intval($_POST['edit_teacher_id']);
         $user_data = array(
             'ID' => $user_id,
-            'user_email' => sanitize_email($_POST['user_email']),
             'display_name' => sanitize_text_field($_POST['display_name'])
         );
         if (!empty($_POST['user_pass'])) {
@@ -1069,6 +1164,10 @@ class SM_Public {
         update_user_meta($user_id, 'sm_teacher_id', sanitize_text_field($_POST['teacher_id']));
         update_user_meta($user_id, 'sm_phone', sanitize_text_field($_POST['phone']));
         update_user_meta($user_id, 'sm_account_status', sanitize_text_field($_POST['account_status']));
+
+        if (!empty($_POST['specialization'])) {
+            update_user_meta($user_id, 'sm_specialization', sanitize_text_field($_POST['specialization']));
+        }
 
         // Clean old assignments
         delete_user_meta($user_id, 'sm_assigned_sections');
@@ -1136,6 +1235,500 @@ class SM_Public {
         }
         SM_Logger::log('حذف مستخدمين (جماعي)', "تم حذف عدد ($count) مستخدم من النظام.");
         wp_send_json_success();
+    }
+
+    public function ajax_add_clinic_referral() {
+        if (!is_user_logged_in() || !current_user_can('تسجيل_مخالفة')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_clinic_action')) wp_send_json_error('Security check');
+
+        global $wpdb;
+        $student_id = intval($_POST['student_id']);
+        $referrer_id = get_current_user_id();
+
+        $result = $wpdb->insert("{$wpdb->prefix}sm_clinic", array(
+            'student_id' => $student_id,
+            'referrer_id' => $referrer_id,
+            'created_at' => current_time('mysql')
+        ));
+
+        if ($result) {
+            $student = SM_DB::get_student_by_id($student_id);
+            SM_Logger::log('تحويل للعيادة', "تم تحويل الطالب: {$student->name} للعيادة");
+            wp_send_json_success();
+        } else {
+            wp_send_json_error('Failed to add referral');
+        }
+    }
+
+    public function ajax_confirm_clinic_arrival() {
+        if (!is_user_logged_in() || !current_user_can('إدارة_العيادة')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_clinic_action')) wp_send_json_error('Security check');
+
+        global $wpdb;
+        $referral_id = intval($_POST['referral_id']);
+
+        $result = $wpdb->update("{$wpdb->prefix}sm_clinic", array(
+            'arrival_confirmed' => 1,
+            'arrival_at' => current_time('mysql')
+        ), array('id' => $referral_id));
+
+        if ($result) wp_send_json_success();
+        else wp_send_json_error('Failed to confirm arrival');
+    }
+
+    public function ajax_update_clinic_record() {
+        if (!is_user_logged_in() || !current_user_can('إدارة_العيادة')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_clinic_action')) wp_send_json_error('Security check');
+
+        global $wpdb;
+        $referral_id = intval($_POST['referral_id']);
+        $health_condition = sanitize_textarea_field($_POST['health_condition']);
+        $action_taken = sanitize_textarea_field($_POST['action_taken']);
+
+        $result = $wpdb->update("{$wpdb->prefix}sm_clinic", array(
+            'health_condition' => $health_condition,
+            'action_taken' => $action_taken
+        ), array('id' => $referral_id));
+
+        if ($result) wp_send_json_success();
+        else wp_send_json_error('Failed to update record');
+    }
+
+    public function ajax_get_clinic_reports() {
+        if (!is_user_logged_in() || !current_user_can('إدارة_العيادة')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_GET['nonce'] ?? '', 'sm_clinic_action')) wp_send_json_error('Security check failed');
+
+        global $wpdb;
+        $type = sanitize_text_field($_GET['report_type']); // day, week, month, term, year
+        $start_date = '';
+        $end_date = current_time('Y-m-d') . ' 23:59:59';
+
+        switch ($type) {
+            case 'day': $start_date = current_time('Y-m-d') . ' 00:00:00'; break;
+            case 'week': $start_date = date('Y-m-d', strtotime('-7 days')) . ' 00:00:00'; break;
+            case 'month': $start_date = date('Y-m-d', strtotime('-30 days')) . ' 00:00:00'; break;
+            case 'term':
+                $academic = SM_Settings::get_academic_structure();
+                $today = current_time('Y-m-d');
+                foreach ($academic['term_dates'] as $t) {
+                    if ($today >= $t['start'] && $today <= $t['end']) {
+                        $start_date = $t['start'] . ' 00:00:00';
+                        $end_date = $t['end'] . ' 23:59:59';
+                        break;
+                    }
+                }
+                if (empty($start_date)) $start_date = date('Y-m-01') . ' 00:00:00';
+                break;
+            case 'year': $start_date = date('Y-01-01') . ' 00:00:00'; break;
+        }
+
+        $query = "SELECT c.*, s.name as student_name, s.class_name, s.section, u.display_name as referrer_name
+                  FROM {$wpdb->prefix}sm_clinic c
+                  JOIN {$wpdb->prefix}sm_students s ON c.student_id = s.id
+                  JOIN {$wpdb->prefix}users u ON c.referrer_id = u.ID
+                  WHERE c.created_at BETWEEN %s AND %s
+                  ORDER BY c.created_at DESC";
+
+        $records = $wpdb->get_results($wpdb->prepare($query, $start_date, $end_date));
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=clinic_report_'.$type.'_'.date('Y-m-d').'.csv');
+        $output = fopen('php://output', 'w');
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM for Excel
+        fputcsv($output, array('التاريخ', 'اسم الطالب', 'الصف', 'الشعبة', 'المحول', 'تأكيد الوصول', 'الحالة الصحية', 'الإجراء المتخذ'));
+
+        foreach ($records as $r) {
+            fputcsv($output, array(
+                $r->created_at,
+                $r->student_name,
+                $r->class_name,
+                $r->section,
+                $r->referrer_name,
+                $r->arrival_confirmed ? 'نعم' : 'لا',
+                $r->health_condition,
+                $r->action_taken
+            ));
+        }
+        fclose($output);
+        exit;
+    }
+
+    public function ajax_save_grade_ajax() {
+        if (!is_user_logged_in() || !current_user_can('manage_grades')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_grade_action')) wp_send_json_error('Security check failed');
+
+        $subject = sanitize_text_field($_POST['subject']);
+        $user = wp_get_current_user();
+        if (in_array('sm_teacher', (array)$user->roles) && !current_user_can('manage_options')) {
+            $spec = get_user_meta($user->ID, 'sm_specialization', true);
+            if ($spec && $spec !== $subject) {
+                wp_send_json_error('غير مسموح لك برصد درجات لمادة غير مخصص لك.');
+            }
+        }
+
+        global $wpdb;
+        $result = $wpdb->insert("{$wpdb->prefix}sm_grades", array(
+            'student_id' => intval($_POST['student_id']),
+            'subject' => $subject,
+            'term' => sanitize_text_field($_POST['term']),
+            'grade_val' => sanitize_text_field($_POST['grade_val']),
+            'created_at' => current_time('mysql')
+        ));
+
+        if ($result) {
+            SM_Logger::log('رصد درجة', "تم رصد درجة للطالب ID: {$_POST['student_id']} في مادة $subject");
+            wp_send_json_success();
+        } else {
+            wp_send_json_error('Failed to save grade');
+        }
+    }
+
+    public function ajax_get_student_grades_ajax() {
+        if (!is_user_logged_in()) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'sm_grade_action')) wp_send_json_error('Security');
+
+        global $wpdb;
+        $student_id = intval($_POST['student_id']);
+
+        // Security check: if student, can only see own. If staff, can see all.
+        if (in_array('sm_student', (array)wp_get_current_user()->roles)) {
+            $student = SM_DB::get_student_by_parent(get_current_user_id());
+            if (!$student || $student->id != $student_id) wp_send_json_error('Unauthorized access to grades');
+        }
+
+        $grades = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$wpdb->prefix}sm_grades WHERE student_id = %d ORDER BY created_at DESC", $student_id));
+        wp_send_json_success($grades);
+    }
+
+    public function ajax_delete_grade_ajax() {
+        if (!is_user_logged_in() || !current_user_can('manage_grades')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_grade_action')) wp_send_json_error('Security check failed');
+
+        global $wpdb;
+        $result = $wpdb->delete("{$wpdb->prefix}sm_grades", array('id' => intval($_POST['grade_id'])));
+
+        if ($result) wp_send_json_success();
+        else wp_send_json_error('Failed to delete grade');
+    }
+
+    public function ajax_add_subject() {
+        if (!current_user_can('إدارة_النظام')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_admin_action')) wp_send_json_error('Security');
+
+        $name = sanitize_text_field($_POST['name']);
+        $grade_ids = isset($_POST['grade_ids']) ? array_map('intval', $_POST['grade_ids']) : array();
+
+        if (empty($grade_ids) && isset($_POST['grade_id'])) {
+            $grade_ids = array(intval($_POST['grade_id']));
+        }
+
+        if (SM_DB::add_subject($name, $grade_ids)) wp_send_json_success();
+        else wp_send_json_error();
+    }
+
+    public function ajax_delete_subject() {
+        if (!current_user_can('إدارة_النظام')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_admin_action')) wp_send_json_error('Security');
+
+        if (SM_DB::delete_subject(intval($_POST['id']))) wp_send_json_success();
+        else wp_send_json_error();
+    }
+
+    public function ajax_get_subjects() {
+        if (!is_user_logged_in()) wp_send_json_error('Unauthorized');
+        $grade_id = isset($_GET['grade_id']) ? intval($_GET['grade_id']) : null;
+        wp_send_json_success(SM_DB::get_subjects($grade_id));
+    }
+
+    public function ajax_save_class_grades() {
+        if (!current_user_can('manage_grades')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_grade_action')) wp_send_json_error('Security');
+
+        $subject = sanitize_text_field($_POST['subject']);
+        $user = wp_get_current_user();
+        if (in_array('sm_teacher', (array)$user->roles) && !current_user_can('manage_options')) {
+            $spec = get_user_meta($user->ID, 'sm_specialization', true);
+            if ($spec && $spec !== $subject) {
+                wp_send_json_error('غير مسموح لك برصد درجات لمادة غير مخصص لك.');
+            }
+        }
+
+        $term = sanitize_text_field($_POST['term']);
+        $grades = json_decode(stripslashes($_POST['grades']), true);
+
+        global $wpdb;
+        $success = 0;
+        foreach ($grades as $student_id => $val) {
+            if ($val === '') continue;
+            $res = $wpdb->insert("{$wpdb->prefix}sm_grades", array(
+                'student_id' => intval($student_id),
+                'subject' => $subject,
+                'term' => $term,
+                'grade_val' => sanitize_text_field($val),
+                'created_at' => current_time('mysql')
+            ));
+            if ($res) $success++;
+        }
+        wp_send_json_success($success);
+    }
+
+    public function ajax_bulk_delete_students() {
+        if (!current_user_can('إدارة_الطلاب')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_delete_student')) wp_send_json_error('Security');
+
+        $ids = array_map('intval', explode(',', $_POST['student_ids']));
+        $count = 0;
+        foreach ($ids as $id) {
+            if (SM_DB::delete_student($id)) $count++;
+        }
+        SM_Logger::log('حذف طلاب (جماعي)', "تم حذف عدد ($count) طالب من النظام.");
+        wp_send_json_success($count);
+    }
+
+    public function ajax_add_survey() {
+        if (!current_user_can('manage_options') && !in_array('sm_principal', (array)wp_get_current_user()->roles) && !in_array('sm_supervisor', (array)wp_get_current_user()->roles)) {
+            wp_send_json_error('Unauthorized');
+        }
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_admin_action')) wp_send_json_error('Security');
+
+        $title = sanitize_text_field($_POST['title']);
+        $questions = json_decode(stripslashes($_POST['questions']), true);
+        $recipients = sanitize_text_field($_POST['recipients']); // role or 'all'
+
+        $survey_id = SM_DB::add_survey($title, $questions, $recipients, get_current_user_id());
+        if ($survey_id) wp_send_json_success($survey_id);
+        else wp_send_json_error('Failed to add survey');
+    }
+
+    public function ajax_cancel_survey() {
+        if (!current_user_can('manage_options') && !in_array('sm_principal', (array)wp_get_current_user()->roles) && !in_array('sm_supervisor', (array)wp_get_current_user()->roles)) {
+            wp_send_json_error('Unauthorized');
+        }
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_admin_action')) wp_send_json_error('Security');
+
+        $survey_id = intval($_POST['id']);
+        global $wpdb;
+        $wpdb->update("{$wpdb->prefix}sm_surveys", array('status' => 'cancelled'), array('id' => $survey_id));
+        wp_send_json_success();
+    }
+
+    public function ajax_submit_survey_response() {
+        if (!is_user_logged_in()) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_attendance_action')) wp_send_json_error('Security');
+
+        $survey_id = intval($_POST['survey_id']);
+        $responses = json_decode(stripslashes($_POST['responses']), true);
+        $user_id = get_current_user_id();
+
+        if (SM_DB::save_survey_response($survey_id, $user_id, $responses)) {
+            wp_send_json_success();
+        } else {
+            wp_send_json_error('Failed to save response');
+        }
+    }
+
+    public function ajax_get_survey_results() {
+        if (!current_user_can('manage_options') && !in_array('sm_principal', (array)wp_get_current_user()->roles) && !in_array('sm_supervisor', (array)wp_get_current_user()->roles)) {
+            wp_send_json_error('Unauthorized');
+        }
+        $survey_id = intval($_GET['id']);
+        $results = SM_DB::get_survey_results($survey_id);
+        wp_send_json_success($results);
+    }
+
+    public function ajax_export_survey_results() {
+         if (!current_user_can('manage_options') && !in_array('sm_principal', (array)wp_get_current_user()->roles) && !in_array('sm_supervisor', (array)wp_get_current_user()->roles)) {
+            wp_send_json_error('Unauthorized');
+        }
+        $survey_id = intval($_GET['id']);
+        $survey = SM_DB::get_survey($survey_id);
+        if (!$survey) wp_send_json_error('Survey not found');
+
+        $responses = SM_DB::get_survey_responses($survey_id);
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=survey_results_'.$survey_id.'.csv');
+        $output = fopen('php://output', 'w');
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
+
+        $questions = json_decode($survey->questions, true);
+        $header = array('المجيب', 'الدور');
+        foreach($questions as $q) $header[] = $q;
+        fputcsv($output, $header);
+
+        foreach ($responses as $r) {
+            $user = get_userdata($r->user_id);
+            $role = !empty($user->roles) ? $user->roles[0] : '';
+            $row = array($user->display_name, $role);
+            $res_data = json_decode($r->responses, true);
+            foreach($questions as $index => $q) {
+                $row[] = $res_data[$index] ?? '';
+            }
+            fputcsv($output, $row);
+        }
+        fclose($output);
+        exit;
+    }
+
+    public function ajax_update_timetable_entry() {
+        if (!current_user_can('manage_options') && !in_array('sm_principal', (array)wp_get_current_user()->roles) && !in_array('sm_supervisor', (array)wp_get_current_user()->roles)) {
+            wp_send_json_error('Unauthorized');
+        }
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_admin_action')) wp_send_json_error('Security');
+
+        $classes_json = $_POST['classes'] ?? '';
+        $classes = json_decode(stripslashes($classes_json), true);
+
+        if (empty($classes) && !empty($_POST['class_name'])) {
+            $classes = array(array('class_name' => $_POST['class_name'], 'section' => $_POST['section']));
+        }
+
+        $day = sanitize_text_field($_POST['day']);
+        $period = intval($_POST['period']);
+        $subject_id = intval($_POST['subject_id']);
+        $teacher_id = intval($_POST['teacher_id']);
+
+        $success_count = 0;
+        foreach ($classes as $c) {
+            if (SM_DB::update_timetable($c['class_name'], $c['section'], $day, $period, $subject_id, $teacher_id)) {
+                $success_count++;
+            }
+        }
+
+        if ($success_count > 0) {
+            wp_send_json_success($success_count);
+        } else {
+            wp_send_json_error('Failed');
+        }
+    }
+
+    public function ajax_save_timetable_settings() {
+        if (!current_user_can('manage_options') && !in_array('sm_principal', (array)wp_get_current_user()->roles)) {
+            wp_send_json_error('Unauthorized');
+        }
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_admin_action')) wp_send_json_error('Security');
+
+        $periods = intval($_POST['periods']);
+        $days = isset($_POST['days']) ? array_map('sanitize_text_field', $_POST['days']) : array();
+
+        SM_Settings::save_timetable_settings(array(
+            'periods' => $periods,
+            'days' => $days
+        ));
+
+        wp_send_json_success();
+    }
+
+    public function ajax_download_plans_zip() {
+        if (!current_user_can('manage_options') && !in_array('sm_principal', (array)wp_get_current_user()->roles) && !in_array('sm_coordinator', (array)wp_get_current_user()->roles)) {
+            wp_die('Unauthorized');
+        }
+        if (!wp_verify_nonce($_GET['nonce'], 'sm_admin_action')) wp_die('Security');
+
+        global $wpdb;
+        $plans = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}sm_assignments WHERE type = 'lesson_plan'");
+
+        if (empty($plans)) wp_die('No plans to download');
+
+        if (!class_exists('ZipArchive')) {
+            wp_die('ZipArchive extension not enabled on this server.');
+        }
+
+        $zip = new ZipArchive();
+        $zip_name = 'lesson_plans_' . date('Y-m-d') . '.zip';
+        $upload_dir = wp_upload_dir();
+        $zip_path = $upload_dir['path'] . '/' . $zip_name;
+
+        if ($zip->open($zip_path, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== TRUE) {
+            wp_die('Could not create zip file');
+        }
+
+        foreach ($plans as $p) {
+            if (empty($p->file_url)) continue;
+
+            // Try to get local path
+            $file_path = str_replace($upload_dir['baseurl'], $upload_dir['basedir'], $p->file_url);
+            if (file_exists($file_path)) {
+                $zip->addFile($file_path, basename($file_path));
+            }
+        }
+
+        $zip->close();
+
+        if (file_exists($zip_path)) {
+            header('Content-Type: application/zip');
+            header('Content-Disposition: attachment; filename="' . $zip_name . '"');
+            header('Content-Length: ' . filesize($zip_path));
+            readfile($zip_path);
+            unlink($zip_path);
+            exit;
+        } else {
+            wp_die('Failed to generate zip');
+        }
+    }
+
+    public function ajax_export_violations_csv() {
+        if (!is_user_logged_in() || !current_user_can('إدارة_المخالفات')) wp_send_json_error('Unauthorized');
+        if (!wp_verify_nonce($_GET['nonce'] ?? '', 'sm_export_action')) wp_send_json_error('Security check failed');
+
+        global $wpdb;
+        $range = sanitize_text_field($_GET['range']); // today, week, month, all
+        $start_date = '';
+        $end_date = current_time('Y-m-d') . ' 23:59:59';
+        $student_code = $_GET['student_code'] ?? '';
+
+        if ($range !== 'all') {
+            switch ($range) {
+                case 'today': $start_date = current_time('Y-m-d') . ' 00:00:00'; break;
+                case 'week': $start_date = date('Y-m-d', strtotime('-7 days')) . ' 00:00:00'; break;
+                case 'month': $start_date = date('Y-m-d', strtotime('-30 days')) . ' 00:00:00'; break;
+            }
+        }
+
+        $query = "SELECT r.*, s.name as student_name, s.class_name, s.section, s.student_code
+                  FROM {$wpdb->prefix}sm_records r
+                  JOIN {$wpdb->prefix}sm_students s ON r.student_id = s.id
+                  WHERE 1=1";
+
+        $params = array();
+        if ($start_date) {
+            $query .= " AND r.created_at BETWEEN %s AND %s";
+            $params[] = $start_date;
+            $params[] = $end_date;
+        }
+
+        if ($student_code) {
+            $query .= " AND s.student_code = %s";
+            $params[] = $student_code;
+        }
+
+        $query .= " ORDER BY r.created_at DESC";
+
+        $records = empty($params) ? $wpdb->get_results($query) : $wpdb->get_results($wpdb->prepare($query, $params));
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=violations_'.$range.'_'.date('Y-m-d').'.csv');
+        $output = fopen('php://output', 'w');
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
+        fputcsv($output, array('التاريخ', 'اسم الطالب', 'كود الطالب', 'الصف', 'الشعبة', 'النوع', 'الحدة', 'الدرجة', 'النقاط', 'التفاصيل', 'الإجراء المتخذ'));
+
+        foreach ($records as $r) {
+            fputcsv($output, array(
+                $r->created_at,
+                $r->student_name,
+                $r->student_code,
+                $r->class_name,
+                $r->section,
+                $r->type,
+                $r->severity,
+                $r->degree,
+                $r->points,
+                $r->details,
+                $r->action_taken
+            ));
+        }
+        fclose($output);
+        exit;
     }
 
     public function handle_form_submission() {
@@ -1327,10 +1920,13 @@ class SM_Public {
         // Handle Backup Download
         if (isset($_POST['sm_download_backup']) && wp_verify_nonce($_POST['sm_admin_nonce'], 'sm_admin_action')) {
             if (current_user_can('إدارة_النظام')) {
+                if (ob_get_length()) ob_clean();
                 SM_Settings::record_backup_download();
                 $data = SM_DB::get_backup_data();
-                header('Content-Type: application/json');
+                header('Content-Type: application/json; charset=utf-8');
                 header('Content-Disposition: attachment; filename="sm_backup_'.date('Y-m-d').'.json"');
+                header('Pragma: no-cache');
+                header('Expires: 0');
                 echo $data;
                 exit;
             }
@@ -1602,30 +2198,46 @@ class SM_Public {
                         $results['error']++;
                         foreach ($errors as $err) $results['details'][] = array('type' => 'error', 'msg' => $err);
                     } else {
-                        // Match against existing students (Name, Grade, Section)
-                        $existing_id = SM_DB::student_exists($full_display_name, $class_name, $section);
+                        // Improved matching: Check by Code OR (Name + Grade + Section)
+                        $existing_id = false;
 
-                        if ($existing_id) {
-                            $results['success']++;
-                            // We don't increment sort_order here as we are skipping
-                            continue;
-                        }
+                        // If we had a code in the CSV (not currently mapped but let's assume Column G might have it or we use name match)
+                        // Actually, mapping says: A: Name, B: Grade, C: Section. Let's stick to Name+Grade+Section for now as primary identifier if code not provided.
+
+                        $existing_id = SM_DB::student_exists($full_display_name, $class_name, $section);
 
                         $extra = array(
                             'guardian_phone' => $guardian_phone,
-                            'nationality' => $nationality,
-                            'sort_order' => $next_sort_order++
+                            'nationality' => $nationality
                         );
-                        $imported_id = SM_DB::add_student($full_display_name, $class_name, $guardian_email, '', null, null, $section, $extra);
-                        if ($imported_id) {
+
+                        if ($existing_id) {
+                            // UPDATE EXISTING
+                            $update_data = array(
+                                'name' => $full_display_name,
+                                'class_name' => $class_name,
+                                'section' => $section,
+                                'parent_email' => $guardian_email,
+                                'guardian_phone' => $guardian_phone,
+                                'nationality' => $nationality,
+                                'student_code' => SM_DB::get_student_by_id($existing_id)->student_code // Keep same code
+                            );
+                            SM_DB::update_student($existing_id, $update_data);
                             $results['success']++;
-                            if (!empty($warnings)) {
-                                $results['warning']++;
-                                foreach ($warnings as $warn) $results['details'][] = array('type' => 'warning', 'msg' => $warn);
-                            }
                         } else {
-                            $results['error']++;
-                            $results['details'][] = array('type' => 'error', 'msg' => "فشل حفظ البيانات في قاعدة البيانات للسطر " . $row_index);
+                            // INSERT NEW
+                            $extra['sort_order'] = $next_sort_order++;
+                            $imported_id = SM_DB::add_student($full_display_name, $class_name, $guardian_email, '', null, null, $section, $extra);
+                            if ($imported_id) {
+                                $results['success']++;
+                                if (!empty($warnings)) {
+                                    $results['warning']++;
+                                    foreach ($warnings as $warn) $results['details'][] = array('type' => 'warning', 'msg' => $warn);
+                                }
+                            } else {
+                                $results['error']++;
+                                $results['details'][] = array('type' => 'error', 'msg' => "فشل حفظ البيانات في قاعدة البيانات للسطر " . $row_index);
+                            }
                         }
                     }
                 }

@@ -2,8 +2,6 @@
 $school = SM_Settings::get_school_info();
 $academic = SM_Settings::get_academic_structure();
 
-$att_status = get_option('sm_attendance_manual_status', 'open');
-$is_open = true; // Always open per user request, but requires security code
 ?>
 <div class="sm-class-attendance-shortcode" dir="rtl" style="max-width: 900px; margin: 20px auto; padding: 40px; background: #fff; border-radius: 20px; border: 1px solid var(--sm-border-color); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
 
@@ -19,15 +17,6 @@ $is_open = true; // Always open per user request, but requires security code
             <?php echo date_i18n('l، j F Y'); ?>
         </div>
     </div>
-
-    <!-- Open/Closed Logic -->
-    <?php if (!$is_open): ?>
-        <div style="text-align: center; padding: 60px 40px; background: #fff5f5; border-radius: 15px; border: 2px dashed #fed7d7;">
-            <span class="dashicons dashicons-lock" style="font-size: 64px; width: 64px; height: 64px; color: #e53e3e; margin-bottom: 25px;"></span>
-            <h2 style="color: #c53030; font-weight: 900; margin: 0 0 10px 0; border: none;">عذراً، باب التسجيل مغلق حالياً</h2>
-            <p style="font-size: 1.2em; color: #718096; font-weight: 700;">“Attendance collection for today has been completed.”</p>
-        </div>
-    <?php else: ?>
 
     <!-- Selection: Grade & Section -->
     <?php
@@ -91,7 +80,6 @@ $is_open = true; // Always open per user request, but requires security code
         <h3 style="margin: 0; color: #a0aec0; border: none;">يرجى اختيار الصف والشعبة للمتابعة</h3>
         <p style="margin-top: 10px;">سيتم عرض قائمة الطلاب فور اختيار بيانات الفصل الصحيحة (أو إدخال كود الأمان للزوار).</p>
     </div>
-    <?php endif; // End is_open check ?>
 </div>
 
 <script>
@@ -169,12 +157,9 @@ function verifyCodeAndLoad(className, section, code) {
             noSel.style.display = 'none';
             container.style.display = 'block';
             atRenderList();
-
-            document.querySelectorAll('.at-violation-shortcut').forEach(el => el.style.display = 'flex');
         } else {
             isAuthorized = false;
             document.getElementById('at-security-code').style.borderColor = '#e53e3e';
-            document.querySelectorAll('.at-violation-shortcut').forEach(el => el.style.display = 'none');
 
             if (className === '') { // Visitor mode
                 container.style.display = 'none';
@@ -214,25 +199,6 @@ function atLoadStudentsForVisitor(className, section) {
     });
 }
 
-function openQuickViolation(studentId, studentName) {
-    if (!isAuthorized) {
-        alert('يرجى إدخال كود الأمان الصحيح أولاً.');
-        return;
-    }
-    // Access global violation modal
-    if (typeof smOpenViolationModal === 'function') {
-        smOpenViolationModal();
-        setTimeout(() => {
-            const searchInput = document.getElementById('student_unified_search');
-            if (searchInput) {
-                searchInput.value = studentName;
-                searchInput.dispatchEvent(new Event('input'));
-            }
-        }, 500);
-    } else {
-        alert('تسجيل مخالفة لـ ' + studentName);
-    }
-}
 
 function atUpdateSections() {
     const gradeSelect = document.getElementById('at-grade-select');
@@ -350,9 +316,6 @@ function atRenderList() {
                     </div>
                 </div>
                 <div style="display: flex; gap: 12px; align-items: center;">
-                    <button onclick="openQuickViolation(${s.id}, '${s.name}')" class="at-violation-shortcut" style="display: none; border: none; background: #FFF5F5; color: #F63049; width: 40px; height: 40px; border-radius: 10px; cursor: pointer; transition: 0.2s;" title="تسجيل مخالفة سريعة">
-                        <span class="dashicons dashicons-warning" style="font-size: 20px;"></span>
-                    </button>
 
                     <div style="display: flex; gap: 12px;">
                         ${!isSubmitted ? `

@@ -111,6 +111,23 @@
         });
     };
 
+    window.smDeleteAllLogs = function() {
+        if (!confirm('هل أنت متأكد من مسح كافة سجلات النشاط؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+
+        const formData = new FormData();
+        formData.append('action', 'sm_delete_all_logs_ajax');
+        formData.append('nonce', '<?php echo wp_create_nonce("sm_admin_action"); ?>');
+
+        fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                smShowNotification('تم مسح كافة النشاطات بنجاح');
+                setTimeout(() => location.reload(), 500);
+            }
+        });
+    };
+
     window.smDeleteLog = function(logId) {
         if (!confirm('هل أنت متأكد من حذف هذا السجل نهائياً؟')) return;
 
@@ -259,6 +276,8 @@ $is_supervisor = in_array('sm_supervisor', $roles);
 $is_coordinator = in_array('sm_coordinator', $roles);
 $is_teacher = in_array('sm_teacher', $roles);
 $is_student = in_array('sm_student', $roles);
+$is_parent = in_array('sm_parent', $roles);
+$is_clinic = in_array('sm_clinic', $roles);
 
 $active_tab = isset($_GET['sm_tab']) ? sanitize_text_field($_GET['sm_tab']) : 'summary';
 $school = SM_Settings::get_school_info();
@@ -285,9 +304,13 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
     <!-- OFFICIAL SYSTEM HEADER -->
     <div class="sm-main-header">
         <div style="display: flex; align-items: center; gap: 20px;">
-            <?php if ($school['school_logo']): ?>
-                <div style="background: white; padding: 3px; border: 1px solid var(--sm-border-color); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                    <img src="<?php echo esc_url($school['school_logo']); ?>" style="height: 40px; width: auto; object-fit: contain;">
+            <?php if (!empty($school['school_logo'])): ?>
+                <div style="background: white; padding: 5px; border: 1px solid var(--sm-border-color); border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <img src="<?php echo esc_url($school['school_logo']); ?>" style="height: 45px; width: auto; object-fit: contain; display: block;">
+                </div>
+            <?php else: ?>
+                <div style="background: #f1f5f9; padding: 5px; border: 1px solid var(--sm-border-color); border-radius: 10px; height: 45px; width: 45px; display: flex; align-items: center; justify-content: center; color: #94a3b8;">
+                    <span class="dashicons dashicons-building" style="font-size: 24px; width: 24px; height: 24px;"></span>
                 </div>
             <?php endif; ?>
             <div>
@@ -319,7 +342,7 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                 <a href="<?php echo add_query_arg('sm_tab', 'attendance'); ?>" class="sm-btn sm-btn-secondary" style="height: 38px; font-size: 12px; color: white !important; text-decoration: none;">سجل الحضور والغياب</a>
             <?php endif; ?>
 
-            <?php if ($is_admin || current_user_can('تسجيل_مخالفة')): ?>
+            <?php if ($active_tab !== 'attendance' && ($is_admin || current_user_can('تسجيل_مخالفة'))): ?>
                 <button onclick="smOpenViolationModal()" class="sm-btn" style="background: var(--sm-primary-color); height: 38px; font-size: 12px; color: white !important;">+ تسجيل مخالفة</button>
             <?php endif; ?>
 
@@ -337,7 +360,12 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                             <div style="font-weight: 800; color: var(--sm-dark-color);"><?php echo $user->display_name; ?></div>
                             <div style="font-size: 11px; color: var(--sm-text-gray);"><?php echo $user->user_email; ?></div>
                         </div>
-                        <a href="javascript:smEditProfile()" class="sm-dropdown-item"><span class="dashicons dashicons-edit"></span> تعديل البيانات الشخصية</a>
+                        <?php if (!$is_student && !$is_parent): ?>
+                            <a href="javascript:smEditProfile()" class="sm-dropdown-item"><span class="dashicons dashicons-edit"></span> تعديل البيانات الشخصية</a>
+                        <?php endif; ?>
+                        <?php if ($is_student || $is_parent): ?>
+                            <a href="javascript:smEditProfile()" class="sm-dropdown-item"><span class="dashicons dashicons-lock"></span> تغيير كلمة المرور</a>
+                        <?php endif; ?>
                         <?php if ($is_admin): ?>
                             <a href="<?php echo add_query_arg('sm_tab', 'global-settings'); ?>" class="sm-dropdown-item"><span class="dashicons dashicons-admin-generic"></span> إعدادات النظام</a>
                         <?php endif; ?>
@@ -348,11 +376,11 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                         <div style="font-weight: 800; margin-bottom: 15px; font-size: 13px; border-bottom: 1px solid #eee; padding-bottom: 10px;">تعديل الملف الشخصي</div>
                         <div class="sm-form-group" style="margin-bottom: 10px;">
                             <label class="sm-label" style="font-size: 11px;">الاسم المفضل:</label>
-                            <input type="text" id="sm_edit_display_name" class="sm-input" style="padding: 8px; font-size: 12px;" value="<?php echo esc_attr($user->display_name); ?>">
+                            <input type="text" id="sm_edit_display_name" class="sm-input" style="padding: 8px; font-size: 12px;" value="<?php echo esc_attr($user->display_name); ?>" <?php if ($is_student || $is_parent) echo 'disabled style="background:#f1f5f9; cursor:not-allowed;"'; ?>>
                         </div>
                         <div class="sm-form-group" style="margin-bottom: 10px;">
                             <label class="sm-label" style="font-size: 11px;">البريد الإلكتروني:</label>
-                            <input type="email" id="sm_edit_user_email" class="sm-input" style="padding: 8px; font-size: 12px;" value="<?php echo esc_attr($user->user_email); ?>">
+                            <input type="email" id="sm_edit_user_email" class="sm-input" style="padding: 8px; font-size: 12px;" value="<?php echo esc_attr($user->user_email); ?>" <?php if ($is_student || $is_parent) echo 'disabled style="background:#f1f5f9; cursor:not-allowed;"'; ?>>
                         </div>
                         <div class="sm-form-group" style="margin-bottom: 15px;">
                             <label class="sm-label" style="font-size: 11px;">كلمة مرور جديدة (اختياري):</label>
@@ -391,9 +419,15 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                     </li>
                 <?php endif; ?>
 
-                <?php if ($is_admin || $is_sys_admin || $is_principal): ?>
+                <?php if ($is_admin || $is_sys_admin || $is_principal || $is_supervisor): ?>
                     <li class="sm-sidebar-item <?php echo $active_tab == 'teachers' ? 'sm-active' : ''; ?>">
                         <a href="<?php echo add_query_arg('sm_tab', 'teachers'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-admin-users"></span> إدارة مستخدمي النظام</a>
+                    </li>
+                <?php endif; ?>
+
+                <?php if ($is_admin || $is_sys_admin || $is_principal || $is_supervisor || $is_coordinator || $is_teacher): ?>
+                    <li class="sm-sidebar-item <?php echo $active_tab == 'grades' ? 'sm-active' : ''; ?>">
+                        <a href="<?php echo add_query_arg('sm_tab', 'grades'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-welcome-learn-more"></span> إدارة الدرجات والنتائج</a>
                     </li>
                 <?php endif; ?>
 
@@ -431,6 +465,24 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                 <?php if ($is_admin || $is_sys_admin || $is_principal || $is_supervisor): ?>
                     <li class="sm-sidebar-item <?php echo $active_tab == 'printing' ? 'sm-active' : ''; ?>">
                         <a href="<?php echo add_query_arg('sm_tab', 'printing'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-printer"></span> مركز الطباعة</a>
+                    </li>
+                <?php endif; ?>
+
+                <?php if ($is_admin || $is_sys_admin || $is_principal || $is_supervisor || $is_clinic): ?>
+                    <li class="sm-sidebar-item <?php echo $active_tab == 'clinic' ? 'sm-active' : ''; ?>">
+                        <a href="<?php echo add_query_arg('sm_tab', 'clinic'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-heart"></span> العيادة المدرسية</a>
+                    </li>
+                <?php endif; ?>
+
+                <?php if ($is_admin || $is_sys_admin || $is_principal || $is_supervisor): ?>
+                    <li class="sm-sidebar-item <?php echo $active_tab == 'surveys' ? 'sm-active' : ''; ?>">
+                        <a href="<?php echo add_query_arg('sm_tab', 'surveys'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-clipboard"></span> استطلاعات الرأي</a>
+                    </li>
+                <?php endif; ?>
+
+                <?php if ($is_admin || $is_sys_admin || $is_principal || $is_supervisor): ?>
+                    <li class="sm-sidebar-item <?php echo $active_tab == 'timetables' ? 'sm-active' : ''; ?>">
+                        <a href="<?php echo add_query_arg('sm_tab', 'timetables'); ?>" class="sm-sidebar-link"><span class="dashicons dashicons-calendar-alt"></span> الجداول المدرسية</a>
                     </li>
                 <?php endif; ?>
 
@@ -510,6 +562,26 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
 
                 case 'assignments':
                     include SM_PLUGIN_DIR . 'templates/admin-assignments.php';
+                    break;
+
+                case 'clinic':
+                    include SM_PLUGIN_DIR . 'templates/admin-clinic.php';
+                    break;
+
+                case 'surveys':
+                    if ($is_admin || $is_sys_admin || $is_principal || $is_supervisor) {
+                        include SM_PLUGIN_DIR . 'templates/admin-surveys.php';
+                    }
+                    break;
+
+                case 'timetables':
+                    if ($is_admin || $is_sys_admin || $is_principal || $is_supervisor) {
+                        include SM_PLUGIN_DIR . 'templates/admin-timetables.php';
+                    }
+                    break;
+
+                case 'grades':
+                    include SM_PLUGIN_DIR . 'templates/admin-grades.php';
                     break;
 
                 case 'global-settings':
@@ -806,9 +878,34 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                                 </div>
                                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:20px;">
                                     <div style="background:white; padding:20px; border-radius:8px; border:1px solid #eee;">
-                                        <h5 style="margin-top:0;">تصدير البيانات</h5>
+                                        <h5 style="margin-top:0;">تصدير البيانات الشاملة</h5>
                                         <p style="font-size:12px; color:#666; margin-bottom:15px;">قم بتحميل نسخة كاملة من بيانات الطلاب والمخالفات بصيغة JSON.</p>
-                                        <form method="post"><button type="submit" name="sm_download_backup" class="sm-btn" style="background:#27ae60; width:auto;">تصدير الآن</button></form>
+                                        <div style="display:flex; gap:10px;">
+                                            <form method="post">
+                                                <?php wp_nonce_field('sm_admin_action', 'sm_admin_nonce'); ?>
+                                                <button type="submit" name="sm_download_backup" class="sm-btn" style="background:#27ae60; width:auto;">تصدير الآن (JSON)</button>
+                                            </form>
+                                            <form method="get" action="<?php echo admin_url('admin-ajax.php'); ?>">
+                                                <input type="hidden" name="action" value="sm_export_violations_csv">
+                                                <input type="hidden" name="range" value="all">
+                                                <input type="hidden" name="nonce" value="<?php echo wp_create_nonce('sm_export_action'); ?>">
+                                                <button type="submit" class="sm-btn" style="background:#111F35; width:auto;">سجل الانضباط الشامل (CSV)</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    <div style="background:white; padding:20px; border-radius:8px; border:1px solid #eee;">
+                                        <h5 style="margin-top:0;">تصدير سجلات طالب محدد</h5>
+                                        <p style="font-size:12px; color:#666; margin-bottom:15px;">تصدير كافة مخالفات طالب معين باستخدام الكود الخاص به.</p>
+                                        <form method="get" action="<?php echo admin_url('admin-ajax.php'); ?>" target="_blank">
+                                            <input type="hidden" name="action" value="sm_export_violations_csv">
+                                            <input type="hidden" name="range" value="all">
+                                            <?php $ex_nonce = wp_create_nonce('sm_export_action'); ?>
+                                            <input type="hidden" name="nonce" value="<?php echo $ex_nonce; ?>">
+                                            <div class="sm-form-group">
+                                                <input type="text" name="student_code" class="sm-input" placeholder="أدخل كود الطالب (مثال: ST00001)" required style="font-size:11px;">
+                                            </div>
+                                            <button type="submit" class="sm-btn" style="background:#3182ce; width:auto; font-size:11px;">تصدير سجلات الطالب</button>
+                                        </form>
                                     </div>
                                     <div style="background:white; padding:20px; border-radius:8px; border:1px solid #eee;">
                                         <h5 style="margin-top:0;">استيراد البيانات</h5>
@@ -841,8 +938,11 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                         <div id="activity-logs" class="sm-internal-tab" style="display:none;">
                             <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:30px;">
                                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                                    <h4 style="margin:0;">سجل نشاطات النظام الشامل</h4>
-                                    <div style="font-size:12px; color:#718096;">يتم الاحتفاظ بآخر 200 نشاط فقط تلقائياً.</div>
+                                    <div>
+                                        <h4 style="margin:0;">سجل نشاطات النظام الشامل</h4>
+                                        <div style="font-size:12px; color:#718096; margin-top:5px;">يتم الاحتفاظ بآخر 200 نشاط فقط تلقائياً.</div>
+                                    </div>
+                                    <button onclick="smDeleteAllLogs()" class="sm-btn" style="background:#e53e3e; width:auto; font-size:12px;">مسح كافة النشاطات</button>
                                 </div>
                                 <div class="sm-table-container">
                                     <table class="sm-table">

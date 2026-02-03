@@ -157,10 +157,16 @@ if ($import_results) {
         </form>
     </div>
     
+    <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center; background: #f8fafc; padding: 10px 20px; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <span style="font-size: 13px; font-weight: 700; color: #4a5568;">الإجراءات الجماعية:</span>
+        <button onclick="bulkDeleteSelected()" class="sm-btn" style="background: #e53e3e; font-size: 11px; padding: 5px 15px; width: auto;">حذف المحدد</button>
+    </div>
+
     <div class="sm-table-container">
         <table class="sm-table">
             <thead>
                 <tr>
+                    <th style="width: 40px;"><input type="checkbox" id="select-all-students" onclick="toggleAllStudents(this)"></th>
                     <th>كود الطالب</th>
                     <th>الصورة</th>
                     <th>اسم الطالب</th>
@@ -181,6 +187,7 @@ if ($import_results) {
                 <?php else: ?>
                     <?php foreach ($students as $student): ?>
                         <tr id="stu-row-<?php echo $student->id; ?>">
+                            <td><input type="checkbox" class="student-checkbox" value="<?php echo $student->id; ?>"></td>
                             <td style="font-family: 'Rubik', sans-serif; font-weight: 700; color: var(--sm-primary-color);"><?php echo esc_html($student->student_code); ?></td>
                             <td>
                                 <?php if ($student->photo_url): ?>
@@ -208,8 +215,8 @@ if ($import_results) {
                                         "student_id" => $student->student_code,
                                         "class" => SM_Settings::format_grade_name($student->class_name, $student->section),
                                         "photo" => $student->photo_url
-                                    )); ?>)' class="sm-btn sm-btn-outline" style="padding: 5px 12px; font-size: 12px;">
-                                        <span class="dashicons dashicons-visibility"></span> عرض السجل
+                                    )); ?>)' class="sm-btn sm-btn-outline" style="padding: 5px 12px; font-size: 12px; height: 32px; min-width: 80px;">
+                                        <span class="dashicons dashicons-visibility"></span> سجل
                                     </button>
 
                                     <?php if ($is_admin):
@@ -450,14 +457,21 @@ if ($import_results) {
     </div>
 
     <div id="view-student-modal" class="sm-modal-overlay">
-        <div class="sm-modal-content" style="max-width: 800px;">
-            <div class="sm-modal-header">
-                <h3>الملف الانضباطي للطالب</h3>
-                <button class="sm-modal-close" onclick="document.getElementById('view-student-modal').style.display='none'">&times;</button>
+        <div class="sm-modal-content" style="max-width: 950px; background: #fdfdfd;">
+            <div class="sm-modal-header" style="border-bottom: 3px solid var(--sm-primary-color); padding-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <h3 style="margin:0; font-size: 1.5em; font-weight: 900; color: #111F35;">السجل الانضباطي الشامل</h3>
+                    <div style="display: flex; gap: 10px;">
+                        <button id="print-full-record-btn" class="sm-btn" style="background: #27ae60; width: auto; font-size: 13px; font-weight: 700; height: 40px; display: flex; align-items: center; gap: 8px;">
+                            <span class="dashicons dashicons-printer"></span> طباعة السجل الكامل PDF
+                        </button>
+                        <button class="sm-modal-close" style="position:static; margin:0;" onclick="document.getElementById('view-student-modal').style.display='none'">&times;</button>
+                    </div>
+                </div>
             </div>
-            <div id="stu_details_content"></div>
-            <div style="margin-top: 30px; text-align: left;">
-                <button type="button" onclick="document.getElementById('view-student-modal').style.display='none'" class="sm-btn" style="width:auto; background:var(--sm-text-gray);">إغلاق الملف</button>
+            <div id="stu_details_content" style="padding: 20px 0; max-height: 70vh; overflow-y: auto;"></div>
+            <div style="margin-top: 20px; text-align: left; border-top: 1px solid #eee; padding-top: 20px;">
+                <button type="button" onclick="document.getElementById('view-student-modal').style.display='none'" class="sm-btn" style="width:auto; background:var(--sm-text-gray); height: 40px;">إغلاق النافذة</button>
             </div>
         </div>
     </div>
@@ -507,17 +521,28 @@ if ($import_results) {
         window.viewSmStudent = function(student) {
             const modal = document.getElementById('view-student-modal');
             const content = document.getElementById('stu_details_content');
+            const printBtn = document.getElementById('print-full-record-btn');
             if (!modal || !content) return;
             
-            content.innerHTML = '<div style="text-align:center; padding:50px;"><p>جاري تحميل السجل...</p></div>';
+            content.innerHTML = '<div style="text-align:center; padding:50px;"><p style="font-weight:700; color:#718096;">جاري جلب الملف الانضباطي وتنسيقه...</p></div>';
             modal.style.display = 'flex';
+
+            printBtn.onclick = function() {
+                window.open('<?php echo admin_url('admin-ajax.php'); ?>?action=sm_print&print_type=disciplinary_report&student_id=' + student.id, '_blank');
+            };
 
             fetch('<?php echo admin_url('admin-ajax.php'); ?>?action=sm_print&print_type=disciplinary_report&student_id=' + student.id)
                 .then(r => r.text())
                 .then(html => {
                     const doc = new DOMParser().parseFromString(html, 'text/html');
+                    // Remove print buttons from the content
+                    doc.querySelectorAll('.no-print').forEach(el => el.remove());
+                    // Enhance style for modal display
+                    const styles = doc.querySelectorAll('style');
                     content.innerHTML = doc.body.innerHTML;
-                    content.querySelectorAll('.no-print').forEach(el => el.remove());
+
+                    // Re-apply styles scoped to content if needed or just rely on existing report styling
+                    // The report is already RTL and has fonts.
                 });
         };
 
@@ -600,6 +625,30 @@ if ($import_results) {
                 });
             });
         }
+
+        window.toggleAllStudents = function(master) {
+            document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = master.checked);
+        };
+
+        window.bulkDeleteSelected = function() {
+            const selected = Array.from(document.querySelectorAll('.student-checkbox:checked')).map(cb => cb.value);
+            if (selected.length === 0) { alert('يرجى اختيار طلاب أولاً'); return; }
+            if (!confirm(`هل أنت متأكد من حذف ${selected.length} طالب نهائياً؟`)) return;
+
+            const formData = new FormData();
+            formData.append('action', 'sm_bulk_delete_students_ajax');
+            formData.append('student_ids', selected.join(','));
+            formData.append('nonce', '<?php echo wp_create_nonce("sm_delete_student"); ?>');
+
+            fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    smShowNotification(`تم حذف ${selected.length} طالب بنجاح`);
+                    setTimeout(() => location.reload(), 500);
+                }
+            });
+        };
     })();
     </script>
 </div>

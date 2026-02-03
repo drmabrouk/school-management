@@ -2,18 +2,33 @@
 <div class="sm-admin-panel" dir="rtl">
     <h3 style="margin-bottom: 25px; font-weight: 800;">سجل سجلات الطلاب</h3>
     
-    <?php $is_parent = in_array('sm_parent', (array) wp_get_current_user()->roles); ?>
+    <?php
+    $user_roles = (array) wp_get_current_user()->roles;
+    $is_parent = in_array('sm_parent', $user_roles) || in_array('sm_student', $user_roles);
+    ?>
+
+    <!-- Quick Export Actions -->
+    <?php if (!$is_parent): ?>
+    <div style="display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 10px;">
+        <span style="align-self: center; font-weight: 700; font-size: 13px; color: #4a5568; margin-left: 10px;">تحميل القوائم:</span>
+        <a href="<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=violation_report&range=today'); ?>" target="_blank" class="sm-btn sm-btn-outline" style="font-size: 11px; padding: 8px 15px; width: auto; color: var(--sm-primary-color) !important; border-color: var(--sm-primary-color);">مخالفات اليوم (PDF)</a>
+        <a href="<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=violation_report&range=week'); ?>" target="_blank" class="sm-btn sm-btn-outline" style="font-size: 11px; padding: 8px 15px; width: auto; color: var(--sm-primary-color) !important; border-color: var(--sm-primary-color);">مخالفات الأسبوع (PDF)</a>
+        <a href="<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=violation_report&range=month'); ?>" target="_blank" class="sm-btn sm-btn-outline" style="font-size: 11px; padding: 8px 15px; width: auto; color: var(--sm-primary-color) !important; border-color: var(--sm-primary-color);">مخالفات الشهر (PDF)</a>
+    </div>
+    <?php endif; ?>
+
     <div style="background: white; padding: 30px; border: 1px solid var(--sm-border-color); border-radius: var(--sm-radius); margin-bottom: 30px; box-shadow: var(--sm-shadow);">
-        <form method="get" style="display: grid; grid-template-columns: repeat(<?php echo $is_parent ? '4' : '6'; ?>, 1fr) auto; gap: 15px; align-items: end;">
+        <form method="get" style="display: grid; grid-template-columns: 1fr; gap: 20px;">
             <input type="hidden" name="page" value="sm-dashboard">
             <input type="hidden" name="sm_tab" value="stats">
 
+            <div style="display: flex; gap: 15px; align-items: end; flex-wrap: wrap;">
             <?php if (!$is_parent): ?>
-            <div class="sm-form-group" style="margin-bottom:0;">
-                <label class="sm-label">الطالب:</label>
-                <input type="text" name="student_search" class="sm-input" value="<?php echo esc_attr($_GET['student_search'] ?? ''); ?>" placeholder="اسم/كود...">
+            <div class="sm-form-group" style="margin-bottom:0; flex: 2; min-width: 300px;">
+                <label class="sm-label">البحث عن طالب:</label>
+                <input type="text" name="student_search" class="sm-input" value="<?php echo esc_attr($_GET['student_search'] ?? ''); ?>" placeholder="ادخل اسم الطالب أو الكود الخاص به للبحث المباشر..." style="width: 100%;">
             </div>
-            <div class="sm-form-group" style="margin-bottom:0;">
+            <div class="sm-form-group" style="margin-bottom:0; flex: 1; min-width: 150px;">
                 <label class="sm-label">الصف:</label>
                 <select name="class_filter" class="sm-select">
                     <option value="">كل الصفوف</option>
@@ -25,7 +40,7 @@
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div class="sm-form-group" style="margin-bottom:0;">
+            <div class="sm-form-group" style="margin-bottom:0; flex: 1; min-width: 100px;">
                 <label class="sm-label">الشعبة:</label>
                 <select name="section_filter" class="sm-select">
                     <option value="">كل الشعب</option>
@@ -38,17 +53,8 @@
             </div>
             <?php endif; ?>
             
-            <div class="sm-form-group" style="margin-bottom:0;">
-                <label class="sm-label">من:</label>
-                <input type="date" name="start_date" class="sm-input" value="<?php echo esc_attr($_GET['start_date'] ?? ''); ?>">
-            </div>
-
-            <div class="sm-form-group" style="margin-bottom:0;">
-                <label class="sm-label">إلى:</label>
-                <input type="date" name="end_date" class="sm-input" value="<?php echo esc_attr($_GET['end_date'] ?? ''); ?>">
-            </div>
             
-            <div class="sm-form-group" style="margin-bottom:0;">
+            <div class="sm-form-group" style="margin-bottom:0; flex: 1; min-width: 150px;">
                 <label class="sm-label">النوع:</label>
                 <select name="type_filter" class="sm-select">
                     <option value="">كل الأنواع</option>
@@ -58,12 +64,31 @@
                 </select>
             </div>
 
-            <div style="display: flex; gap: 8px;">
-                <button type="submit" class="sm-btn" style="padding: 10px 15px;">بحث</button>
+            <div style="display: flex; gap: 8px; align-items: end; margin-bottom: 3px;">
+                <button type="submit" class="sm-btn" style="padding: 0 25px; height: 45px; min-width: 130px;">تطبيق الفلترة</button>
                 <?php if (!$is_parent): ?>
-                    <button type="button" onclick="document.getElementById('violation-import-form').style.display='block'" class="sm-btn sm-btn-secondary" style="padding: 10px 15px;" title="استيراد">استيراد</button>
+                    <button type="button" onclick="document.getElementById('violation-import-form').style.display='block'" class="sm-btn sm-btn-secondary" style="padding: 0 15px; height: 45px; min-width: 100px;" title="استيراد">استيراد</button>
+
+                    <div class="sm-dropdown" style="position: relative;">
+                        <button type="button" class="sm-btn" style="background:#2d3748; padding: 0 15px; height: 45px; min-width: 140px;" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none'">تصدير تقارير <span class="dashicons dashicons-arrow-down-alt2"></span></button>
+                        <div style="display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100; min-width: 200px; margin-top: 5px;">
+                            <div style="padding: 10px 15px; font-size: 11px; color: #111F35; border-bottom: 2px solid #eee; font-weight: 800; background: #f8fafc; border-radius: 8px 8px 0 0;">تحميل ملفات PDF</div>
+                            <a href="<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=violation_report&range=today'); ?>" target="_blank" class="sm-dropdown-item">مخالفات اليوم (PDF)</a>
+                            <a href="<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=violation_report&range=week'); ?>" target="_blank" class="sm-dropdown-item">مخالفات الأسبوع (PDF)</a>
+                            <a href="<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=violation_report&range=month'); ?>" target="_blank" class="sm-dropdown-item">مخالفات الشهر (PDF)</a>
+
+                            <div style="padding: 10px 15px; font-size: 11px; color: #111F35; border-bottom: 2px solid #eee; border-top: 1px solid #eee; font-weight: 800; background: #f8fafc;">تصدير بيانات CSV</div>
+                            <a href="<?php echo admin_url('admin-ajax.php?action=sm_export_violations_csv&range=today&nonce='.wp_create_nonce('sm_export_action')); ?>" class="sm-dropdown-item">مخالفات اليوم (CSV)</a>
+                            <a href="<?php echo admin_url('admin-ajax.php?action=sm_export_violations_csv&range=week&nonce='.wp_create_nonce('sm_export_action')); ?>" class="sm-dropdown-item">مخالفات الأسبوع (CSV)</a>
+                            <a href="<?php echo admin_url('admin-ajax.php?action=sm_export_violations_csv&range=month&nonce='.wp_create_nonce('sm_export_action')); ?>" class="sm-dropdown-item">مخالفات الشهر (CSV)</a>
+
+                            <hr style="margin:0; border:none; border-top:1px solid #eee;">
+                            <button onclick="exportViolationPDF()" class="sm-dropdown-item" style="width:100%; text-align:right; background:none; border:none; cursor:pointer; font-weight:700;">تقرير المخالفات الشامل (المفلتر)</button>
+                        </div>
+                    </div>
                 <?php endif; ?>
-                <button type="button" onclick="window.print()" class="sm-btn" style="background:#27ae60; padding: 10px 15px;" title="طباعة">طباعة</button>
+                <button type="button" onclick="window.print()" class="sm-btn" style="background:#27ae60; padding: 0 15px; height: 45px; min-width: 100px;" title="طباعة">طباعة</button>
+            </div>
             </div>
         </form>
     </div>
@@ -111,31 +136,57 @@
     </div>
 
     <div id="edit-record-modal" class="sm-modal-overlay">
-        <div class="sm-modal-content" style="max-width: 550px;">
+        <div class="sm-modal-content" style="max-width: 800px;">
             <div class="sm-modal-header">
                 <h3>تعديل بيانات المخالفة</h3>
                 <button class="sm-modal-close" onclick="document.getElementById('edit-record-modal').style.display='none'">&times;</button>
             </div>
-            <form method="post">
+            <form method="post" id="edit-record-form" class="sm-form-container">
                 <?php wp_nonce_field('sm_record_action', 'sm_nonce'); ?>
                 <input type="hidden" name="record_id" id="edit_record_id">
                 
-                <div class="sm-form-group">
-                    <label class="sm-label">النوع:</label>
-                    <select name="type" id="edit_type" class="sm-select">
-                        <?php foreach (SM_Settings::get_violation_types() as $k => $v): ?>
-                            <option value="<?php echo $k; ?>"><?php echo $v; ?></option>
-                        <?php endforeach; ?>
-                    </select>
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 25px;">
+                    <div class="sm-form-group" style="margin-bottom:0;">
+                        <label class="sm-label">درجة المخالفة (المستوى):</label>
+                        <select name="degree" id="edit_violation_degree" class="sm-select" onchange="updateEditHierarchicalViolations()" required>
+                            <option value="1">المستوى الأول (بسيطة)</option>
+                            <option value="2">المستوى الثاني (متوسطة)</option>
+                            <option value="3">المستوى الثالث (جسيمة)</option>
+                            <option value="4">المستوى الرابع (شديدة الخطورة)</option>
+                        </select>
+                    </div>
+
+                    <div class="sm-form-group" style="margin-bottom:0;">
+                        <label class="sm-label">البند القانوني / نوع المخالفة:</label>
+                        <select name="violation_code" id="edit_violation_code_select" class="sm-select" onchange="onEditViolationSelected()" required>
+                            <option value="">-- اختر البند --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                    <div class="sm-form-group">
+                        <label class="sm-label">تصنيف الموقف:</label>
+                        <select name="classification" id="edit_classification" class="sm-select">
+                            <option value="general">عام</option>
+                            <option value="inside_class">داخل الفصل</option>
+                            <option value="yard">في الساحة</option>
+                            <option value="labs">في المختبرات</option>
+                            <option value="bus">الحافلة المدرسية</option>
+                        </select>
+                    </div>
+
+                    <div class="sm-form-group">
+                        <label class="sm-label">النقاط المستحقة:</label>
+                        <input type="number" name="points" id="edit_violation_points" class="sm-input" value="0">
+                    </div>
+                    <input type="hidden" name="type" id="edit_hidden_violation_type">
+                    <input type="hidden" name="severity" id="edit_violation_severity">
                 </div>
 
                 <div class="sm-form-group">
-                    <label class="sm-label">الحدة:</label>
-                    <select name="severity" id="edit_severity" class="sm-select">
-                        <?php foreach (SM_Settings::get_severities() as $k => $v): ?>
-                            <option value="<?php echo $k; ?>"><?php echo $v; ?></option>
-                        <?php endforeach; ?>
-                    </select>
+                    <label class="sm-label">الإجراء المتخذ:</label>
+                    <input type="text" name="action_taken" id="edit_action_taken" class="sm-input">
                 </div>
 
                 <div class="sm-form-group">
@@ -143,32 +194,61 @@
                     <textarea name="details" id="edit_details" class="sm-textarea" rows="3"></textarea>
                 </div>
 
-                <div class="sm-form-group">
-                    <label class="sm-label">الإجراء:</label>
-                    <input type="text" name="action_taken" id="edit_action_taken" class="sm-input">
-                </div>
-
-                <div class="sm-form-group">
-                    <label class="sm-label">المكافأة/العقوبة:</label>
-                    <input type="text" name="reward_penalty" id="edit_reward_penalty" class="sm-input">
-                </div>
-
                 <div style="display:flex; gap:12px; margin-top: 20px; justify-content: flex-end;">
-                    <button type="submit" name="sm_update_record" class="sm-btn">حفظ التغييرات</button>
-                    <button type="button" onclick="document.getElementById('edit-record-modal').style.display='none'" class="sm-btn" style="background:var(--sm-text-gray);">إلغاء</button>
+                    <button type="submit" name="sm_update_record" class="sm-btn" style="height: 45px; min-width: 150px;">حفظ التغييرات</button>
+                    <button type="button" onclick="document.getElementById('edit-record-modal').style.display='none'" class="sm-btn" style="background:var(--sm-text-gray); height: 45px; min-width: 100px;">إلغاء</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
+    const hViolations = <?php echo json_encode(SM_Settings::get_hierarchical_violations()); ?>;
+
+    function updateEditHierarchicalViolations(selectedCode = '') {
+        const degree = document.getElementById('edit_violation_degree').value;
+        const select = document.getElementById('edit_violation_code_select');
+
+        select.innerHTML = '<option value="">-- اختر البند --</option>';
+        if (!degree || !hViolations[degree]) return;
+
+        Object.keys(hViolations[degree]).forEach(code => {
+            const v = hViolations[degree][code];
+            const opt = document.createElement('option');
+            opt.value = code;
+            opt.innerText = code + ' - ' + v.name;
+            if (code === selectedCode) opt.selected = true;
+            select.appendChild(opt);
+        });
+    }
+
+    function onEditViolationSelected() {
+        const degree = document.getElementById('edit_violation_degree').value;
+        const code = document.getElementById('edit_violation_code_select').value;
+        if (!degree || !code || !hViolations[degree][code]) return;
+
+        const v = hViolations[degree][code];
+        document.getElementById('edit_violation_points').value = v.points;
+        document.getElementById('edit_action_taken').value = v.action;
+        document.getElementById('edit_hidden_violation_type').value = v.name;
+
+        const sev = document.getElementById('edit_violation_severity');
+        if (degree == 1) sev.value = 'low';
+        else if (degree == 2) sev.value = 'medium';
+        else sev.value = 'high';
+    }
+
     function editSmRecord(record) {
         document.getElementById('edit_record_id').value = record.id;
-        document.getElementById('edit_type').value = record.type;
-        document.getElementById('edit_severity').value = record.severity;
-        document.getElementById('edit_details').value = record.details;
-        document.getElementById('edit_action_taken').value = record.action_taken;
-        document.getElementById('edit_reward_penalty').value = record.reward_penalty;
+        document.getElementById('edit_violation_degree').value = record.degree || 1;
+        document.getElementById('edit_classification').value = record.classification || 'general';
+        document.getElementById('edit_violation_points').value = record.points || 0;
+        document.getElementById('edit_action_taken').value = record.action_taken || '';
+        document.getElementById('edit_details').value = record.details || '';
+        document.getElementById('edit_hidden_violation_type').value = record.type || '';
+        document.getElementById('edit_violation_severity').value = record.severity || 'low';
+
+        updateEditHierarchicalViolations(record.violation_code);
         document.getElementById('edit-record-modal').style.display = 'flex';
     }
     </script>
@@ -222,17 +302,17 @@
                             </td>
                             <td>
                                 <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                                    <a href="<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=single_violation&record_id=' . $row->id); ?>" target="_blank" class="sm-btn sm-btn-outline" style="padding: 5px;" title="طباعة"><span class="dashicons dashicons-printer"></span></a>
+                                    <a href="<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=single_violation&record_id=' . $row->id); ?>" target="_blank" class="sm-btn sm-btn-outline" style="width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;" title="طباعة"><span class="dashicons dashicons-printer" style="margin:0;"></span></a>
                                     <?php if (current_user_can('إدارة_المخالفات')): ?>
-                                        <button onclick="editSmRecord(<?php echo htmlspecialchars(json_encode($row)); ?>)" class="sm-btn sm-btn-outline" style="padding: 5px;" title="تعديل"><span class="dashicons dashicons-edit"></span></button>
-                                        <button onclick="confirmDeleteRecord(<?php echo $row->id; ?>)" class="sm-btn sm-btn-outline" style="padding: 5px; color:#e53e3e;" title="حذف"><span class="dashicons dashicons-trash"></span></button>
+                                        <button onclick="editSmRecord(<?php echo htmlspecialchars(json_encode($row)); ?>)" class="sm-btn sm-btn-outline" style="width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;" title="تعديل"><span class="dashicons dashicons-edit" style="margin:0;"></span></button>
+                                        <button onclick="confirmDeleteRecord(<?php echo $row->id; ?>)" class="sm-btn sm-btn-outline" style="width: 32px; height: 32px; padding: 0; color:#e53e3e; display: flex; align-items: center; justify-content: center;" title="حذف"><span class="dashicons dashicons-trash" style="margin:0;"></span></button>
                                     <?php endif; ?>
-                                    <a href="https://wa.me/?text=<?php echo $waMsg; ?>" target="_blank" class="sm-btn sm-btn-outline" style="padding: 5px; color:#38a169;" title="واتساب"><span class="dashicons dashicons-whatsapp"></span></a>
+                                    <a href="https://wa.me/?text=<?php echo $waMsg; ?>" target="_blank" class="sm-btn sm-btn-outline" style="width: 32px; height: 32px; padding: 0; color:#38a169; display: flex; align-items: center; justify-content: center;" title="واتساب"><span class="dashicons dashicons-whatsapp" style="margin:0;"></span></a>
                                 </div>
                                 <?php if ($row->status === 'pending' && current_user_can('إدارة_المخالفات')): ?>
-                                    <div style="margin-top: 8px; display: flex; gap: 5px;">
-                                        <button onclick="updateRecordStatus(<?php echo $row->id; ?>, 'accepted')" class="sm-btn" style="background: #38a169; font-size: 10px; padding: 4px 8px;">اعتماد</button>
-                                        <button onclick="updateRecordStatus(<?php echo $row->id; ?>, 'rejected')" class="sm-btn" style="background: #e53e3e; font-size: 10px; padding: 4px 8px;">رفض</button>
+                                    <div style="margin-top: 8px; display: flex; gap: 5px; justify-content: flex-end;">
+                                        <button onclick="updateRecordStatus(<?php echo $row->id; ?>, 'accepted')" class="sm-btn" style="background: #38a169; font-size: 10px; padding: 0 10px; height: 28px; width: auto;">اعتماد</button>
+                                        <button onclick="updateRecordStatus(<?php echo $row->id; ?>, 'rejected')" class="sm-btn" style="background: #e53e3e; font-size: 10px; padding: 0 10px; height: 28px; width: auto;">رفض</button>
                                     </div>
                                 <?php endif; ?>
                             </td>
@@ -258,6 +338,21 @@
     </div>
 
     <script>
+    function exportViolationPDF() {
+        const student = document.querySelector('input[name="student_search"]').value;
+        const grade = document.querySelector('select[name="class_filter"]').value;
+        const section = document.querySelector('select[name="section_filter"]').value;
+        const type = document.querySelector('select[name="type_filter"]').value;
+
+        let url = '<?php echo admin_url('admin-ajax.php?action=sm_print&print_type=violation_report'); ?>';
+        if (student) url += '&search=' + encodeURIComponent(student);
+        if (grade) url += '&class_filter=' + encodeURIComponent(grade);
+        if (section) url += '&section_filter=' + encodeURIComponent(section);
+        if (type) url += '&type_filter=' + encodeURIComponent(type);
+
+        window.open(url, '_blank');
+    }
+
     (function() {
         window.confirmDeleteRecord = function(id) {
             document.getElementById('confirm_delete_record_id').value = id;

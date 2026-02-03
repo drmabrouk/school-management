@@ -39,6 +39,7 @@ class School_Management {
         $this->loader->add_action('init', $plugin_public, 'register_shortcodes');
         $this->loader->add_action('template_redirect', $plugin_public, 'handle_form_submission');
         $this->loader->add_action('wp_login_failed', $plugin_public, 'login_failed');
+        $this->loader->add_action('wp_login', $plugin_public, 'log_successful_login', 10, 2);
         $this->loader->add_action('wp_ajax_sm_get_student', $plugin_public, 'ajax_get_student');
         $this->loader->add_action('wp_ajax_sm_search_students', $plugin_public, 'ajax_search_students');
         $this->loader->add_action('wp_ajax_sm_get_student_intelligence', $plugin_public, 'ajax_get_student_intelligence');
@@ -69,6 +70,7 @@ class School_Management {
         $this->loader->add_action('wp_ajax_sm_initialize_system_ajax', $plugin_public, 'ajax_initialize_system');
         $this->loader->add_action('wp_ajax_sm_rollback_log_ajax', $plugin_public, 'ajax_rollback_log');
         $this->loader->add_action('wp_ajax_sm_delete_log_ajax', $plugin_public, 'ajax_delete_log');
+        $this->loader->add_action('wp_ajax_sm_delete_all_logs_ajax', $plugin_public, 'ajax_delete_all_logs');
         $this->loader->add_action('wp_ajax_sm_get_students_attendance_ajax', $plugin_public, 'ajax_get_students_attendance');
         $this->loader->add_action('wp_ajax_nopriv_sm_get_students_attendance_ajax', $plugin_public, 'ajax_get_students_attendance');
         $this->loader->add_action('wp_ajax_sm_save_attendance_ajax', $plugin_public, 'ajax_save_attendance');
@@ -80,6 +82,27 @@ class School_Management {
         $this->loader->add_action('wp_ajax_sm_add_assignment_ajax', $plugin_public, 'ajax_add_assignment');
         $this->loader->add_action('wp_ajax_sm_approve_plan_ajax', $plugin_public, 'ajax_approve_plan');
         $this->loader->add_action('wp_ajax_sm_bulk_delete_users_ajax', $plugin_public, 'ajax_bulk_delete_users');
+        $this->loader->add_action('wp_ajax_sm_add_clinic_referral', $plugin_public, 'ajax_add_clinic_referral');
+        $this->loader->add_action('wp_ajax_sm_confirm_clinic_arrival', $plugin_public, 'ajax_confirm_clinic_arrival');
+        $this->loader->add_action('wp_ajax_sm_update_clinic_record', $plugin_public, 'ajax_update_clinic_record');
+        $this->loader->add_action('wp_ajax_sm_get_clinic_reports', $plugin_public, 'ajax_get_clinic_reports');
+        $this->loader->add_action('wp_ajax_sm_export_violations_csv', $plugin_public, 'ajax_export_violations_csv');
+        $this->loader->add_action('wp_ajax_sm_save_grade_ajax', $plugin_public, 'ajax_save_grade_ajax');
+        $this->loader->add_action('wp_ajax_sm_get_student_grades_ajax', $plugin_public, 'ajax_get_student_grades_ajax');
+        $this->loader->add_action('wp_ajax_sm_delete_grade_ajax', $plugin_public, 'ajax_delete_grade_ajax');
+        $this->loader->add_action('wp_ajax_sm_add_subject', $plugin_public, 'ajax_add_subject');
+        $this->loader->add_action('wp_ajax_sm_delete_subject', $plugin_public, 'ajax_delete_subject');
+        $this->loader->add_action('wp_ajax_sm_get_subjects', $plugin_public, 'ajax_get_subjects');
+        $this->loader->add_action('wp_ajax_sm_save_class_grades', $plugin_public, 'ajax_save_class_grades');
+        $this->loader->add_action('wp_ajax_sm_bulk_delete_students_ajax', $plugin_public, 'ajax_bulk_delete_students');
+        $this->loader->add_action('wp_ajax_sm_add_survey', $plugin_public, 'ajax_add_survey');
+        $this->loader->add_action('wp_ajax_sm_cancel_survey', $plugin_public, 'ajax_cancel_survey');
+        $this->loader->add_action('wp_ajax_sm_submit_survey_response', $plugin_public, 'ajax_submit_survey_response');
+        $this->loader->add_action('wp_ajax_sm_get_survey_results', $plugin_public, 'ajax_get_survey_results');
+        $this->loader->add_action('wp_ajax_sm_export_survey_results', $plugin_public, 'ajax_export_survey_results');
+        $this->loader->add_action('wp_ajax_sm_update_timetable_entry', $plugin_public, 'ajax_update_timetable_entry');
+        $this->loader->add_action('wp_ajax_sm_save_timetable_settings', $plugin_public, 'ajax_save_timetable_settings');
+        $this->loader->add_action('wp_ajax_sm_download_plans_zip', $plugin_public, 'ajax_download_plans_zip');
     }
 
     public function run() {

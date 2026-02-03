@@ -116,6 +116,74 @@ class SM_Activator {
             PRIMARY KEY  (id),
             KEY sender_id (sender_id),
             KEY receiver_id (receiver_id)
+        ) $charset_collate;
+
+        CREATE TABLE {$wpdb->prefix}sm_clinic (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            student_id bigint(20) NOT NULL,
+            referrer_id bigint(20) NOT NULL,
+            arrival_confirmed tinyint(1) DEFAULT 0,
+            health_condition text,
+            action_taken text,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            arrival_at datetime DEFAULT NULL,
+            PRIMARY KEY  (id),
+            KEY student_id (student_id),
+            KEY referrer_id (referrer_id)
+        ) $charset_collate;
+
+        CREATE TABLE {$wpdb->prefix}sm_grades (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            student_id bigint(20) NOT NULL,
+            subject varchar(100) NOT NULL,
+            term varchar(50) NOT NULL,
+            grade_val varchar(20) NOT NULL,
+            notes text,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            PRIMARY KEY  (id),
+            KEY student_id (student_id)
+        ) $charset_collate;
+
+        CREATE TABLE {$wpdb->prefix}sm_subjects (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            name varchar(255) NOT NULL,
+            grade_id int(11) NOT NULL,
+            PRIMARY KEY  (id)
+        ) $charset_collate;
+
+        CREATE TABLE {$wpdb->prefix}sm_surveys (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            title varchar(255) NOT NULL,
+            description text,
+            target_roles varchar(255) NOT NULL,
+            questions text NOT NULL,
+            status varchar(20) DEFAULT 'active',
+            created_by bigint(20) NOT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            PRIMARY KEY  (id)
+        ) $charset_collate;
+
+        CREATE TABLE {$wpdb->prefix}sm_survey_responses (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            survey_id bigint(20) NOT NULL,
+            user_id bigint(20) NOT NULL,
+            answers text NOT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            PRIMARY KEY  (id),
+            KEY survey_id (survey_id),
+            KEY user_id (user_id)
+        ) $charset_collate;
+
+        CREATE TABLE {$wpdb->prefix}sm_timetables (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            class_name varchar(100) NOT NULL,
+            section varchar(50) NOT NULL,
+            day varchar(20) NOT NULL,
+            period int(11) NOT NULL,
+            subject_id bigint(20) NOT NULL,
+            teacher_id bigint(20) NOT NULL,
+            PRIMARY KEY  (id),
+            KEY class_section (class_name, section)
         ) $charset_collate;";
 
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
@@ -178,6 +246,7 @@ class SM_Activator {
         // Capabilities
         $caps = array(
             'manage_system' => 'إدارة_النظام',
+            'manage_clinic' => 'إدارة_العيادة',
             'manage_users' => 'إدارة_المستخدمين',
             'manage_students' => 'إدارة_الطلاب',
             'manage_teachers' => 'إدارة_المعلمين',
@@ -185,6 +254,7 @@ class SM_Activator {
             'add_violation' => 'تسجيل_مخالفة',
             'print_reports' => 'طباعة_التقارير',
             'review_plans' => 'مراجعة_التحضير',
+            'manage_grades' => 'إدارة_الدرجات',
             'manage_assignments' => 'إدارة_الواجبات',
             'view_own_data' => 'عرض_بياناتي',
             'submit_complaint' => 'تقديم_شكوى'
@@ -228,6 +298,7 @@ class SM_Activator {
         $coordinator = get_role('sm_coordinator');
         if ($coordinator) {
             $coordinator->add_cap($caps['review_plans']);
+            $coordinator->add_cap($caps['manage_grades']);
             $coordinator->add_cap('read');
         }
 
@@ -239,6 +310,7 @@ class SM_Activator {
             $teacher->add_cap($caps['submit_complaint']);
             $teacher->add_cap($caps['manage_assignments']);
             $teacher->add_cap($caps['manage_students']);
+            $teacher->add_cap($caps['manage_grades']);
         }
 
         // 6. طالب (Student) - View own results/attendance, assignments, personal photo
@@ -247,6 +319,14 @@ class SM_Activator {
         if ($student) {
             $student->add_cap($caps['view_own_data']);
             $student->add_cap($caps['manage_assignments']);
+        }
+
+        // 7. العيادة (Clinic) - Referral list and history
+        add_role('sm_clinic', 'العيادة المدرسية', array('read' => true));
+        $clinic = get_role('sm_clinic');
+        if ($clinic) {
+            $clinic->add_cap($caps['manage_clinic']);
+            $clinic->add_cap('read');
         }
     }
 
