@@ -304,9 +304,13 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
     <!-- OFFICIAL SYSTEM HEADER -->
     <div class="sm-main-header">
         <div style="display: flex; align-items: center; gap: 20px;">
-            <?php if ($school['school_logo']): ?>
-                <div style="background: white; padding: 3px; border: 1px solid var(--sm-border-color); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                    <img src="<?php echo esc_url($school['school_logo']); ?>" style="height: 40px; width: auto; object-fit: contain;">
+            <?php if (!empty($school['school_logo'])): ?>
+                <div style="background: white; padding: 5px; border: 1px solid var(--sm-border-color); border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <img src="<?php echo esc_url($school['school_logo']); ?>" style="height: 45px; width: auto; object-fit: contain; display: block;">
+                </div>
+            <?php else: ?>
+                <div style="background: #f1f5f9; padding: 5px; border: 1px solid var(--sm-border-color); border-radius: 10px; height: 45px; width: 45px; display: flex; align-items: center; justify-content: center; color: #94a3b8;">
+                    <span class="dashicons dashicons-building" style="font-size: 24px; width: 24px; height: 24px;"></span>
                 </div>
             <?php endif; ?>
             <div>

@@ -35,17 +35,21 @@ $academic = SM_Settings::get_academic_structure();
 <body onload="window.print()">
     <?php
     $report_date = date_i18n('Y-m-d');
-    $archive_no = 'ARCH-' . date('Ymd') . '-' . strtoupper(wp_generate_password(4, false));
+    $archive_no = date('Ymd') . rand(1000, 9999);
     ?>
-    <div class="header">
+    <div class="header" style="border-bottom: 3px double #F63049; padding-bottom: 20px;">
         <div class="school-info">
-            <h1><?php echo esc_html($school['school_name']); ?></h1>
-            <p style="font-weight: 800; color: #111F35; margin-top: 10px;">الرقم الأرشيفي: <?php echo $archive_no; ?></p>
-            <p style="font-weight: 800; color: #111F35;">تاريخ التقرير: <?php echo $report_date; ?></p>
+            <h3 style="margin: 0; color: #111F35; font-weight: 900; font-size: 17px;">وزارة التربية والتعليم</h3>
+            <h3 style="margin: 0; color: #111F35; font-weight: 800; font-size: 15px;">الإمارات العربية المتحدة</h3>
+            <h2 style="margin: 8px 0; color: #4A5568; font-weight: 800; font-size: 18px; border-top: 1px solid #eee; padding-top: 5px;"><?php echo esc_html($school['school_name']); ?></h2>
+            <div style="margin-top: 15px;">
+                <span style="font-weight: 800; color: #4A5568; font-size: 11px; margin-left: 20px;">الرقم الأرشيفي: <?php echo $archive_no; ?></span>
+                <span style="font-weight: 800; color: #4A5568; font-size: 11px;">تاريخ التقرير: <?php echo $report_date; ?></span>
+            </div>
         </div>
         <div class="logo">
-            <?php if ($school['school_logo']): ?>
-                <img src="<?php echo esc_url($school['school_logo']); ?>" alt="Logo">
+            <?php if (!empty($school['school_logo'])): ?>
+                <img src="<?php echo esc_url($school['school_logo']); ?>" style="max-height: 100px; width: auto; display: block;" alt="Logo">
             <?php endif; ?>
         </div>
     </div>
@@ -57,21 +61,21 @@ $academic = SM_Settings::get_academic_structure();
     <table>
         <thead>
             <tr>
+                <th>اسم الطالب</th>
                 <th>كود الطالب</th>
-                <th>تاريخ المخالفة</th>
+                <th>نص بند المخالفة</th>
                 <th>الصف / الفصل</th>
-                <th>القرار</th>
-                <th>البند القانوني / المرجع</th>
+                <th>تاريخ المخالفة</th>
             </tr>
         </thead>
         <tbody>
             <?php foreach ($records as $r): ?>
                 <tr>
+                    <td style="font-weight: 800; text-align: right;"><?php echo esc_html($r->student_name); ?></td>
                     <td style="font-family: monospace; font-weight: 700;"><?php echo esc_html($r->student_code); ?></td>
-                    <td><?php echo date('Y-m-d', strtotime($r->created_at)); ?></td>
+                    <td style="text-align: right;"><?php echo esc_html($r->violation_code) . ' - ' . esc_html($r->type); ?></td>
                     <td><?php echo SM_Settings::format_grade_name($r->class_name, $r->section); ?></td>
-                    <td style="text-align:right; font-weight: 700;"><?php echo esc_html($r->action_taken); ?></td>
-                    <td><?php echo esc_html($r->violation_code); ?></td>
+                    <td><?php echo date('Y-m-d', strtotime($r->created_at)); ?></td>
                 </tr>
             <?php endforeach; ?>
         </tbody>

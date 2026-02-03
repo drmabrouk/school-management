@@ -51,20 +51,20 @@
         <div class="header">
             <div class="moe-title">وزارة التربية والتعليم – الإمارات العربية المتحدة</div>
             <div class="school-title"><?php echo esc_html($school['school_name']); ?></div>
-            <?php if ($school['school_logo']): ?>
-                <img src="<?php echo esc_url($school['school_logo']); ?>" style="max-height: 80px; margin-bottom: 10px;">
+            <?php if (!empty($school['school_logo'])): ?>
+                <img src="<?php echo esc_url($school['school_logo']); ?>" style="max-height: 100px; width: auto; object-fit: contain; display: block; margin: 10px auto;">
             <?php endif; ?>
             <div class="report-type">قرار إداري انضباطي</div>
         </div>
 
         <?php
         $report_date = date_i18n('Y-m-d');
-        $archive_no = 'ARCH-' . date('Ymd') . '-' . strtoupper(wp_generate_password(4, false));
+        $archive_no = date('Ymd') . rand(1000, 9999);
         ?>
         <div class="meta-info">
-            <div>الرقم الأرشيفي: <strong><?php echo $archive_no; ?></strong></div>
-            <div>تاريخ التقرير: <strong><?php echo $report_date; ?></strong></div>
-            <div>الرقم المرجعي: <strong><?php echo 'DEC-' . date('Ym') . '-' . $record->id; ?></strong></div>
+            <div style="font-size: 10px;">الرقم الأرشيفي: <strong style="color: #4A5568;"><?php echo $archive_no; ?></strong></div>
+            <div style="font-size: 10px;">تاريخ التقرير: <strong style="color: #4A5568;"><?php echo $report_date; ?></strong></div>
+            <div style="font-size: 10px;">الرقم المرجعي: <strong><?php echo date('Ym') . $record->id; ?></strong></div>
         </div>
 
         <div class="content-grid">
