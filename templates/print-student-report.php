@@ -55,8 +55,13 @@
             </div>
             <div style="text-align: left; flex: 1;">
                 <h3 style="margin: 0; color: #F63049; font-weight: 800;">التقرير الانضباطي الرسمي</h3>
-                <p style="margin: 5px 0; font-size: 12px; color: #718096;">الرقم المرجعي: <?php echo 'REP-' . date('Ym') . '-' . $student->id; ?></p>
-                <p style="margin: 2px 0; font-size: 12px; color: #718096;">تاريخ الطباعة: <?php echo date('Y/m/d'); ?></p>
+                <?php
+                $report_date = date_i18n('Y-m-d');
+                $archive_no = 'ARCH-' . date('Ymd') . '-' . strtoupper(wp_generate_password(4, false));
+                ?>
+                <p style="margin: 5px 0; font-size: 12px; color: #111F35; font-weight: 800;">الرقم الأرشيفي: <?php echo $archive_no; ?></p>
+                <p style="margin: 2px 0; font-size: 12px; color: #111F35; font-weight: 800;">تاريخ التقرير: <?php echo $report_date; ?></p>
+                <p style="margin: 5px 0; font-size: 11px; color: #718096;">الرقم المرجعي: <?php echo 'REP-' . date('Ym') . '-' . $student->id; ?></p>
             </div>
         </div>
     <?php endif; ?>
@@ -106,34 +111,28 @@
         </div>
     </div>
 
-    <h3>سجل المخالفات والإجراءات</h3>
+    <h3>سجل المخالفات والقرارات الصادرة</h3>
     <table>
         <thead>
             <tr>
-                <th>التاريخ</th>
-                <th>النوع</th>
-                <th>الحدة</th>
-                <th>التفاصيل</th>
-                <th>الإجراء المتخذ</th>
-                <th>العقوبات / المكافآت</th>
+                <th>كود الطالب</th>
+                <th>تاريخ المخالفة</th>
+                <th>الصف الدراسي</th>
+                <th>القرار (الإجراء المتخذ)</th>
+                <th>البند القانوني / المرجع</th>
             </tr>
         </thead>
         <tbody>
             <?php if (empty($records)): ?>
-                <tr><td colspan="6">لا توجد سجلات مسجلة لهذا الطالب.</td></tr>
+                <tr><td colspan="5">لا توجد سجلات مسجلة لهذا الطالب.</td></tr>
             <?php else: ?>
-                <?php 
-                $severity_labels = SM_Settings::get_severities();
-                foreach ($records as $r): ?>
+                <?php foreach ($records as $r): ?>
                 <tr>
+                    <td style="font-family: monospace; font-weight: 700;"><?php echo esc_html($student->student_code); ?></td>
                     <td><?php echo date('Y-m-d', strtotime($r->created_at)); ?></td>
-                    <td><?php echo isset($types_labels[$r->type]) ? $types_labels[$r->type] : $r->type; ?></td>
-                    <td class="<?php echo $r->severity === 'high' ? 'severity-high' : ''; ?>">
-                        <?php echo isset($severity_labels[$r->severity]) ? $severity_labels[$r->severity] : $r->severity; ?>
-                    </td>
-                    <td><?php echo esc_html($r->details); ?></td>
-                    <td><?php echo esc_html($r->action_taken); ?></td>
-                    <td><?php echo esc_html($r->reward_penalty); ?></td>
+                    <td><?php echo SM_Settings::format_grade_name($student->class_name, $student->section); ?></td>
+                    <td style="font-weight: 800; color: #F63049;"><?php echo esc_html($r->action_taken); ?></td>
+                    <td><?php echo esc_html($r->violation_code); ?></td>
                 </tr>
                 <?php endforeach; ?>
             <?php endif; ?>
