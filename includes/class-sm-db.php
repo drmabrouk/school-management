@@ -385,9 +385,9 @@ class SM_DB {
         global $wpdb;
         $data = array(
             'students' => $wpdb->get_results("SELECT * FROM {$wpdb->prefix}sm_students", ARRAY_A),
-            'records' => $wpdb->get_results("SELECT * FROM {$wpdb->prefix}sm_records", ARRAY_A),
-            'attendance' => $wpdb->get_results("SELECT * FROM {$wpdb->prefix}sm_attendance", ARRAY_A),
-            'confiscated_items' => $wpdb->get_results("SELECT * FROM {$wpdb->prefix}sm_confiscated_items", ARRAY_A)
+            'records' => $wpdb->get_results("SELECT r.*, s.student_code FROM {$wpdb->prefix}sm_records r JOIN {$wpdb->prefix}sm_students s ON r.student_id = s.id", ARRAY_A),
+            'attendance' => $wpdb->get_results("SELECT a.*, s.student_code FROM {$wpdb->prefix}sm_attendance a JOIN {$wpdb->prefix}sm_students s ON a.student_id = s.id", ARRAY_A),
+            'confiscated_items' => $wpdb->get_results("SELECT c.*, s.student_code FROM {$wpdb->prefix}sm_confiscated_items c JOIN {$wpdb->prefix}sm_students s ON c.student_id = s.id", ARRAY_A)
         );
         return json_encode($data);
     }
@@ -397,21 +397,49 @@ class SM_DB {
         $data = json_decode($json, true);
         if (!$data) return false;
 
-        // MERGE MODE (No Truncate)
+        // Cache for student code -> local ID
+        $student_map = array();
+
+        // 1. Process Students First
         if (isset($data['students'])) {
             foreach ($data['students'] as $student) {
                 $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}sm_students WHERE student_code = %s", $student['student_code']));
                 if ($exists) {
                     unset($student['id']);
                     $wpdb->update("{$wpdb->prefix}sm_students", $student, array('id' => $exists));
+                    $student_map[$student['student_code']] = $exists;
                 } else {
+                    unset($student['id']);
                     $wpdb->insert("{$wpdb->prefix}sm_students", $student);
+                    $student_map[$student['student_code']] = $wpdb->insert_id;
                 }
             }
         }
+
+        // Helper to get student ID by code (local)
+        $get_sid = function($code) use (&$student_map, $wpdb) {
+            if (isset($student_map[$code])) return $student_map[$code];
+            $id = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}sm_students WHERE student_code = %s", $code));
+            if ($id) $student_map[$code] = $id;
+            return $id;
+        };
+
+        // 2. Process Records
         if (isset($data['records'])) {
             foreach ($data['records'] as $record) {
-                $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}sm_records WHERE id = %d", $record['id']));
+                $local_sid = $get_sid($record['student_code'] ?? '');
+                if (!$local_sid) continue;
+
+                $old_id = $record['id'];
+                unset($record['id'], $record['student_code']);
+                $record['student_id'] = $local_sid;
+
+                // Check if this specific record exists (by time and student and type)
+                $exists = $wpdb->get_var($wpdb->prepare(
+                    "SELECT id FROM {$wpdb->prefix}sm_records WHERE student_id = %d AND created_at = %s AND type = %s",
+                    $local_sid, $record['created_at'], $record['type']
+                ));
+
                 if ($exists) {
                     $wpdb->update("{$wpdb->prefix}sm_records", $record, array('id' => $exists));
                 } else {
@@ -419,20 +447,38 @@ class SM_DB {
                 }
             }
         }
+        // 3. Process Attendance
         if (isset($data['attendance'])) {
             foreach ($data['attendance'] as $att) {
-                $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}sm_attendance WHERE student_id = %d AND date = %s", $att['student_id'], $att['date']));
+                $local_sid = $get_sid($att['student_code'] ?? '');
+                if (!$local_sid) continue;
+
+                unset($att['id'], $att['student_code']);
+                $att['student_id'] = $local_sid;
+
+                $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}sm_attendance WHERE student_id = %d AND date = %s", $local_sid, $att['date']));
                 if ($exists) {
-                    unset($att['id']);
                     $wpdb->update("{$wpdb->prefix}sm_attendance", $att, array('id' => $exists));
                 } else {
                     $wpdb->insert("{$wpdb->prefix}sm_attendance", $att);
                 }
             }
         }
+
+        // 4. Process Confiscated Items
         if (isset($data['confiscated_items'])) {
             foreach ($data['confiscated_items'] as $item) {
-                $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$wpdb->prefix}sm_confiscated_items WHERE id = %d", $item['id']));
+                $local_sid = $get_sid($item['student_code'] ?? '');
+                if (!$local_sid) continue;
+
+                unset($item['id'], $item['student_code']);
+                $item['student_id'] = $local_sid;
+
+                $exists = $wpdb->get_var($wpdb->prepare(
+                    "SELECT id FROM {$wpdb->prefix}sm_confiscated_items WHERE student_id = %d AND created_at = %s AND item_name = %s",
+                    $local_sid, $item['created_at'], $item['item_name']
+                ));
+
                 if ($exists) {
                     $wpdb->update("{$wpdb->prefix}sm_confiscated_items", $item, array('id' => $exists));
                 } else {
@@ -832,9 +878,16 @@ class SM_DB {
         return $wpdb->get_results($query);
     }
 
-    public static function add_subject($name, $grade_id) {
+    public static function add_subject($name, $grade_ids) {
         global $wpdb;
-        return $wpdb->insert("{$wpdb->prefix}sm_subjects", array('name' => $name, 'grade_id' => $grade_id));
+        if (!is_array($grade_ids)) $grade_ids = array($grade_ids);
+
+        $success = 0;
+        foreach ($grade_ids as $gid) {
+            $res = $wpdb->insert("{$wpdb->prefix}sm_subjects", array('name' => sanitize_text_field($name), 'grade_id' => intval($gid)));
+            if ($res) $success++;
+        }
+        return $success > 0;
     }
 
     public static function delete_subject($id) {

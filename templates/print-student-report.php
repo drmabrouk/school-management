@@ -140,16 +140,16 @@
         </tbody>
     </table>
 
-    <div style="margin-top: 60px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; text-align: center;">
+    <div style="margin-top: 60px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; text-align: center;">
         <div>
-            <p style="font-weight: 700; margin-bottom: 40px; color: #4A5568;">مشرف الانضباط</p>
-            <div style="border-bottom: 1px dashed #718096; width: 200px; margin: 0 auto;"></div>
-            <div style="font-size: 12px; color: #718096; margin-top: 5px;">التوقيع والختم</div>
+            <p style="font-weight: 700; margin-bottom: 50px; color: #111F35; font-size: 16px;">مشرف الانضباط</p>
+            <div style="border-bottom: 1px dashed #cbd5e0; width: 220px; margin: 0 auto;"></div>
+            <div style="font-size: 11px; color: #718096; margin-top: 8px;">التوقيع والختم الرسمي</div>
         </div>
         <div>
-            <p style="font-weight: 700; margin-bottom: 40px; color: #4A5568;">مدير المدرسة</p>
-            <div style="font-weight: 900; margin-bottom: 5px; color: #111F35;"><?php echo esc_html($school['school_principal_name'] ?? ''); ?></div>
-            <div style="border-bottom: 1px dashed #718096; width: 200px; margin: 0 auto;"></div>
+            <p style="font-weight: 700; margin-bottom: 50px; color: #111F35; font-size: 16px;">مدير المدرسة</p>
+            <div style="border-bottom: 1px dashed #cbd5e0; width: 220px; margin: 0 auto;"></div>
+            <div style="font-size: 11px; color: #718096; margin-top: 8px;">الختم والتوقيع</div>
         </div>
     </div>
     <?php if (!empty($print_settings['footer'])): ?>

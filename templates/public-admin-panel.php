@@ -876,10 +876,18 @@ $greeting = ($hour >= 5 && $hour < 12) ? 'صباح الخير' : 'مساء ال�
                                     <div style="background:white; padding:20px; border-radius:8px; border:1px solid #eee;">
                                         <h5 style="margin-top:0;">تصدير البيانات الشاملة</h5>
                                         <p style="font-size:12px; color:#666; margin-bottom:15px;">قم بتحميل نسخة كاملة من بيانات الطلاب والمخالفات بصيغة JSON.</p>
-                                        <form method="post">
-                                            <?php wp_nonce_field('sm_admin_action', 'sm_admin_nonce'); ?>
-                                            <button type="submit" name="sm_download_backup" class="sm-btn" style="background:#27ae60; width:auto;">تصدير النسخة الاحتياطية</button>
-                                        </form>
+                                        <div style="display:flex; gap:10px;">
+                                            <form method="post">
+                                                <?php wp_nonce_field('sm_admin_action', 'sm_admin_nonce'); ?>
+                                                <button type="submit" name="sm_download_backup" class="sm-btn" style="background:#27ae60; width:auto;">نسخة JSON (للاستعادة)</button>
+                                            </form>
+                                            <form method="get" action="<?php echo admin_url('admin-ajax.php'); ?>">
+                                                <input type="hidden" name="action" value="sm_export_violations_csv">
+                                                <input type="hidden" name="range" value="all">
+                                                <input type="hidden" name="nonce" value="<?php echo wp_create_nonce('sm_export_action'); ?>">
+                                                <button type="submit" class="sm-btn" style="background:#111F35; width:auto;">سجل الانضباط الشامل (CSV)</button>
+                                            </form>
+                                        </div>
                                     </div>
                                     <div style="background:white; padding:20px; border-radius:8px; border:1px solid #eee;">
                                         <h5 style="margin-top:0;">تصدير سجلات طالب محدد</h5>

@@ -1,8 +1,12 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 <div class="sm-form-container" dir="rtl">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #eee;">
         <h3 class="sm-form-title" style="margin:0; border:none; padding:0; font-size: 1.2em; font-weight: 800; color: var(--sm-primary-color);">بيانات المخالفة الجديدة</h3>
-        <div id="barcode-scanner-section">
+        <div id="barcode-scanner-section" style="display: flex; align-items: center; gap: 15px;">
+            <div style="display: flex; align-items: center; gap: 10px; background: #f1f5f9; padding: 5px 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <label class="sm-label" style="margin:0; font-size: 12px; font-weight: 800; color: #475569;">التاريخ:</label>
+                <input type="date" form="violation-form" name="custom_date" class="sm-input" value="<?php echo date('Y-m-d'); ?>" required style="padding: 4px 8px; font-size: 12px; width: auto; border: none; background: transparent;">
+            </div>
             <button id="start-scanner" type="button" class="sm-btn" style="width: auto; padding: 10px 20px; background: var(--sm-dark-color); font-size: 13px; font-weight: 700;"><span class="dashicons dashicons-barcode" style="vertical-align: middle; margin-left: 5px;"></span> استخدام الماسح الضوئي</button>
         </div>
     </div>
@@ -60,11 +64,6 @@
 
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
             <div class="sm-form-group">
-                <label class="sm-label">تاريخ المخالفة:</label>
-                <input type="date" name="custom_date" class="sm-input" value="<?php echo date('Y-m-d'); ?>" required>
-            </div>
-
-            <div class="sm-form-group">
                 <label class="sm-label">تصنيف الموقف:</label>
                 <select name="classification" class="sm-select">
                     <option value="general">عام</option>
@@ -80,14 +79,7 @@
                 <input type="number" name="points" id="violation_points" class="sm-input" value="0">
             </div>
 
-            <div class="sm-form-group">
-                <label class="sm-label">درجة الحدة (تلقائي):</label>
-                <select name="severity" id="violation_severity" class="sm-select">
-                    <option value="low">منخفضة (تنبيه)</option>
-                    <option value="medium">متوسطة (إنذار)</option>
-                    <option value="high">خطيرة (إجراء تأديبي)</option>
-                </select>
-            </div>
+            <input type="hidden" name="severity" id="violation_severity" value="low">
             <input type="hidden" name="type" id="hidden_violation_type">
         </div>
 
@@ -147,6 +139,8 @@ function onViolationSelected() {
     if (degree == 1) sev.value = 'low';
     else if (degree == 2) sev.value = 'medium';
     else sev.value = 'high';
+
+    if (typeof updateSuggestions === 'function') updateSuggestions(sev.value);
 }
 
 (function() {
@@ -157,14 +151,7 @@ const severityActions = {
     'high': <?php echo json_encode(explode("\n", str_replace("\r", "", $suggested['high']))); ?>
 };
 
-const sevEl = document.getElementById('violation_severity');
-if (sevEl) {
-    sevEl.addEventListener('change', function() {
-        updateSuggestions(this.value);
-    });
-}
-
-function updateSuggestions(sev) {
+window.updateSuggestions = function(sev) {
     const container = document.getElementById('action-suggestions');
     if (!container) return;
     container.innerHTML = '';
@@ -355,8 +342,11 @@ function fetchIntelligence(studentId) {
 
             // Smart Auto-select based on history
             if (data.stats.high_severity_count > 2) {
-                document.getElementById('violation_severity').value = 'high';
-                updateSuggestions('high');
+                const sEl = document.getElementById('violation_severity');
+                if (sEl) {
+                    sEl.value = 'high';
+                    updateSuggestions('high');
+                }
             }
         }
     });

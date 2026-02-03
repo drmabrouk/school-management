@@ -1356,17 +1356,26 @@ class SM_Public {
         if (!is_user_logged_in() || !current_user_can('manage_grades')) wp_send_json_error('Unauthorized');
         if (!wp_verify_nonce($_POST['nonce'], 'sm_grade_action')) wp_send_json_error('Security check failed');
 
+        $subject = sanitize_text_field($_POST['subject']);
+        $user = wp_get_current_user();
+        if (in_array('sm_teacher', (array)$user->roles) && !current_user_can('manage_options')) {
+            $spec = get_user_meta($user->ID, 'sm_specialization', true);
+            if ($spec && $spec !== $subject) {
+                wp_send_json_error('غير مسموح لك برصد درجات لمادة غير مخصص لك.');
+            }
+        }
+
         global $wpdb;
         $result = $wpdb->insert("{$wpdb->prefix}sm_grades", array(
             'student_id' => intval($_POST['student_id']),
-            'subject' => sanitize_text_field($_POST['subject']),
+            'subject' => $subject,
             'term' => sanitize_text_field($_POST['term']),
             'grade_val' => sanitize_text_field($_POST['grade_val']),
             'created_at' => current_time('mysql')
         ));
 
         if ($result) {
-            SM_Logger::log('رصد درجة', "تم رصد درجة للطالب ID: {$_POST['student_id']} في مادة {$_POST['subject']}");
+            SM_Logger::log('رصد درجة', "تم رصد درجة للطالب ID: {$_POST['student_id']} في مادة $subject");
             wp_send_json_success();
         } else {
             wp_send_json_error('Failed to save grade');
@@ -1406,8 +1415,13 @@ class SM_Public {
         if (!wp_verify_nonce($_POST['nonce'], 'sm_admin_action')) wp_send_json_error('Security');
 
         $name = sanitize_text_field($_POST['name']);
-        $grade_id = intval($_POST['grade_id']);
-        if (SM_DB::add_subject($name, $grade_id)) wp_send_json_success();
+        $grade_ids = isset($_POST['grade_ids']) ? array_map('intval', $_POST['grade_ids']) : array();
+
+        if (empty($grade_ids) && isset($_POST['grade_id'])) {
+            $grade_ids = array(intval($_POST['grade_id']));
+        }
+
+        if (SM_DB::add_subject($name, $grade_ids)) wp_send_json_success();
         else wp_send_json_error();
     }
 
@@ -1430,6 +1444,14 @@ class SM_Public {
         if (!wp_verify_nonce($_POST['nonce'], 'sm_grade_action')) wp_send_json_error('Security');
 
         $subject = sanitize_text_field($_POST['subject']);
+        $user = wp_get_current_user();
+        if (in_array('sm_teacher', (array)$user->roles) && !current_user_can('manage_options')) {
+            $spec = get_user_meta($user->ID, 'sm_specialization', true);
+            if ($spec && $spec !== $subject) {
+                wp_send_json_error('غير مسموح لك برصد درجات لمادة غير مخصص لك.');
+            }
+        }
+
         $term = sanitize_text_field($_POST['term']);
         $grades = json_decode(stripslashes($_POST['grades']), true);
 
@@ -1553,18 +1575,47 @@ class SM_Public {
         }
         if (!wp_verify_nonce($_POST['nonce'], 'sm_admin_action')) wp_send_json_error('Security');
 
-        $class = sanitize_text_field($_POST['class_name']);
-        $section = sanitize_text_field($_POST['section']);
+        $classes_json = $_POST['classes'] ?? '';
+        $classes = json_decode(stripslashes($classes_json), true);
+
+        if (empty($classes) && !empty($_POST['class_name'])) {
+            $classes = array(array('class_name' => $_POST['class_name'], 'section' => $_POST['section']));
+        }
+
         $day = sanitize_text_field($_POST['day']);
         $period = intval($_POST['period']);
         $subject_id = intval($_POST['subject_id']);
         $teacher_id = intval($_POST['teacher_id']);
 
-        if (SM_DB::update_timetable($class, $section, $day, $period, $subject_id, $teacher_id)) {
-            wp_send_json_success();
+        $success_count = 0;
+        foreach ($classes as $c) {
+            if (SM_DB::update_timetable($c['class_name'], $c['section'], $day, $period, $subject_id, $teacher_id)) {
+                $success_count++;
+            }
+        }
+
+        if ($success_count > 0) {
+            wp_send_json_success($success_count);
         } else {
             wp_send_json_error('Failed');
         }
+    }
+
+    public function ajax_save_timetable_settings() {
+        if (!current_user_can('manage_options') && !in_array('sm_principal', (array)wp_get_current_user()->roles)) {
+            wp_send_json_error('Unauthorized');
+        }
+        if (!wp_verify_nonce($_POST['nonce'], 'sm_admin_action')) wp_send_json_error('Security');
+
+        $periods = intval($_POST['periods']);
+        $days = isset($_POST['days']) ? array_map('sanitize_text_field', $_POST['days']) : array();
+
+        SM_Settings::save_timetable_settings(array(
+            'periods' => $periods,
+            'days' => $days
+        ));
+
+        wp_send_json_success();
     }
 
     public function ajax_download_plans_zip() {

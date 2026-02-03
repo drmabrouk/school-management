@@ -69,6 +69,16 @@
         </div>
         <div class="sm-modal-body">
             <div class="sm-form-group">
+                <label class="sm-label">استخدام نموذج جاهز (اختياري):</label>
+                <select id="survey_template_select" class="sm-select" onchange="smLoadSurveyTemplate(this.value)">
+                    <option value="">-- اختر نموذجاً --</option>
+                    <option value="student_satisfaction">استبيان رضا الطلاب عن الخدمات المدرسية</option>
+                    <option value="teacher_feedback">استبيان تقييم أداء المعلم (من قبل المنسق)</option>
+                    <option value="parent_engagement">استبيان التواصل مع أولياء الأمور</option>
+                    <option value="academic_environment">استبيان البيئة التعليمية والمرافق</option>
+                </select>
+            </div>
+            <div class="sm-form-group">
                 <label class="sm-label">عنوان الاستطلاع:</label>
                 <input type="text" id="survey_title" class="sm-input" placeholder="مثال: استبيان رضا المعلمين">
             </div>
@@ -112,6 +122,74 @@
 </div>
 
 <script>
+const surveyTemplates = {
+    'student_satisfaction': {
+        title: 'استبيان رضا الطلاب عن الخدمات المدرسية',
+        recipients: 'sm_student',
+        questions: [
+            'ما مدى رضاك عن نظافة المرافق المدرسية؟',
+            'هل تجد الوجبات المدرسية متنوعة وصحية؟',
+            'ما تقييمك لتوفر الأدوات في المختبرات العلمية؟',
+            'هل تشعر بالأمان داخل الحرم المدرسي؟',
+            'ما مدى سرعة استجابة الإدارة لطلبات الطلاب؟'
+        ]
+    },
+    'teacher_feedback': {
+        title: 'استبيان تقييم الكفاءة التدريسية',
+        recipients: 'sm_coordinator',
+        questions: [
+            'مدى التزام المعلم بالخطة الدراسية المعتمدة؟',
+            'استخدام الوسائل التعليمية المبتكرة والذكية؟',
+            'القدرة على إدارة الصف وتفاعل الطلاب؟',
+            'دقة وسرعة رصد درجات الطلاب وتقييمهم؟',
+            'التعاون مع الزملاء والإدارة المدرسية؟'
+        ]
+    },
+    'parent_engagement': {
+        title: 'استبيان تواصل المدرسة مع ولي الأمر',
+        recipients: 'all',
+        questions: [
+            'ما مدى سهولة الوصول إلى تقارير سلوك ابنك/ابنتك؟',
+            'هل تجد تجاوباً سريعاً من المشرف التربوي؟',
+            'ما رأيك في جودة الرسائل التنبيهية التي تصلك؟',
+            'هل تساهم الاجتماعات الدورية في تحسين مستوى الطالب؟',
+            'تقييمك العام لسهولة استخدام نظام المدرسة الإلكتروني؟'
+        ]
+    },
+    'academic_environment': {
+        title: 'استبيان جودة البيئة التعليمية',
+        recipients: 'sm_teacher',
+        questions: [
+            'توفر الموارد التعليمية والكتب في الوقت المحدد؟',
+            'مناسبة التجهيزات التقنية في القاعات الدراسية؟',
+            'كفاءة نظام رصد الغياب والحضور؟',
+            'مدى وضوح اللائحة السلوكية وتطبيقها بعدالة؟',
+            'رضاك العام عن بيئة العمل داخل المدرسة؟'
+        ]
+    }
+};
+
+function smLoadSurveyTemplate(key) {
+    if (!key || !surveyTemplates[key]) return;
+    const t = surveyTemplates[key];
+    document.getElementById('survey_title').value = t.title;
+    document.getElementById('survey_recipients').value = t.recipients;
+
+    const container = document.getElementById('survey-questions-container');
+    container.innerHTML = '<label class="sm-label">الأسئلة (نص السؤال):</label>';
+
+    t.questions.forEach(q => {
+        const div = document.createElement('div');
+        div.className = 'survey-q-item';
+        div.style = "display:flex; gap:10px; margin-bottom:10px;";
+        div.innerHTML = `
+            <input type="text" class="sm-input survey-q-input" value="${q}" placeholder="نص السؤال">
+            <button class="sm-btn sm-btn-outline" style="color:red; border-color:red; width:40px;" onclick="this.parentElement.remove()">×</button>
+        `;
+        container.appendChild(div);
+    });
+}
+
 function smOpenNewSurveyModal() {
     document.getElementById('new-survey-modal').style.display = 'flex';
 }
