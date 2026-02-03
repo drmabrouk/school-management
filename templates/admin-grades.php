@@ -40,7 +40,14 @@ $students = SM_DB::get_students();
                 </div>
                 <div class="sm-form-group" style="margin-bottom:0;">
                     <label class="sm-label">المادة:</label>
-                    <input type="text" id="grade-subject" class="sm-input" placeholder="مثال: لغة عربية">
+                    <select id="grade-subject" class="sm-select">
+                        <option value="">-- اختر المادة --</option>
+                        <?php
+                        $subjects_all = SM_DB::get_subjects();
+                        $unique_subjects = array_unique(array_column($subjects_all, 'name'));
+                        foreach ($unique_subjects as $subname) echo '<option value="'.$subname.'">'.$subname.'</option>';
+                        ?>
+                    </select>
                 </div>
                 <div class="sm-form-group" style="margin-bottom:0;">
                     <label class="sm-label">الفصل:</label>
@@ -79,7 +86,12 @@ $students = SM_DB::get_students();
                 </div>
                 <div class="sm-form-group" style="margin-bottom:0;">
                     <label class="sm-label">المادة:</label>
-                    <input type="text" id="batch-subject" class="sm-input">
+                    <select id="batch-subject" class="sm-select">
+                        <option value="">-- اختر المادة --</option>
+                        <?php
+                        foreach ($unique_subjects as $subname) echo '<option value="'.$subname.'">'.$subname.'</option>';
+                        ?>
+                    </select>
                 </div>
                 <div class="sm-form-group" style="margin-bottom:0;">
                     <label class="sm-label">الفصل:</label>
@@ -105,10 +117,14 @@ $students = SM_DB::get_students();
                     <input type="text" id="new-subject-name" class="sm-input">
                 </div>
                 <div class="sm-form-group">
-                    <label class="sm-label">الصف:</label>
-                    <select id="new-subject-grade" class="sm-select">
-                        <?php for($i=1; $i<=12; $i++) echo '<option value="'.$i.'">الصف '.$i.'</option>'; ?>
-                    </select>
+                    <label class="sm-label">تطبيق على الصفوف (متعدد):</label>
+                    <div style="background: #fff; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; max-height: 200px; overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <?php for($i=1; $i<=12; $i++): ?>
+                            <label style="font-size: 12px; display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                <input type="checkbox" class="new-subject-grade-check" value="<?php echo $i; ?>"> صف <?php echo $i; ?>
+                            </label>
+                        <?php endfor; ?>
+                    </div>
                 </div>
                 <button onclick="addSubject()" class="sm-btn" style="width:100%;">إضافة المادة</button>
             </div>
@@ -195,18 +211,32 @@ function saveBatchGrades() {
 
 function addSubject() {
     const name = document.getElementById('new-subject-name').value;
-    const gradeId = document.getElementById('new-subject-grade').value;
-    if (!name) return;
+    const gradeIds = [];
+    document.querySelectorAll('.new-subject-grade-check:checked').forEach(chk => gradeIds.push(chk.value));
+
+    if (!name || gradeIds.length === 0) {
+        alert('يرجى إدخال اسم المادة واختيار صف واحد على الأقل');
+        return;
+    }
 
     const formData = new FormData();
     formData.append('action', 'sm_add_subject');
     formData.append('name', name);
-    formData.append('grade_id', gradeId);
+    gradeIds.forEach(id => formData.append('grade_ids[]', id));
     formData.append('nonce', '<?php echo wp_create_nonce("sm_admin_action"); ?>');
 
     fetch('<?php echo admin_url('admin-ajax.php'); ?>', { method: 'POST', body: formData })
     .then(r => r.json())
-    .then(res => { if (res.success) { smShowNotification('تمت إضافة المادة'); loadSubjects(); } });
+    .then(res => {
+        if (res.success) {
+            smShowNotification('تمت إضافة المادة بنجاح');
+            loadSubjects();
+            document.getElementById('new-subject-name').value = '';
+            document.querySelectorAll('.new-subject-grade-check').forEach(chk => chk.checked = false);
+        } else {
+            smShowNotification('خطأ في الحفظ', true);
+        }
+    });
 }
 
 function loadSubjects() {

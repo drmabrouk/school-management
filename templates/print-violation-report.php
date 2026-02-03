@@ -36,7 +36,6 @@ $academic = SM_Settings::get_academic_structure();
     <div class="header">
         <div class="school-info">
             <h1><?php echo esc_html($school['school_name']); ?></h1>
-            <p><?php echo esc_html($school['school_principal_name']); ?></p>
             <p><?php echo date_i18n('l j F Y'); ?></p>
         </div>
         <div class="logo">
@@ -76,6 +75,19 @@ $academic = SM_Settings::get_academic_structure();
             <?php endforeach; ?>
         </tbody>
     </table>
+
+    <div style="margin-top: 60px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; text-align: center;">
+        <div>
+            <p style="font-weight: 700; margin-bottom: 50px; color: #111F35; font-size: 16px;">مشرف الانضباط</p>
+            <div style="border-bottom: 1px dashed #cbd5e0; width: 220px; margin: 0 auto;"></div>
+            <div style="font-size: 11px; color: #718096; margin-top: 8px;">التوقيع والختم الرسمي</div>
+        </div>
+        <div>
+            <p style="font-weight: 700; margin-bottom: 50px; color: #111F35; font-size: 16px;">مدير المدرسة</p>
+            <div style="border-bottom: 1px dashed #cbd5e0; width: 220px; margin: 0 auto;"></div>
+            <div style="font-size: 11px; color: #718096; margin-top: 8px;">الختم والتوقيع</div>
+        </div>
+    </div>
 
     <div class="footer">
         <div>نظام إدارة المدرسة - تم الاستخراج بواسطة: <?php echo wp_get_current_user()->display_name; ?></div>

@@ -118,40 +118,6 @@ function smSubmitSurveyResponse(surveyId, questionsCount) {
     </div>
 </div>
 
-<div style="background: #fff; padding: 25px; border-radius: 12px; border: 1px solid var(--sm-border-color); margin-bottom: 40px;">
-    <h3 style="margin:0 0 20px 0; border-bottom: 2px solid var(--sm-accent-color); padding-bottom: 10px;">نظرة عامة على النتائج الأكاديمية (أحدث 10 نتائج مرصودة)</h3>
-    <div class="sm-table-container">
-        <table class="sm-table" style="box-shadow:none;">
-            <thead>
-                <tr>
-                    <th>الطالب</th>
-                    <th>المادة</th>
-                    <th>الفصل</th>
-                    <th>الدرجة</th>
-                    <th>تاريخ الرصد</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php
-                global $wpdb;
-                $latest_grades = $wpdb->get_results("SELECT g.*, s.name as student_name FROM {$wpdb->prefix}sm_grades g JOIN {$wpdb->prefix}sm_students s ON g.student_id = s.id ORDER BY g.created_at DESC LIMIT 10");
-                if (empty($latest_grades)): ?>
-                    <tr><td colspan="5" style="text-align:center;">لا يوجد نتائج مرصودة بعد.</td></tr>
-                <?php else:
-                    foreach ($latest_grades as $g): ?>
-                        <tr>
-                            <td style="font-weight:700;"><?php echo esc_html($g->student_name); ?></td>
-                            <td><?php echo esc_html($g->subject); ?></td>
-                            <td><?php echo esc_html($g->term); ?></td>
-                            <td><span class="sm-badge" style="background:var(--sm-bg-light); color:var(--sm-primary-color); font-weight:800;"><?php echo esc_html($g->grade_val); ?></span></td>
-                            <td style="font-size:0.85em; color:#718096;"><?php echo $g->created_at; ?></td>
-                        </tr>
-                    <?php endforeach;
-                endif; ?>
-            </tbody>
-        </table>
-    </div>
-</div>
 
 
 <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px; margin-bottom: 40px;">

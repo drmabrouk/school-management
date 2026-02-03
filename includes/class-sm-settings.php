@@ -267,4 +267,16 @@ class SM_Settings {
 
         return $structure;
     }
+
+    public static function get_timetable_settings() {
+        $default = array(
+            'periods' => 8,
+            'days' => array('sun', 'mon', 'tue', 'wed', 'thu')
+        );
+        return get_option('sm_timetable_settings', $default);
+    }
+
+    public static function save_timetable_settings($data) {
+        update_option('sm_timetable_settings', $data);
+    }
 }
