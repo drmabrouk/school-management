@@ -11,6 +11,7 @@
                 <a href="<?php echo add_query_arg('role_filter', 'sm_coordinator'); ?>" class="sm-dropdown-item">منسقو المواد</a>
                 <a href="<?php echo add_query_arg('role_filter', 'sm_supervisor'); ?>" class="sm-dropdown-item">المشرفون</a>
                 <a href="<?php echo add_query_arg('role_filter', 'sm_principal'); ?>" class="sm-dropdown-item">مديرو المدارس</a>
+                <a href="<?php echo add_query_arg('role_filter', 'sm_clinic'); ?>" class="sm-dropdown-item">موظفو العيادة</a>
                 <a href="<?php echo add_query_arg('role_filter', 'sm_system_admin'); ?>" class="sm-dropdown-item">مديرو النظام</a>
             </div>
         </div>
@@ -107,6 +108,7 @@
                                 'sm_supervisor' => 'مشرف تربوي',
                                 'sm_coordinator' => 'منسق مادة',
                                 'sm_teacher' => 'معلم',
+                                'sm_clinic' => 'العيادة المدرسية',
                                 'sm_student' => 'طالب',
                                 'sm_parent' => 'ولي أمر'
                             );
@@ -178,7 +180,10 @@
                         <?php if ($current_level >= 3): ?><option value="sm_principal">مدير المدرسة</option><?php endif; ?>
                         <?php if ($current_level >= 2): ?><option value="sm_supervisor">مشرف تربوي</option><?php endif; ?>
                         <?php if ($current_level >= 1): ?><option value="sm_coordinator">منسق مادة</option><?php endif; ?>
-                        <?php if ($current_level >= 0): ?><option value="sm_teacher">معلم</option><?php endif; ?>
+                        <?php if ($current_level >= 0): ?>
+                            <option value="sm_teacher">معلم</option>
+                            <option value="sm_clinic">موظف عيادة</option>
+                        <?php endif; ?>
                         <option value="sm_student">طالب</option>
                     </select>
                 </div>
@@ -228,7 +233,10 @@
                         <?php if ($current_level >= 3): ?><option value="sm_principal">مدير المدرسة</option><?php endif; ?>
                         <?php if ($current_level >= 2): ?><option value="sm_supervisor">مشرف تربوي</option><?php endif; ?>
                         <?php if ($current_level >= 1): ?><option value="sm_coordinator">منسق مادة</option><?php endif; ?>
-                        <?php if ($current_level >= 0): ?><option value="sm_teacher">معلم</option><?php endif; ?>
+                        <?php if ($current_level >= 0): ?>
+                            <option value="sm_teacher">معلم</option>
+                            <option value="sm_clinic">موظف عيادة</option>
+                        <?php endif; ?>
                         <option value="sm_student">طالب</option>
                     </select>
                 </div>

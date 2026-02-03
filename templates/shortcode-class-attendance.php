@@ -2,8 +2,6 @@
 $school = SM_Settings::get_school_info();
 $academic = SM_Settings::get_academic_structure();
 
-$att_status = get_option('sm_attendance_manual_status', 'open');
-$is_open = true; // Always open per user request, but requires security code
 ?>
 <div class="sm-class-attendance-shortcode" dir="rtl" style="max-width: 900px; margin: 20px auto; padding: 40px; background: #fff; border-radius: 20px; border: 1px solid var(--sm-border-color); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
 
@@ -19,15 +17,6 @@ $is_open = true; // Always open per user request, but requires security code
             <?php echo date_i18n('l، j F Y'); ?>
         </div>
     </div>
-
-    <!-- Open/Closed Logic -->
-    <?php if (!$is_open): ?>
-        <div style="text-align: center; padding: 60px 40px; background: #fff5f5; border-radius: 15px; border: 2px dashed #fed7d7;">
-            <span class="dashicons dashicons-lock" style="font-size: 64px; width: 64px; height: 64px; color: #e53e3e; margin-bottom: 25px;"></span>
-            <h2 style="color: #c53030; font-weight: 900; margin: 0 0 10px 0; border: none;">عذراً، باب التسجيل مغلق حالياً</h2>
-            <p style="font-size: 1.2em; color: #718096; font-weight: 700;">“Attendance collection for today has been completed.”</p>
-        </div>
-    <?php else: ?>
 
     <!-- Selection: Grade & Section -->
     <?php
@@ -91,7 +80,6 @@ $is_open = true; // Always open per user request, but requires security code
         <h3 style="margin: 0; color: #a0aec0; border: none;">يرجى اختيار الصف والشعبة للمتابعة</h3>
         <p style="margin-top: 10px;">سيتم عرض قائمة الطلاب فور اختيار بيانات الفصل الصحيحة (أو إدخال كود الأمان للزوار).</p>
     </div>
-    <?php endif; // End is_open check ?>
 </div>
 
 <script>

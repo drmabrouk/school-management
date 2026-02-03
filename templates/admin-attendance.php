@@ -12,14 +12,14 @@ if (!isset($attendance_summary)) {
 <div class="sm-attendance-page" dir="rtl">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
         <h3 style="margin: 0; font-weight: 800;">سجل الحضور والغياب</h3>
-        <div style="display: flex; gap: 15px; align-items: center;">
-            <a href="<?php echo home_url('/attendance/'); ?>" class="sm-btn" style="background: var(--sm-accent-color); height: 45px; min-width: 160px; padding: 0 20px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; color: white !important;">
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <a href="<?php echo home_url('/attendance/'); ?>" class="sm-btn" style="background: var(--sm-accent-color); height: 45px; min-width: 180px; padding: 0 25px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; color: white !important; font-weight: 700; border-radius: 10px;">
                 <span class="dashicons dashicons-edit"></span> تسجيل الحضور
             </a>
-            <button onclick="printAbsenceReport('daily')" class="sm-btn sm-btn-secondary" style="height: 45px; min-width: 160px; padding: 0 20px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; color: white !important;">
+            <button onclick="printAbsenceReport('daily')" class="sm-btn sm-btn-secondary" style="height: 45px; min-width: 180px; padding: 0 25px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; color: white !important; font-weight: 700; border-radius: 10px;">
                 <span class="dashicons dashicons-printer"></span> غيابات اليوم
             </button>
-            <button onclick="printAbsenceReport('term')" class="sm-btn sm-btn-accent" style="height: 45px; min-width: 160px; padding: 0 20px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; color: white !important;">
+            <button onclick="printAbsenceReport('term')" class="sm-btn sm-btn-accent" style="height: 45px; min-width: 180px; padding: 0 25px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; color: white !important; font-weight: 700; border-radius: 10px;">
                 <span class="dashicons dashicons-chart-bar"></span> الأكثر غياباً (الفصل)
             </button>
             <div class="sm-form-group" style="margin-bottom: 0;">
@@ -113,14 +113,14 @@ if (!isset($attendance_summary)) {
              data-section="<?php echo esc_attr($card['section']); ?>"
              data-complete="<?php echo $card['is_complete'] ? 'yes' : 'no'; ?>"
              data-absences="<?php echo $card['has_absences'] ? 'yes' : 'no'; ?>"
-             style="background: #fff; border: 1px solid var(--sm-border-color); border-radius: 12px; padding: 15px 25px; transition: 0.2s; position: relative; border-right: 5px solid <?php echo $status_color; ?>; box-shadow: var(--sm-shadow); display: flex; align-items: center; justify-content: space-between; gap: 30px;">
+             style="background: #fff; border: 1px solid var(--sm-border-color); border-radius: 15px; padding: 20px 30px; transition: all 0.3s ease; position: relative; border-right: 6px solid <?php echo $status_color; ?>; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: space-between; gap: 30px; margin-bottom: 10px;">
 
-            <div style="flex: 2; display: flex; align-items: center; gap: 20px; cursor: pointer;" onclick="openAttendanceModal('<?php echo esc_js($card['class_name']); ?>', '<?php echo esc_js($card['section']); ?>')">
-                <div style="width: 45px; height: 45px; background: #f8fafc; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--sm-primary-color);">
-                    <span class="dashicons dashicons-groups" style="font-size: 24px;"></span>
+            <div style="flex: 2; display: flex; align-items: center; gap: 25px; cursor: pointer;" onclick="openAttendanceModal('<?php echo esc_js($card['class_name']); ?>', '<?php echo esc_js($card['section']); ?>')">
+                <div style="width: 50px; height: 50px; background: #f1f5f9; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--sm-primary-color); border: 1px solid #e2e8f0;">
+                    <span class="dashicons dashicons-groups" style="font-size: 28px; width: 28px; height: 28px;"></span>
                 </div>
                 <div>
-                    <h4 style="margin: 0; font-weight: 800; color: var(--sm-dark-color);"><?php echo esc_html($card['class_name']); ?> - شعبة <?php echo esc_html($card['section']); ?></h4>
+                    <h4 style="margin: 0; font-weight: 900; color: var(--sm-dark-color); font-size: 1.1em;"><?php echo esc_html($card['class_name']); ?> - شعبة <?php echo esc_html($card['section']); ?></h4>
                     <div style="font-size: 12px; color: var(--sm-text-gray); font-weight: 700; margin-top: 4px;">
                         إجمالي الطلاب: <?php echo $card['student_count']; ?>
                     </div>

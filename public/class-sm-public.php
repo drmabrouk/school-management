@@ -139,6 +139,7 @@ class SM_Public {
         if ($active_tab === 'confiscated' && !current_user_can('إدارة_المخالفات')) $active_tab = 'summary';
         if ($active_tab === 'printing' && !current_user_can('طباعة_التقارير')) $active_tab = 'summary';
         if ($active_tab === 'attendance' && !current_user_can('إدارة_الطلاب')) $active_tab = 'summary';
+        if ($active_tab === 'clinic' && !current_user_can('إدارة_العيادة')) $active_tab = 'summary';
         if ($active_tab === 'global-settings' && !current_user_can('إدارة_النظام')) $active_tab = 'summary';
         if ($active_tab === 'lesson-plans' && !($is_coordinator || $is_teacher)) $active_tab = 'summary';
         if ($active_tab === 'assignments' && !($is_teacher || $is_student)) $active_tab = 'summary';
@@ -1260,7 +1261,7 @@ class SM_Public {
     }
 
     public function ajax_confirm_clinic_arrival() {
-        if (!is_user_logged_in() || !current_user_can('manage_clinic')) wp_send_json_error('Unauthorized');
+        if (!is_user_logged_in() || !current_user_can('إدارة_العيادة')) wp_send_json_error('Unauthorized');
         if (!wp_verify_nonce($_POST['nonce'], 'sm_clinic_action')) wp_send_json_error('Security check');
 
         global $wpdb;
@@ -1276,7 +1277,7 @@ class SM_Public {
     }
 
     public function ajax_update_clinic_record() {
-        if (!is_user_logged_in() || !current_user_can('manage_clinic')) wp_send_json_error('Unauthorized');
+        if (!is_user_logged_in() || !current_user_can('إدارة_العيادة')) wp_send_json_error('Unauthorized');
         if (!wp_verify_nonce($_POST['nonce'], 'sm_clinic_action')) wp_send_json_error('Security check');
 
         global $wpdb;
@@ -1294,7 +1295,7 @@ class SM_Public {
     }
 
     public function ajax_get_clinic_reports() {
-        if (!is_user_logged_in() || !current_user_can('manage_clinic')) wp_send_json_error('Unauthorized');
+        if (!is_user_logged_in() || !current_user_can('إدارة_العيادة')) wp_send_json_error('Unauthorized');
         if (!wp_verify_nonce($_GET['nonce'] ?? '', 'sm_clinic_action')) wp_send_json_error('Security check failed');
 
         global $wpdb;
@@ -1919,10 +1920,13 @@ class SM_Public {
         // Handle Backup Download
         if (isset($_POST['sm_download_backup']) && wp_verify_nonce($_POST['sm_admin_nonce'], 'sm_admin_action')) {
             if (current_user_can('إدارة_النظام')) {
+                if (ob_get_length()) ob_clean();
                 SM_Settings::record_backup_download();
                 $data = SM_DB::get_backup_data();
-                header('Content-Type: application/json');
+                header('Content-Type: application/json; charset=utf-8');
                 header('Content-Disposition: attachment; filename="sm_backup_'.date('Y-m-d').'.json"');
+                header('Pragma: no-cache');
+                header('Expires: 0');
                 echo $data;
                 exit;
             }
